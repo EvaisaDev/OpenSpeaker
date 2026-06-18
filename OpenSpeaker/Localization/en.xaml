@@ -1,0 +1,474 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ═══════════════ UI TEXT ═══════════════ -->
+
+    <sys:String x:Key="App.Title">OpenSpeaker</sys:String>
+
+    <!-- Header bar -->
+    <sys:String x:Key="Btn.SilenceTts">🔇  Silence TTS</sys:String>
+    <sys:String x:Key="Btn.GenericSpeaker">🔊  Generic Speaker</sys:String>
+    <sys:String x:Key="Btn.SaveSettings">💾  Save Settings</sys:String>
+    <sys:String x:Key="Chk.Enabled">Enabled</sys:String>
+
+    <!-- Status bar -->
+    <sys:String x:Key="Lbl.QueueCount">Queue:</sys:String>
+    <sys:String x:Key="Lbl.Items">items</sys:String>
+    <sys:String x:Key="Lbl.Paused">PAUSED</sys:String>
+    <sys:String x:Key="Btn.Pause">Pause</sys:String>
+    <sys:String x:Key="Btn.Resume">Resume</sys:String>
+    <sys:String x:Key="Btn.Skip">Skip</sys:String>
+    <sys:String x:Key="Btn.ClearQueue">Clear Queue</sys:String>
+
+    <!-- Common buttons -->
+    <sys:String x:Key="Btn.Add">Add</sys:String>
+    <sys:String x:Key="Btn.Delete">Delete</sys:String>
+    <sys:String x:Key="Btn.Save">Save</sys:String>
+    <sys:String x:Key="Btn.Clear">Clear</sys:String>
+    <sys:String x:Key="Btn.New">New</sys:String>
+    <sys:String x:Key="Btn.Refresh">Refresh</sys:String>
+    <sys:String x:Key="Btn.Start">Start</sys:String>
+    <sys:String x:Key="Btn.Stop">Stop</sys:String>
+    <sys:String x:Key="Btn.Remove">Remove</sys:String>
+    <sys:String x:Key="Btn.Del">Del</sys:String>
+    <sys:String x:Key="Btn.Reset">Reset</sys:String>
+    <sys:String x:Key="Btn.Browse">…</sys:String>
+    <sys:String x:Key="Btn.Rename">Rename</sys:String>
+
+    <!-- Tabs -->
+    <sys:String x:Key="Tab.EventLog">Event Log</sys:String>
+    <sys:String x:Key="Tab.Processing">Processing</sys:String>
+    <sys:String x:Key="Tab.Users">Users</sys:String>
+    <sys:String x:Key="Tab.Events">Events</sys:String>
+    <sys:String x:Key="Tab.Commands">Commands</sys:String>
+    <sys:String x:Key="Tab.Rewards">Rewards</sys:String>
+    <sys:String x:Key="Tab.Settings">Settings</sys:String>
+    <sys:String x:Key="Tab.General">General</sys:String>
+    <sys:String x:Key="Tab.Accounts">Accounts</sys:String>
+    <sys:String x:Key="Tab.Twitch">Twitch</sys:String>
+    <sys:String x:Key="Tab.VoiceGate">Voice Gate</sys:String>
+    <sys:String x:Key="Tab.SpeechEngines">Speech Engines</sys:String>
+    <sys:String x:Key="Tab.IgnoredVoices">Ignored Voices</sys:String>
+    <sys:String x:Key="Tab.SpeakingOptions">Speaking Options</sys:String>
+    <sys:String x:Key="Tab.Filters">Filters</sys:String>
+    <sys:String x:Key="Tab.VoiceAliases">Voice Aliases</sys:String>
+    <sys:String x:Key="Tab.WebSocket">WebSocket</sys:String>
+    <sys:String x:Key="Tab.CustomApis">Custom APIs</sys:String>
+
+    <!-- Section labels -->
+    <sys:String x:Key="Section.Queue">QUEUE</sys:String>
+    <sys:String x:Key="Section.Processed">PROCESSED</sys:String>
+    <sys:String x:Key="Section.UserInfo">USER INFORMATION</sys:String>
+    <sys:String x:Key="Section.PastVoices">PAST VOICES</sys:String>
+    <sys:String x:Key="Section.Global">GLOBAL</sys:String>
+    <sys:String x:Key="Section.PerEvent">PER EVENT</sys:String>
+    <sys:String x:Key="Section.EventStates">EVENT STATES</sys:String>
+    <sys:String x:Key="Section.RewardMessages">REWARD MESSAGES</sys:String>
+    <sys:String x:Key="Section.Settings">SETTINGS</sys:String>
+    <sys:String x:Key="Section.Instance">INSTANCE</sys:String>
+    <sys:String x:Key="Section.Flags">FLAGS</sys:String>
+    <sys:String x:Key="Section.WindowBehaviour">WINDOW &amp; BEHAVIOUR</sys:String>
+    <sys:String x:Key="Section.AudioOutput">AUDIO OUTPUT</sys:String>
+    <sys:String x:Key="Section.SaveTtsToFile">SAVE TTS TO FILE</sys:String>
+    <sys:String x:Key="Section.DefaultAliases">DEFAULT ALIASES</sys:String>
+    <sys:String x:Key="Section.Account">ACCOUNT</sys:String>
+    <sys:String x:Key="Section.Services">SERVICES</sys:String>
+    <sys:String x:Key="Section.AudioDeviceToMonitor">AUDIO DEVICE TO MONITOR</sys:String>
+    <sys:String x:Key="Section.Profiles">PROFILES</sys:String>
+    <sys:String x:Key="Section.Engines">ENGINES</sys:String>
+    <sys:String x:Key="Section.SpeakingMode">SPEAKING MODE</sys:String>
+    <sys:String x:Key="Section.Limits">LIMITS</sys:String>
+    <sys:String x:Key="Section.StopSkipOn">STOP &amp; SKIP ON</sys:String>
+    <sys:String x:Key="Section.Permissions">PERMISSIONS</sys:String>
+    <sys:String x:Key="Section.CommandOptions">COMMAND OPTIONS</sys:String>
+    <sys:String x:Key="Section.Emotes">EMOTES</sys:String>
+    <sys:String x:Key="Section.AllowedEmotes">Allowed Emotes</sys:String>
+    <sys:String x:Key="Section.TtsCommands">TTS COMMANDS</sys:String>
+    <sys:String x:Key="Section.IgnoredPrefixes">IGNORED PREFIXES</sys:String>
+    <sys:String x:Key="Section.Filters">FILTERS</sys:String>
+    <sys:String x:Key="Section.Name">NAME</sys:String>
+    <sys:String x:Key="Section.Synthesis">SYNTHESIS</sys:String>
+    <sys:String x:Key="Section.Headers">HEADERS</sys:String>
+    <sys:String x:Key="Section.Voices">VOICES</sys:String>
+    <sys:String x:Key="Section.CustomApiServers">CUSTOM API SERVERS</sys:String>
+
+    <!-- Column headers -->
+    <sys:String x:Key="Col.LastUsed">Last Used</sys:String>
+    <sys:String x:Key="Col.Engine">Engine</sys:String>
+    <sys:String x:Key="Col.VoiceId">Voice ID</sys:String>
+    <sys:String x:Key="Col.VoiceAlias">Voice Alias</sys:String>
+    <sys:String x:Key="Col.Enabled">Enabled</sys:String>
+    <sys:String x:Key="Col.Weight">Weight</sys:String>
+    <sys:String x:Key="Col.Message">Message</sys:String>
+    <sys:String x:Key="Col.RewardName">Reward Name</sys:String>
+    <sys:String x:Key="Col.Cost">Cost</sys:String>
+    <sys:String x:Key="Col.Ignored">Ignored</sys:String>
+    <sys:String x:Key="Col.SayInput">Say Input</sys:String>
+    <sys:String x:Key="Col.Command">Command</sys:String>
+    <sys:String x:Key="Col.Name">Name</sys:String>
+    <sys:String x:Key="Col.Device">Device</sys:String>
+    <sys:String x:Key="Col.Threshold">Threshold</sys:String>
+    <sys:String x:Key="Col.TimeoutMs">Timeout ms</sys:String>
+    <sys:String x:Key="Col.Stop">Stop</sys:String>
+    <sys:String x:Key="Col.Skip">Skip</sys:String>
+    <sys:String x:Key="Col.Mode">Mode</sys:String>
+    <sys:String x:Key="Col.Regex">Regex</sys:String>
+    <sys:String x:Key="Col.On">On</sys:String>
+    <sys:String x:Key="Col.Pattern">Pattern</sys:String>
+    <sys:String x:Key="Col.ReplaceWith">Replace With</sys:String>
+
+    <!-- Labels -->
+    <sys:String x:Key="Lbl.Id">ID</sys:String>
+    <sys:String x:Key="Lbl.VoiceAlias">Voice Alias</sys:String>
+    <sys:String x:Key="Lbl.VoiceAliasSuffix">Voice Alias:</sys:String>
+    <sys:String x:Key="Lbl.Username">Username</sys:String>
+    <sys:String x:Key="Lbl.Nickname">Nickname</sys:String>
+    <sys:String x:Key="Lbl.Role">Role</sys:String>
+    <sys:String x:Key="Lbl.LastActive">Last Active</sys:String>
+    <sys:String x:Key="Lbl.Weight">Weight</sys:String>
+    <sys:String x:Key="Lbl.Message">Message</sys:String>
+    <sys:String x:Key="Lbl.MinViewers">Min viewers:</sys:String>
+    <sys:String x:Key="Lbl.MinBits">Min bits:</sys:String>
+    <sys:String x:Key="Lbl.Command">Command</sys:String>
+    <sys:String x:Key="Lbl.Name">Name</sys:String>
+    <sys:String x:Key="Lbl.LogLevel">Log Level:</sys:String>
+    <sys:String x:Key="Lbl.Language">Language:</sys:String>
+    <sys:String x:Key="Lbl.Volume">Volume:</sys:String>
+    <sys:String x:Key="Lbl.Percent">%</sys:String>
+    <sys:String x:Key="Lbl.DefaultVoiceAlias">Default Voice Alias</sys:String>
+    <sys:String x:Key="Lbl.HighlightVoiceAlias">Highlight Voice Alias</sys:String>
+    <sys:String x:Key="Lbl.ChatClient">Chat Client</sys:String>
+    <sys:String x:Key="Lbl.EventSub">Event Sub</sys:String>
+    <sys:String x:Key="Lbl.PauseThreshold">Pause Threshold:</sys:String>
+    <sys:String x:Key="Lbl.ResumeThreshold">Resume Threshold:</sys:String>
+    <sys:String x:Key="Lbl.ResumeWaitTimeout">Resume Wait Timeout</sys:String>
+    <sys:String x:Key="Lbl.Ms">ms</sys:String>
+    <sys:String x:Key="Lbl.AvailableVoices">Available Voices</sys:String>
+    <sys:String x:Key="Lbl.IgnoredVoicesList">Ignored Voices</sys:String>
+    <sys:String x:Key="Lbl.AvailableLocales">Available Locales</sys:String>
+    <sys:String x:Key="Lbl.Mode">Mode:</sys:String>
+    <sys:String x:Key="Lbl.Postfix">Postfix:</sys:String>
+    <sys:String x:Key="Lbl.HighlightVoiceAliasSuffix">Highlight Voice Alias:</sys:String>
+    <sys:String x:Key="Lbl.Cooldown">Cooldown</sys:String>
+    <sys:String x:Key="Lbl.SecondsPerUser">seconds per user</sys:String>
+    <sys:String x:Key="Lbl.MaxWords">Max words</sys:String>
+    <sys:String x:Key="Lbl.MaxChars">Max chars</sys:String>
+    <sys:String x:Key="Lbl.UrlFilter">Url Filter</sys:String>
+    <sys:String x:Key="Lbl.NotAllowedText">Not Allowed Text</sys:String>
+    <sys:String x:Key="Lbl.MessageDeleted">Message Deleted</sys:String>
+    <sys:String x:Key="Lbl.UserTimedOut">User Timed Out</sys:String>
+    <sys:String x:Key="Lbl.UserBanned">User Banned</sys:String>
+    <sys:String x:Key="Lbl.Match">Match</sys:String>
+    <sys:String x:Key="Lbl.With">With</sys:String>
+    <sys:String x:Key="Lbl.Sample">Sample</sys:String>
+    <sys:String x:Key="Lbl.InUse">In Use:</sys:String>
+    <sys:String x:Key="Lbl.OutputDevice">Output Device</sys:String>
+    <sys:String x:Key="Lbl.Voice">Voice</sys:String>
+    <sys:String x:Key="Lbl.Address">Address</sys:String>
+    <sys:String x:Key="Lbl.Port">Port</sys:String>
+    <sys:String x:Key="Lbl.Endpoint">Endpoint</sys:String>
+    <sys:String x:Key="Lbl.Url">URL</sys:String>
+    <sys:String x:Key="Lbl.Method">Method</sys:String>
+    <sys:String x:Key="Lbl.BodyTemplate">Body Template</sys:String>
+    <sys:String x:Key="Lbl.ResponseFormat">Response Format</sys:String>
+    <sys:String x:Key="Lbl.JsonPath">JSON Path</sys:String>
+    <sys:String x:Key="Lbl.AudioFormat">Audio Format</sys:String>
+    <sys:String x:Key="Lbl.ArrayPath">Array path</sys:String>
+    <sys:String x:Key="Lbl.VoiceIdPath">Voice ID path</sys:String>
+    <sys:String x:Key="Lbl.DisplayNamePath">Display name path</sys:String>
+
+    <!-- Checkboxes -->
+    <sys:String x:Key="Chk.HideNotPresent">Hide Not Present</sys:String>
+    <sys:String x:Key="Chk.Ignored">Ignored</sys:String>
+    <sys:String x:Key="Chk.Forced">Forced</sys:String>
+    <sys:String x:Key="Chk.Regular">Regular</sys:String>
+    <sys:String x:Key="Chk.Subscribed">Subscribed</sys:String>
+    <sys:String x:Key="Chk.EventsEnabled">Events Enabled</sys:String>
+    <sys:String x:Key="Chk.Mods">Mods</sys:String>
+    <sys:String x:Key="Chk.Subs">Subs</sys:String>
+    <sys:String x:Key="Chk.VIPs">VIPs</sys:String>
+    <sys:String x:Key="Chk.Regulars">Regulars</sys:String>
+    <sys:String x:Key="Chk.Everyone">Everyone</sys:String>
+    <sys:String x:Key="Chk.SayInput">Say Input</sys:String>
+    <sys:String x:Key="Chk.MinimizeToTray">Minimize to tray</sys:String>
+    <sys:String x:Key="Chk.ConfirmationOnClose">Confirmation on close</sys:String>
+    <sys:String x:Key="Chk.ShowTooltips">Show Tooltips</sys:String>
+    <sys:String x:Key="Chk.DisableAudioOutput">Disable Audio Output</sys:String>
+    <sys:String x:Key="Chk.SaveTtsToFile">Save every spoken phrase as a WAV file</sys:String>
+    <sys:String x:Key="Chk.UseHighlightVoice">Highlight Voice Override</sys:String>
+    <sys:String x:Key="Chk.AutoStart">Auto Start</sys:String>
+    <sys:String x:Key="Chk.Follows">Follows</sys:String>
+    <sys:String x:Key="Chk.Subscriptions">Subscriptions</sys:String>
+    <sys:String x:Key="Chk.GiftBombs">Gift Bombs</sys:String>
+    <sys:String x:Key="Chk.Raids">Raids</sys:String>
+    <sys:String x:Key="Chk.Cheers">Cheers</sys:String>
+    <sys:String x:Key="Chk.HypeTrains">Hype Trains</sys:String>
+    <sys:String x:Key="Chk.CommunityGoal">Community Goal</sys:String>
+    <sys:String x:Key="Chk.ChannelPoints">Channel Points</sys:String>
+    <sys:String x:Key="Chk.SayUsername">Say Username</sys:String>
+    <sys:String x:Key="Chk.StickyRandomVoice">Sticky Random Voice</sys:String>
+    <sys:String x:Key="Chk.SimultaneousMode">Simultaneous Mode</sys:String>
+    <sys:String x:Key="Chk.OnlySayUsernameIfDifferent">Only say username if different</sys:String>
+    <sys:String x:Key="Chk.ReplaceNameWithNickname">Replace %name% with nickname</sys:String>
+    <sys:String x:Key="Chk.TreatSymbolsAsSpaces">Treat symbols as spaces</sys:String>
+    <sys:String x:Key="Chk.Moderators">Moderators</sys:String>
+    <sys:String x:Key="Chk.Subscribers">Subscribers</sys:String>
+    <sys:String x:Key="Chk.SilenceCommandOutput">Silence Command Output</sys:String>
+    <sys:String x:Key="Chk.IgnoreTwitchEmotes">Ignore Twitch Emotes</sys:String>
+    <sys:String x:Key="Chk.IgnoreBttvEmotes">Ignore BTTV Emotes</sys:String>
+    <sys:String x:Key="Chk.IgnoreFfzEmotes">Ignore FFZ Emotes</sys:String>
+    <sys:String x:Key="Chk.IgnoreSevenTvEmotes">Ignore 7TV Emotes</sys:String>
+    <sys:String x:Key="Chk.IgnoreTwemoji">Ignore Twemoji</sys:String>
+    <sys:String x:Key="Chk.IgnoreCheermotes">Ignore Cheermotes</sys:String>
+    <sys:String x:Key="Chk.AllowFirstEmote">Allow first emote</sys:String>
+    <sys:String x:Key="Chk.IgnorePrefixedWith">Ignore text prefixed with</sys:String>
+    <sys:String x:Key="Chk.Regex">Regex</sys:String>
+
+    <!-- Action buttons -->
+    <sys:String x:Key="Btn.SaveUser">Save User</sys:String>
+    <sys:String x:Key="Btn.RefreshFromTwitch">⟳  Refresh from Twitch</sys:String>
+    <sys:String x:Key="Btn.SaveReward">Save Reward</sys:String>
+    <sys:String x:Key="Btn.RemoveReward">Remove Reward</sys:String>
+    <sys:String x:Key="Btn.Login">Login</sys:String>
+    <sys:String x:Key="Btn.Logout">Logout</sys:String>
+    <sys:String x:Key="Btn.Forget">Forget</sys:String>
+    <sys:String x:Key="Btn.AddProfile">Add Profile</sys:String>
+    <sys:String x:Key="Btn.IgnoreArrow">›</sys:String>
+    <sys:String x:Key="Btn.UnignoreArrow">‹</sys:String>
+    <sys:String x:Key="Btn.IgnoreLocale">Ignore ›</sys:String>
+    <sys:String x:Key="Btn.UnignoreLocale">‹ Remove</sys:String>
+    <sys:String x:Key="Btn.SetDefault">Set Default</sys:String>
+    <sys:String x:Key="Btn.TestSpeak">Test Speak</sys:String>
+    <sys:String x:Key="Btn.RemoveAll">Remove All</sys:String>
+    <sys:String x:Key="Btn.StartServer">Start Server</sys:String>
+    <sys:String x:Key="Btn.StopServer">Stop Server</sys:String>
+    <sys:String x:Key="Btn.AddHeader">+ Add Header</sys:String>
+    <sys:String x:Key="Btn.SaveEngine">Save Engine</sys:String>
+
+    <!-- Misc -->
+    <sys:String x:Key="Info.UdpServer">UDP server always runs on port 6669.</sys:String>
+
+    <!-- ═══════════════ TOOLTIPS ═══════════════ -->
+
+    <!-- Header bar -->
+    <sys:String x:Key="Tip.SilenceTts">Stop all currently playing and queued TTS audio immediately.</sys:String>
+    <sys:String x:Key="Tip.GenericSpeaker">Open the generic speaker dialog to say a custom phrase.</sys:String>
+    <sys:String x:Key="Tip.SaveSettings">Save all current settings to disk.</sys:String>
+    <sys:String x:Key="Tip.HeaderEnabled">Globally enable or disable all TTS processing.</sys:String>
+
+    <!-- Status bar -->
+    <sys:String x:Key="Tip.PauseQueue">Pause the TTS queue — new items are accepted but not played.</sys:String>
+    <sys:String x:Key="Tip.ResumeQueue">Resume a paused TTS queue and continue playing items.</sys:String>
+    <sys:String x:Key="Tip.SkipCurrent">Skip the currently playing TTS audio.</sys:String>
+    <sys:String x:Key="Tip.ClearQueue">Remove all pending items from the TTS queue.</sys:String>
+
+    <!-- Users tab -->
+    <sys:String x:Key="Tip.HideNotPresent">Only show users who have sent a chat message in the last hour.</sys:String>
+    <sys:String x:Key="Tip.UserVoiceAlias">Assign a specific voice alias to this user, overriding the default voice.</sys:String>
+    <sys:String x:Key="Tip.UserNickname">Set a nickname to be spoken instead of their Twitch username.</sys:String>
+    <sys:String x:Key="Tip.UserIgnored">Ignored users are never read by TTS, regardless of any other permissions.</sys:String>
+    <sys:String x:Key="Tip.UserForced">Forced users always have their messages read, bypassing all permission checks.</sys:String>
+    <sys:String x:Key="Tip.UserRegular">Regulars are treated as trusted users when the Regular permission tier is enabled.</sys:String>
+    <sys:String x:Key="Tip.UserSubscribed">Marks this user as a subscriber. Usually updated automatically from Twitch.</sys:String>
+    <sys:String x:Key="Tip.SaveUser">Save changes to this user's settings.</sys:String>
+
+    <!-- Events tab -->
+    <sys:String x:Key="Tip.EventsGlobalEnabled">Enable or disable all Twitch event TTS announcements globally.</sys:String>
+    <sys:String x:Key="Tip.GlobalVoiceAlias">Voice alias used for all event announcements, unless overridden per event.</sys:String>
+    <sys:String x:Key="Tip.EventEnabled">Enable or disable TTS announcements for this specific event type.</sys:String>
+    <sys:String x:Key="Tip.EventVoiceAlias">Voice alias for this event type; overrides the global event voice alias.</sys:String>
+    <sys:String x:Key="Tip.MessageWeight">Higher weight makes this message more likely to be chosen from the pool.</sys:String>
+    <sys:String x:Key="Tip.MessageEnabled">Enable or disable this individual message template.</sys:String>
+    <sys:String x:Key="Tip.MessageTemplate">Text to speak. Use {username}, {amount} etc. as placeholders.</sys:String>
+    <sys:String x:Key="Tip.AddMessage">Add this message template to the pool for the selected event.</sys:String>
+    <sys:String x:Key="Tip.DeleteMessage">Remove the selected message template from the pool.</sys:String>
+    <sys:String x:Key="Tip.SaveMessage">Save changes to the selected message template.</sys:String>
+    <sys:String x:Key="Tip.FollowsEnabled">Announce new channel follows with TTS.</sys:String>
+    <sys:String x:Key="Tip.SubscriptionsEnabled">Announce new subscriptions with TTS.</sys:String>
+    <sys:String x:Key="Tip.GiftBombsEnabled">Announce gift bomb events (mass gifted subs) with TTS.</sys:String>
+    <sys:String x:Key="Tip.RaidsEnabled">Announce incoming raids with TTS.</sys:String>
+    <sys:String x:Key="Tip.MinRaidViewers">Minimum viewer count for a raid to trigger a TTS announcement.</sys:String>
+    <sys:String x:Key="Tip.CheersEnabled">Announce cheer (bits) events with TTS.</sys:String>
+    <sys:String x:Key="Tip.MinBits">Minimum bits in a cheer to trigger a TTS announcement.</sys:String>
+    <sys:String x:Key="Tip.HypeTrainsEnabled">Announce hype train events with TTS.</sys:String>
+    <sys:String x:Key="Tip.GoalEnabled">Announce community goal events with TTS.</sys:String>
+    <sys:String x:Key="Tip.ChannelPointsEnabled">Announce channel point redemptions with TTS.</sys:String>
+
+    <!-- Commands tab -->
+    <sys:String x:Key="Tip.CommandTrigger">The chat command prefix that triggers this TTS voice (e.g. !myvoice).</sys:String>
+    <sys:String x:Key="Tip.CommandVoiceAlias">The voice alias to use when this command is invoked.</sys:String>
+    <sys:String x:Key="Tip.CommandEnabled">Enable or disable this custom TTS command.</sys:String>
+    <sys:String x:Key="Tip.CommandMods">Allow moderators to use this command.</sys:String>
+    <sys:String x:Key="Tip.CommandSubs">Allow subscribers to use this command.</sys:String>
+    <sys:String x:Key="Tip.CommandVips">Allow VIPs to use this command.</sys:String>
+    <sys:String x:Key="Tip.CommandRegulars">Allow regulars to use this command.</sys:String>
+    <sys:String x:Key="Tip.CommandEveryone">Allow all viewers to use this command.</sys:String>
+    <sys:String x:Key="Tip.AddSaveCommand">Add or save the current command definition.</sys:String>
+    <sys:String x:Key="Tip.NewCommand">Clear the form to create a new command.</sys:String>
+    <sys:String x:Key="Tip.DeleteCommand">Delete the selected command.</sys:String>
+
+    <!-- Rewards tab -->
+    <sys:String x:Key="Tip.RefreshFromTwitch">Fetch the latest channel point rewards from Twitch.</sys:String>
+    <sys:String x:Key="Tip.RewardIgnored">When enabled, this reward's redemption is silently ignored.</sys:String>
+    <sys:String x:Key="Tip.RewardSayInput">When enabled, the viewer's input text for this reward is read aloud.</sys:String>
+    <sys:String x:Key="Tip.RewardVoiceAlias">The voice alias used when reading TTS for this reward.</sys:String>
+    <sys:String x:Key="Tip.SaveReward">Save changes to this reward's settings.</sys:String>
+    <sys:String x:Key="Tip.RemoveReward">Remove this reward from the list (does not delete it from Twitch).</sys:String>
+
+    <!-- General settings -->
+    <sys:String x:Key="Tip.InstanceId">A unique identifier for this OpenSpeaker instance.</sys:String>
+    <sys:String x:Key="Tip.InstanceName">A friendly name for this instance, used in some external integrations.</sys:String>
+    <sys:String x:Key="Tip.ResetInstanceId">Generate a new random instance ID.</sys:String>
+    <sys:String x:Key="Tip.GeneralEnabled">Enable or disable TTS processing globally from settings.</sys:String>
+    <sys:String x:Key="Tip.MinimizeToTray">Minimize to the system tray instead of closing when the window is closed.</sys:String>
+    <sys:String x:Key="Tip.ConfirmationOnClose">Show a confirmation dialog before closing the application.</sys:String>
+    <sys:String x:Key="Tip.LogLevel">Controls how much detail is written to the application log file.</sys:String>
+    <sys:String x:Key="Tip.Language">Select the display language for the application interface.</sys:String>
+    <sys:String x:Key="Tip.ShowTooltips">Show or hide these hover tooltips throughout the application.</sys:String>
+    <sys:String x:Key="Tip.DisableAudioOutput">When enabled, TTS is still synthesized (and saved to file if that option is on) but audio playback through the sound device is skipped entirely.</sys:String>
+    <sys:String x:Key="Tip.AudioDevice">Select the audio output device for TTS playback.</sys:String>
+    <sys:String x:Key="Tip.RefreshDevices">Refresh the list of available audio output devices.</sys:String>
+    <sys:String x:Key="Tip.Volume">Set the master TTS playback volume from 0 to 100%.</sys:String>
+    <sys:String x:Key="Tip.SaveTts">Save every synthesized phrase as a WAV file to the folder below.</sys:String>
+    <sys:String x:Key="Tip.SaveTtsFolder">The folder path where synthesized WAV files will be saved.</sys:String>
+    <sys:String x:Key="Tip.BrowseTtsFolder">Browse for the folder to save TTS WAV files.</sys:String>
+    <sys:String x:Key="Tip.DefaultVoiceAlias">The voice alias used when no specific alias is assigned to a user or command.</sys:String>
+    <sys:String x:Key="Tip.UseHighlightVoice">Use a different voice for highlighted (channel point) Twitch messages.</sys:String>
+    <sys:String x:Key="Tip.HighlightVoiceAlias">The voice alias name to use for highlighted messages.</sys:String>
+    <sys:String x:Key="Tip.SaveGeneralSettings">Save all general settings to disk.</sys:String>
+
+    <!-- Accounts -->
+    <sys:String x:Key="Tip.TwitchLogin">Connect your Twitch account via browser OAuth authentication.</sys:String>
+    <sys:String x:Key="Tip.TwitchLogout">Disconnect from Twitch but keep credentials stored for later.</sys:String>
+    <sys:String x:Key="Tip.TwitchForget">Permanently remove all stored Twitch credentials.</sys:String>
+    <sys:String x:Key="Tip.ChatClientToggle">Start or stop the IRC chat connection for reading messages.</sys:String>
+    <sys:String x:Key="Tip.EventSubToggle">Start or stop the EventSub WebSocket connection for Twitch events.</sys:String>
+
+    <!-- Voice Gate -->
+    <sys:String x:Key="Tip.VoiceGateDevice">The microphone or input device to monitor for voice activity.</sys:String>
+    <sys:String x:Key="Tip.RefreshGateDevices">Refresh the list of available input audio devices.</sys:String>
+    <sys:String x:Key="Tip.StartVoiceGate">Start monitoring the selected input device for voice activity.</sys:String>
+    <sys:String x:Key="Tip.StopVoiceGate">Stop the voice gate monitor.</sys:String>
+    <sys:String x:Key="Tip.VoiceGateAutoStart">Automatically start the voice gate monitor when the app launches.</sys:String>
+    <sys:String x:Key="Tip.AddVoiceGateProfile">Add a new voice gate profile with the entered name.</sys:String>
+    <sys:String x:Key="Tip.DeleteVoiceGateProfile">Delete the selected voice gate profile.</sys:String>
+    <sys:String x:Key="Tip.PauseThreshold">TTS is paused when input volume exceeds this level (you are speaking).</sys:String>
+    <sys:String x:Key="Tip.ResumeThreshold">TTS resumes when input drops below this level (you stopped speaking).</sys:String>
+    <sys:String x:Key="Tip.ResumeWaitMs">How long (ms) to wait after voice drops below threshold before resuming TTS.</sys:String>
+
+    <!-- Speech Engines -->
+    <sys:String x:Key="Tip.AddEngine">Add a new TTS speech engine plugin.</sys:String>
+    <sys:String x:Key="Tip.RemoveEngine">Remove the selected speech engine.</sys:String>
+
+    <!-- Ignored Voices -->
+    <sys:String x:Key="Tip.IgnoreVoice">Move the selected voice to the ignored list — excluded from random selection.</sys:String>
+    <sys:String x:Key="Tip.UnignoreVoice">Remove the selected voice from the ignored list.</sys:String>
+    <sys:String x:Key="Tip.IgnoreLocale">Ignore all voices with this language/locale code.</sys:String>
+    <sys:String x:Key="Tip.UnignoreLocale">Remove this locale from the ignored list.</sys:String>
+    <sys:String x:Key="Tip.NewVoiceProfile">Create a new ignored-voices profile with the entered name.</sys:String>
+    <sys:String x:Key="Tip.DeleteVoiceProfile">Delete the selected ignored-voices profile.</sys:String>
+
+    <!-- Speaking Options -->
+    <sys:String x:Key="Tip.SpeakingMode">All Chat: reads all messages. Command: only !tts prefix. Disabled: off.</sys:String>
+    <sys:String x:Key="Tip.SayUsername">Prepend the speaker's username before their message when reading aloud.</sys:String>
+    <sys:String x:Key="Tip.UsernamePostfix">The word inserted between the username and message (e.g. "said").</sys:String>
+    <sys:String x:Key="Tip.StickyRandomVoice">Assign each user a random voice that persists across sessions.</sys:String>
+    <sys:String x:Key="Tip.SimultaneousMode">When enabled, all incoming TTS requests are processed and played at the same time with no queue delay. Audio from multiple users overlaps simultaneously.</sys:String>
+    <sys:String x:Key="Tip.UseHighlightVoice2">Use a specific voice alias for highlighted (channel point) messages.</sys:String>
+    <sys:String x:Key="Tip.HighlightVoiceAliasInput">Voice alias name to use for highlighted messages.</sys:String>
+    <sys:String x:Key="Tip.OnlySayUsernameIfDifferent">Only announce the username if it differs from the previous speaker.</sys:String>
+    <sys:String x:Key="Tip.ReplaceNameWithNickname">Speak the user's nickname instead of their Twitch username if one is set.</sys:String>
+    <sys:String x:Key="Tip.CooldownSeconds">Minimum seconds between TTS reads for the same user. Set 0 to disable.</sys:String>
+    <sys:String x:Key="Tip.MaxWords">Maximum word count before a message is truncated. Set 0 for no limit.</sys:String>
+    <sys:String x:Key="Tip.TreatSymbolsAsSpaces">Count symbols as word separators when applying the max words limit.</sys:String>
+    <sys:String x:Key="Tip.MaxChars">Maximum character count before a message is truncated. Set 0 for no limit.</sys:String>
+    <sys:String x:Key="Tip.UrlFilterMode">How to handle URLs: Disabled, Remove (strip them), or Skip (drop the message).</sys:String>
+    <sys:String x:Key="Tip.NotAllowedText">Message sent to chat when a user tries TTS but lacks permission.</sys:String>
+    <sys:String x:Key="Tip.StopOnMsgDeleted">Stop currently playing audio when a moderator deletes a message.</sys:String>
+    <sys:String x:Key="Tip.SkipOnMsgDeleted">Skip queued messages from a user whose message was deleted.</sys:String>
+    <sys:String x:Key="Tip.StopOnTimedOut">Stop currently playing audio when a user is timed out.</sys:String>
+    <sys:String x:Key="Tip.SkipOnTimedOut">Skip queued messages from a user who is timed out.</sys:String>
+    <sys:String x:Key="Tip.StopOnBanned">Stop currently playing audio when a user is banned.</sys:String>
+    <sys:String x:Key="Tip.SkipOnBanned">Skip queued messages from a user who is banned.</sys:String>
+    <sys:String x:Key="Tip.AllowModerators">Allow moderators to use TTS.</sys:String>
+    <sys:String x:Key="Tip.AllowSubscribers">Allow subscribers to use TTS.</sys:String>
+    <sys:String x:Key="Tip.AllowVips">Allow VIPs to use TTS.</sys:String>
+    <sys:String x:Key="Tip.AllowRegulars">Allow manually tagged regular users to use TTS.</sys:String>
+    <sys:String x:Key="Tip.AllowEveryone">Allow all viewers to use TTS regardless of their role.</sys:String>
+    <sys:String x:Key="Tip.SilenceCommandOutput">Prevent !tts command responses from producing TTS output.</sys:String>
+    <sys:String x:Key="Tip.IgnoreTwitchEmotes">Strip Twitch channel emotes from messages before reading.</sys:String>
+    <sys:String x:Key="Tip.IgnoreBttvEmotes">Strip BetterTTV emotes from messages before reading.</sys:String>
+    <sys:String x:Key="Tip.IgnoreFfzEmotes">Strip FrankerFaceZ emotes from messages before reading.</sys:String>
+    <sys:String x:Key="Tip.IgnoreSevenTvEmotes">Strip 7TV emotes from messages before reading.</sys:String>
+    <sys:String x:Key="Tip.IgnoreTwemoji">Strip Twitter emoji codes from messages before reading.</sys:String>
+    <sys:String x:Key="Tip.IgnoreCheermotes">Strip animated cheermote text from messages before reading.</sys:String>
+    <sys:String x:Key="Tip.AllowFirstEmote">Always speak the first emote in a message, even if emotes are stripped.</sys:String>
+    <sys:String x:Key="Tip.AddAllowedEmote">Add the entered emote name to the always-allowed list.</sys:String>
+    <sys:String x:Key="Tip.DelAllowedEmote">Remove the selected emote from the always-allowed list.</sys:String>
+    <sys:String x:Key="Tip.AddTtsCommand">Add the entered text as a TTS trigger command prefix.</sys:String>
+    <sys:String x:Key="Tip.DelTtsCommand">Remove the selected TTS command from the list.</sys:String>
+    <sys:String x:Key="Tip.AddIgnoredPrefix">Add the entered prefix — messages starting with it will be ignored.</sys:String>
+    <sys:String x:Key="Tip.DelIgnoredPrefix">Remove the selected prefix from the ignored list.</sys:String>
+
+    <!-- Filters -->
+    <sys:String x:Key="Tip.FilterMode">Replace: substitute matched text. Skip: ignore the entire message if matched.</sys:String>
+    <sys:String x:Key="Tip.FilterMatch">The pattern to search for in chat messages.</sys:String>
+    <sys:String x:Key="Tip.FilterWith">The replacement text (only used in Replace mode).</sys:String>
+    <sys:String x:Key="Tip.FilterEnabled">Enable or disable this filter rule.</sys:String>
+    <sys:String x:Key="Tip.FilterRegex">Use .NET regex pattern matching instead of plain text search.</sys:String>
+    <sys:String x:Key="Tip.AddFilter">Add this filter rule to the list.</sys:String>
+    <sys:String x:Key="Tip.DeleteFilter">Delete the selected filter rule.</sys:String>
+    <sys:String x:Key="Tip.SaveFilter">Save changes to the selected filter rule.</sys:String>
+    <sys:String x:Key="Tip.FilterSampleInput">Enter sample text to preview how all active filters transform it.</sys:String>
+    <sys:String x:Key="Tip.FilterSampleOutput">The result after applying all active enabled filters to the sample input.</sys:String>
+
+    <!-- Voice Aliases -->
+    <sys:String x:Key="Tip.AddVoiceAlias">Create a new voice alias with the entered name.</sys:String>
+    <sys:String x:Key="Tip.RenameVoiceAlias">Rename the selected voice alias to the entered name.</sys:String>
+    <sys:String x:Key="Tip.VoiceAliasOutputDevice">Audio output device for voices in this alias.</sys:String>
+    <sys:String x:Key="Tip.VoiceAliasTestVoice">Select a voice to use with the Test Speak button.</sys:String>
+    <sys:String x:Key="Tip.VoiceAliasTestMessage">Enter text to test-speak using the selected voice.</sys:String>
+    <sys:String x:Key="Tip.VoiceAliasVolume">Volume level for test-speak playback.</sys:String>
+    <sys:String x:Key="Tip.SetDefaultVoice">Set this voice as the primary/default for the alias.</sys:String>
+    <sys:String x:Key="Tip.AddVoiceToAlias">Add the selected voice to this alias's voice pool.</sys:String>
+    <sys:String x:Key="Tip.TestSpeak">Speak the test message using the selected voice and parameters.</sys:String>
+    <sys:String x:Key="Tip.RemoveVoice">Remove the selected voice from this alias.</sys:String>
+    <sys:String x:Key="Tip.RemoveAllVoices">Remove all voices from this alias's voice pool.</sys:String>
+
+    <!-- WebSocket -->
+    <sys:String x:Key="Tip.WsAutoStart">Automatically start the WebSocket server when the app launches.</sys:String>
+    <sys:String x:Key="Tip.WsAddress">Network address the WebSocket server listens on (e.g. localhost or 0.0.0.0).</sys:String>
+    <sys:String x:Key="Tip.WsPort">TCP port number for the WebSocket server.</sys:String>
+    <sys:String x:Key="Tip.WsEndpoint">WebSocket endpoint path (e.g. /tts).</sys:String>
+    <sys:String x:Key="Tip.StartWsServer">Start the WebSocket server with the current settings.</sys:String>
+    <sys:String x:Key="Tip.StopWsServer">Stop the WebSocket server.</sys:String>
+    <sys:String x:Key="Tip.SaveWsSettings">Save the WebSocket server settings.</sys:String>
+
+    <!-- Custom APIs -->
+    <sys:String x:Key="Tip.CustomApiEnabled">Enable or disable this custom API engine.</sys:String>
+    <sys:String x:Key="Tip.SynthUrl">HTTP endpoint URL for synthesizing speech.</sys:String>
+    <sys:String x:Key="Tip.SynthMethod">HTTP method (GET or POST) for the synthesis request.</sys:String>
+    <sys:String x:Key="Tip.SynthBody">Request body template. Use {text}, {voice}, {rate} as placeholders.</sys:String>
+    <sys:String x:Key="Tip.ResponseFormat">How the synthesis response is encoded: raw audio or JSON.</sys:String>
+    <sys:String x:Key="Tip.JsonAudioPath">JSONPath expression to extract audio data from the response JSON.</sys:String>
+    <sys:String x:Key="Tip.AudioFormat">Audio format of the synthesized output.</sys:String>
+    <sys:String x:Key="Tip.AddSynthHeader">Add a custom HTTP header to synthesis requests.</sys:String>
+    <sys:String x:Key="Tip.VoicesUrl">HTTP endpoint URL for fetching available voices.</sys:String>
+    <sys:String x:Key="Tip.VoicesMethod">HTTP method for the voices list request.</sys:String>
+    <sys:String x:Key="Tip.VoicesArrayPath">JSONPath to the array of voices in the response.</sys:String>
+    <sys:String x:Key="Tip.VoiceIdFieldPath">JSONPath field in each voice object that holds the voice ID.</sys:String>
+    <sys:String x:Key="Tip.VoiceNameFieldPath">JSONPath field in each voice object that holds the display name.</sys:String>
+    <sys:String x:Key="Tip.AddVoicesHeader">Add a custom HTTP header to voice list requests.</sys:String>
+    <sys:String x:Key="Tip.SaveCustomApi">Save this custom API engine definition.</sys:String>
+    <sys:String x:Key="Tip.AddCustomApi">Add a new custom API engine.</sys:String>
+    <sys:String x:Key="Tip.DeleteCustomApi">Delete the selected custom API engine.</sys:String>
+
+    <sys:String x:Key="Section.ImportSpeakerBot">Import from Speaker.bot</sys:String>
+    <sys:String x:Key="Lbl.ImportSpeakerBotDesc">Select your Speaker.bot install folder to import settings, voice aliases, users, events, and channel rewards. A restart is required after importing.</sys:String>
+    <sys:String x:Key="Btn.ImportNow">Import</sys:String>
+    <sys:String x:Key="Tip.ImportFolder">Path to your Speaker.bot install folder.</sys:String>
+    <sys:String x:Key="Tip.BrowseImportFolder">Browse for your Speaker.bot install folder (the folder containing Speaker.bot.exe or the data subfolder).</sys:String>
+    <sys:String x:Key="Tip.ImportNow">Import all data from the selected Speaker.bot folder into OpenSpeaker. This will overwrite existing settings, events, and rewards with imported data. Users and aliases are merged.</sys:String>
+
+</ResourceDictionary>

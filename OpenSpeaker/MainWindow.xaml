@@ -1,0 +1,1891 @@
+<Window x:Class="OpenSpeaker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:OpenSpeaker.ViewModels"
+        Title="OpenSpeaker" Height="750" Width="1280"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Bg1}"
+        Foreground="{StaticResource TextPrimary}"
+        Closing="Window_Closing">
+
+    <!-- ══════════════════ MAIN LAYOUT ══════════════════ -->
+    <DockPanel>
+
+        <!-- ── Top header bar ── -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource Bg0}"
+                BorderBrush="{StaticResource BorderBrush0}" BorderThickness="0,0,0,1" Padding="14,8">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{DynamicResource App.Title}" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimary}" Margin="0,0,20,0"
+                               VerticalAlignment="Center"/>
+                    <Button Content="{DynamicResource Btn.SilenceTts}" Style="{StaticResource GhostButton}"
+                            Command="{Binding SilenceTtsCommand}" Margin="0,0,6,0"
+                            ToolTip="{DynamicResource Tip.SilenceTts}"/>
+                    <Button Content="{DynamicResource Btn.GenericSpeaker}" Style="{StaticResource GhostButton}"
+                            Command="{Binding GenericSpeakCommand}" Margin="0,0,6,0"
+                            ToolTip="{DynamicResource Tip.GenericSpeaker}"/>
+                    <Button Content="{DynamicResource Btn.SaveSettings}" Style="{StaticResource AccentButton}"
+                            Command="{Binding SaveAllCommand}"
+                            ToolTip="{DynamicResource Tip.SaveSettings}"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding UpdateNotice}" Foreground="{StaticResource YellowBrush}"
+                               VerticalAlignment="Center" Margin="0,0,16,0"
+                               Visibility="{Binding UpdateNotice, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <CheckBox Content="{DynamicResource Chk.Enabled}" IsChecked="{Binding IsEnabled}"
+                              VerticalAlignment="Center" ToolTip="{DynamicResource Tip.HeaderEnabled}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ── Bottom status bar ── -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource Bg0}"
+                BorderBrush="{StaticResource BorderBrush0}" BorderThickness="0,1,0,0" Padding="14,6">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Run Text="{DynamicResource Lbl.QueueCount}"/>
+                        <Run Text="{Binding QueueStatus.Count, Mode=OneWay}"/>
+                        <Run Text="{DynamicResource Lbl.Items}"/>
+                    </TextBlock>
+                    <Border Background="{StaticResource YellowBrush}" CornerRadius="3" Padding="6,2"
+                            Visibility="{Binding QueueStatus.IsPaused, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="{DynamicResource Lbl.Paused}" Foreground="Black" FontSize="11" FontWeight="Bold"/>
+                    </Border>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="{DynamicResource Btn.Pause}" Command="{Binding QueueStatus.PauseCommand}"
+                            Margin="0,0,4,0" ToolTip="{DynamicResource Tip.PauseQueue}"/>
+                    <Button Content="{DynamicResource Btn.Resume}" Command="{Binding QueueStatus.ResumeCommand}"
+                            Margin="0,0,4,0" ToolTip="{DynamicResource Tip.ResumeQueue}"/>
+                    <Button Content="{DynamicResource Btn.Skip}" Command="{Binding QueueStatus.StopCommand}"
+                            Margin="0,0,4,0" ToolTip="{DynamicResource Tip.SkipCurrent}"/>
+                    <Button Content="{DynamicResource Btn.ClearQueue}" Command="{Binding QueueStatus.ClearCommand}"
+                            Style="{StaticResource DangerButton}" ToolTip="{DynamicResource Tip.ClearQueue}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ── Main tab control ── -->
+        <TabControl Margin="0">
+
+            <!-- ═══════════════ EVENT LOG ═══════════════ -->
+            <TabItem Header="{DynamicResource Tab.EventLog}">
+                <DockPanel Margin="0">
+                    <Border DockPanel.Dock="Top" Padding="12,8" Background="{StaticResource Bg2}"
+                            BorderBrush="{StaticResource BorderBrush0}" BorderThickness="0,0,0,1">
+                        <DockPanel>
+                            <TextBlock Text="{DynamicResource Tab.EventLog}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button Content="{DynamicResource Btn.Clear}" HorizontalAlignment="Right"
+                                    Command="{Binding EventLog.ClearCommand}" Padding="10,5"/>
+                        </DockPanel>
+                    </Border>
+                    <ListBox ItemsSource="{Binding EventLog.Entries}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.CanContentScroll="True"
+                             BorderThickness="0" Background="{StaticResource Bg1}"
+                             FontFamily="Consolas" FontSize="12">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Timestamp}" Foreground="{StaticResource TextMuted}"
+                                               Margin="0,0,10,0" FontFamily="Consolas"/>
+                                    <TextBlock Text="{Binding Category}" FontWeight="SemiBold" Margin="0,0,6,0"
+                                               FontFamily="Consolas">
+                                        <TextBlock.Foreground>
+                                            <Binding Path="Color"/>
+                                        </TextBlock.Foreground>
+                                    </TextBlock>
+                                    <TextBlock Text="::" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"
+                                               FontFamily="Consolas"/>
+                                    <TextBlock Text="{Binding Message}" Foreground="{StaticResource TextSecondary}"
+                                               FontFamily="Consolas"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+
+            <!-- ═══════════════ PROCESSING ═══════════════ -->
+            <TabItem Header="{DynamicResource Tab.Processing}">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <GroupBox Header="{StaticResource Section.Queue}" Grid.Row="0">
+                        <ListBox ItemsSource="{Binding Processing.QueueItems}" BorderThickness="0"
+                                 Background="Transparent">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Display}" FontFamily="Segoe UI" FontSize="12"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </GroupBox>
+
+                    <GroupBox Header="{StaticResource Section.Processed}" Grid.Row="2">
+                        <ListBox ItemsSource="{Binding Processing.ProcessedItems}"
+                                 SelectedItem="{Binding Processing.SelectedProcessed}"
+                                 BorderThickness="0" Background="Transparent">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Display}" FontFamily="Segoe UI" FontSize="12"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+
+            <!-- ═══════════════ USERS ═══════════════ -->
+            <TabItem Header="{DynamicResource Tab.Users}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="220"/>
+                        <ColumnDefinition Width="1"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel Grid.Column="0" Background="{StaticResource Bg2}">
+                        <Border DockPanel.Dock="Top" Padding="10,8"
+                                BorderBrush="{StaticResource BorderBrush0}" BorderThickness="0,0,0,1">
+                            <CheckBox Content="{DynamicResource Chk.HideNotPresent}"
+                                      IsChecked="{Binding Users.HideNotPresent}"
+                                      ToolTip="{DynamicResource Tip.HideNotPresent}"/>
+                        </Border>
+                        <ListBox ItemsSource="{Binding Users.Users}"
+                                 SelectedItem="{Binding Users.SelectedUser}"
+                                 BorderThickness="0" Background="Transparent" Padding="4">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Username}" Padding="4,2"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <Border Grid.Column="1" Background="{StaticResource BorderBrush0}"/>
+
+                    <ScrollViewer Grid.Column="2" Padding="16">
+                        <StackPanel Visibility="{Binding Users.HasSelectedUser, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <GroupBox Header="{StaticResource Section.UserInfo}" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="20"/>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="8"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="8"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="8"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Id}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Users.SelectedUser.TwitchId}" IsReadOnly="True"
+                                                 Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="3" Text="{DynamicResource Lbl.VoiceAlias}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding Users.AliasNames}"
+                                                  SelectedItem="{Binding Users.SelectedUser.AliasName}"
+                                                  ToolTip="{DynamicResource Tip.UserVoiceAlias}"/>
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Username}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Users.SelectedUser.Username}" IsReadOnly="True"
+                                                 Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="3" Text="{DynamicResource Lbl.Nickname}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding Users.SelectedUser.Nickname}"
+                                                 ToolTip="{DynamicResource Tip.UserNickname}"/>
+
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.Role}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Users.SelectedUser.Role}" IsReadOnly="True"
+                                                 Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="3" Text="{DynamicResource Lbl.LastActive}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="4" Grid.Column="4"
+                                                 Text="{Binding Users.SelectedUser.LastActive, StringFormat='dd/MM/yyyy HH:mm:ss'}"
+                                                 IsReadOnly="True" Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"/>
+
+                                        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal">
+                                            <CheckBox Content="{DynamicResource Chk.Ignored}" IsChecked="{Binding Users.SelectedUser.IsIgnored}"
+                                                      Margin="0,0,16,0" ToolTip="{DynamicResource Tip.UserIgnored}"/>
+                                            <CheckBox Content="{DynamicResource Chk.Forced}" IsChecked="{Binding Users.SelectedUser.IsForced}"
+                                                      Margin="0,0,16,0" ToolTip="{DynamicResource Tip.UserForced}"/>
+                                            <CheckBox Content="{DynamicResource Chk.Regular}" IsChecked="{Binding Users.SelectedUser.IsRegular}"
+                                                      Margin="0,0,16,0" ToolTip="{DynamicResource Tip.UserRegular}"/>
+                                            <CheckBox Content="{DynamicResource Chk.Subscribed}" IsChecked="{Binding Users.SelectedUser.IsSubscribed}"
+                                                      ToolTip="{DynamicResource Tip.UserSubscribed}"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Button Content="{DynamicResource Btn.SaveUser}" Command="{Binding Users.SaveUserCommand}"
+                                            Style="{StaticResource AccentButton}" Margin="0,12,0,0" HorizontalAlignment="Left"
+                                            ToolTip="{DynamicResource Tip.SaveUser}"/>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <GroupBox Header="{StaticResource Section.PastVoices}">
+                                <DataGrid ItemsSource="{Binding Users.SelectedUser.PastVoices}" Height="150"
+                                          BorderThickness="0">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{StaticResource Col.LastUsed}" Binding="{Binding LastUsed, StringFormat='dd/MM/yyyy HH:mm:ss'}" Width="180"/>
+                                        <DataGridTextColumn Header="{StaticResource Col.Engine}" Binding="{Binding EngineId}" Width="100"/>
+                                        <DataGridTextColumn Header="{StaticResource Col.VoiceId}" Binding="{Binding VoiceId}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </GroupBox>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- ═══════════════ EVENTS ═══════════════ -->
+            <TabItem Header="{DynamicResource Tab.Events}">
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="200"/>
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel Grid.Column="0">
+                        <Border DockPanel.Dock="Top" Padding="0,0,0,8">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Section.Global}" Style="{StaticResource SectionLabel}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="{DynamicResource Lbl.VoiceAlias}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0" Width="70"/>
+                                    <ComboBox ItemsSource="{Binding Events.AliasNames}" SelectedItem="{Binding Events.GlobalVoiceAlias}"
+                                              Width="100" ToolTip="{DynamicResource Tip.GlobalVoiceAlias}"/>
+                                </StackPanel>
+                                <CheckBox Content="{DynamicResource Chk.EventsEnabled}" IsChecked="{Binding Events.GlobalEventsEnabled}"
+                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.EventsGlobalEnabled}"/>
+                                <Separator/>
+                                <TextBlock Text="{DynamicResource Section.PerEvent}" Style="{StaticResource SectionLabel}" Margin="0,8,0,4"/>
+                            </StackPanel>
+                        </Border>
+                        <ListBox ItemsSource="{Binding Events.EventTypes}"
+                                 SelectedItem="{Binding Events.SelectedEventType}"
+                                 DisplayMemberPath="DisplayName" BorderThickness="0"
+                                 Background="{StaticResource Bg2}"/>
+                    </DockPanel>
+
+                    <DockPanel Grid.Column="1" Margin="12,0">
+                        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Content="{DynamicResource Chk.Enabled}" IsChecked="{Binding Events.EventEnabled}"
+                                          Margin="0,0,16,0" ToolTip="{DynamicResource Tip.EventEnabled}"/>
+                                <TextBlock Text="{DynamicResource Lbl.VoiceAliasSuffix}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <ComboBox ItemsSource="{Binding Events.AliasNames}" SelectedItem="{Binding Events.EventVoiceAlias}"
+                                          Width="140" ToolTip="{DynamicResource Tip.EventVoiceAlias}"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Border DockPanel.Dock="Bottom" Background="{StaticResource Bg2}"
+                                BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                                CornerRadius="5" Padding="10" Margin="0,8,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="80"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Weight}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                <TextBox Grid.Row="0" Grid.Column="1"
+                                         Text="{Binding Events.EditWeight, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{DynamicResource Tip.MessageWeight}"/>
+                                <CheckBox Grid.Row="0" Grid.Column="2" Content="{DynamicResource Chk.Enabled}"
+                                          IsChecked="{Binding Events.EditEnabled}" HorizontalAlignment="Right"
+                                          ToolTip="{DynamicResource Tip.MessageEnabled}"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Message}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                                         Text="{Binding Events.EditTemplate, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{DynamicResource Tip.MessageTemplate}"/>
+                                <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="{DynamicResource Btn.Add}" Command="{Binding Events.AddMessageCommand}"
+                                            Margin="0,0,6,0" ToolTip="{DynamicResource Tip.AddMessage}"/>
+                                    <Button Content="{DynamicResource Btn.Delete}" Command="{Binding Events.DeleteMessageCommand}"
+                                            Style="{StaticResource DangerButton}" Margin="0,0,6,0"
+                                            ToolTip="{DynamicResource Tip.DeleteMessage}"/>
+                                    <Button Content="{DynamicResource Btn.Save}" Command="{Binding Events.SaveMessageCommand}"
+                                            Style="{StaticResource AccentButton}"
+                                            ToolTip="{DynamicResource Tip.SaveMessage}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <DataGrid ItemsSource="{Binding Events.Messages}"
+                                  SelectedItem="{Binding Events.SelectedMessage}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{StaticResource Col.Weight}" Binding="{Binding Weight}" Width="60"/>
+                                <DataGridTextColumn Header="{StaticResource Col.Enabled}" Binding="{Binding Enabled}" Width="60"/>
+                                <DataGridTextColumn Header="{StaticResource Col.Message}" Binding="{Binding Template}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+
+                    <Border Grid.Column="2" Background="{StaticResource Bg2}"
+                            BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                            CornerRadius="5" Padding="12">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Section.EventStates}" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                <CheckBox Content="{DynamicResource Chk.Follows}" IsChecked="{Binding Events.FollowsEnabled}"
+                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.FollowsEnabled}"/>
+                                <CheckBox Content="{DynamicResource Chk.Subscriptions}" IsChecked="{Binding Events.SubscriptionsEnabled}"
+                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.SubscriptionsEnabled}"/>
+                                <CheckBox Content="{DynamicResource Chk.GiftBombs}" IsChecked="{Binding Events.GiftBombsEnabled}"
+                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.GiftBombsEnabled}"/>
+                                <CheckBox Content="{DynamicResource Chk.Raids}" IsChecked="{Binding Events.RaidsEnabled}"
+                                          Margin="0,0,0,4" ToolTip="{DynamicResource Tip.RaidsEnabled}"/>
+                                <Grid Margin="16,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="60"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{DynamicResource Lbl.MinViewers}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Column="1" Text="{Binding Events.MinRaidViewers}"
+                                             ToolTip="{DynamicResource Tip.MinRaidViewers}"/>
+                                </Grid>
+                                <CheckBox Content="{DynamicResource Chk.Cheers}" IsChecked="{Binding Events.CheersEnabled}"
+                                          Margin="0,0,0,4" ToolTip="{DynamicResource Tip.CheersEnabled}"/>
+                                <Grid Margin="16,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="60"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{DynamicResource Lbl.MinBits}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Column="1" Text="{Binding Events.MinBits}"
+                                             ToolTip="{DynamicResource Tip.MinBits}"/>
+                                </Grid>
+                                <CheckBox Content="{DynamicResource Chk.HypeTrains}" IsChecked="{Binding Events.HypeTrainsEnabled}"
+                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.HypeTrainsEnabled}"/>
+                                <CheckBox Content="{DynamicResource Chk.CommunityGoal}" IsChecked="{Binding Events.GoalEnabled}"
+                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.GoalEnabled}"/>
+                                <CheckBox Content="{DynamicResource Chk.ChannelPoints}" IsChecked="{Binding Events.ChannelPointsEnabled}"
+                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.ChannelPointsEnabled}"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ═══════════════ CUSTOM COMMANDS ═══════════════ -->
+            <TabItem Header="{DynamicResource Tab.Commands}">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <DataGrid x:Name="CommandsDataGrid" Grid.Row="0"
+                              ItemsSource="{Binding CustomCommands.Commands}"
+                              SelectedItem="{Binding CustomCommands.SelectedCommand}"
+                              PreviewMouseLeftButtonDown="CommandsDataGrid_PreviewMouseLeftButtonDown">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{StaticResource Col.Command}" Binding="{Binding Trigger}" Width="160"/>
+                            <DataGridTextColumn Header="{StaticResource Col.VoiceAlias}" Binding="{Binding VoiceAliasName}" Width="*"/>
+                            <DataGridTemplateColumn Header="{StaticResource Col.Enabled}" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Command="{Binding DataContext.CustomCommands.ToggleEnabledCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  CommandParameter="{Binding}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="1" Background="{StaticResource Bg2}"
+                            BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                            CornerRadius="5" Padding="12,10" Margin="0,10,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="1" MinWidth="1"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Lbl.Command}" Style="{StaticResource MutedText}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox Grid.Column="1" Text="{Binding CustomCommands.NewTrigger, UpdateSourceTrigger=PropertyChanged}"
+                                     VerticalAlignment="Center" ToolTip="{DynamicResource Tip.CommandTrigger}"/>
+
+                            <TextBlock Grid.Column="3" Text="{DynamicResource Lbl.VoiceAlias}" Style="{StaticResource MutedText}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox Grid.Column="4" ItemsSource="{Binding CustomCommands.AliasNames}"
+                                      SelectedItem="{Binding CustomCommands.NewAlias}"
+                                      VerticalAlignment="Center" ToolTip="{DynamicResource Tip.CommandVoiceAlias}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <Border Grid.Column="6" Background="{StaticResource BorderBrush0}" Width="1" Margin="0,2"/>
+
+                            <StackPanel Grid.Column="8" Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <CheckBox Content="{DynamicResource Chk.Mods}" IsChecked="{Binding CustomCommands.NewAllowModerators}"
+                                          Margin="0,0,12,0" ToolTip="{DynamicResource Tip.CommandMods}"/>
+                                <CheckBox Content="{DynamicResource Chk.Subs}" IsChecked="{Binding CustomCommands.NewAllowSubscribers}"
+                                          Margin="0,0,12,0" ToolTip="{DynamicResource Tip.CommandSubs}"/>
+                                <CheckBox Content="{DynamicResource Chk.VIPs}" IsChecked="{Binding CustomCommands.NewAllowVIPs}"
+                                          Margin="0,0,12,0" ToolTip="{DynamicResource Tip.CommandVips}"/>
+                                <CheckBox Content="{DynamicResource Chk.Regulars}" IsChecked="{Binding CustomCommands.NewAllowRegulars}"
+                                          Margin="0,0,12,0" ToolTip="{DynamicResource Tip.CommandRegulars}"/>
+                                <CheckBox Content="{DynamicResource Chk.Everyone}" IsChecked="{Binding CustomCommands.NewAllowEveryone}"
+                                          ToolTip="{DynamicResource Tip.CommandEveryone}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="10" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                                <Button Content="{Binding CustomCommands.AddSaveLabel}"
+                                        Command="{Binding CustomCommands.AddSaveCommand}"
+                                        Style="{StaticResource AccentButton}" Margin="0,0,6,0"
+                                        ToolTip="{DynamicResource Tip.AddSaveCommand}"/>
+                                <Button Content="{DynamicResource Btn.New}" Command="{Binding CustomCommands.NewCommand}"
+                                        Margin="0,0,6,0" ToolTip="{DynamicResource Tip.NewCommand}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CustomCommands.IsEditing}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="{DynamicResource Btn.Delete}" Command="{Binding CustomCommands.DeleteCommand}"
+                                        Style="{StaticResource DangerButton}" ToolTip="{DynamicResource Tip.DeleteCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ═══════════════ CHANNEL REWARDS ═══════════════ -->
+            <TabItem Header="{DynamicResource Tab.Rewards}">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="{DynamicResource Btn.RefreshFromTwitch}"
+                                Command="{Binding ChannelRewards.RefreshFromTwitchCommand}"
+                                Style="{StaticResource GhostButton}"
+                                ToolTip="{DynamicResource Tip.RefreshFromTwitch}"/>
+                    </DockPanel>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding ChannelRewards.Rewards}"
+                              SelectedItem="{Binding ChannelRewards.SelectedReward}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{StaticResource Col.RewardName}" Binding="{Binding Title}" Width="*"/>
+                            <DataGridTextColumn Header="{StaticResource Col.Cost}" Binding="{Binding Cost}" Width="80"/>
+                            <DataGridTextColumn Header="{StaticResource Col.Ignored}" Binding="{Binding IsIgnored}" Width="70"/>
+                            <DataGridTextColumn Header="{StaticResource Col.SayInput}" Binding="{Binding SayInput}" Width="70"/>
+                            <DataGridTextColumn Header="{StaticResource Col.VoiceAlias}" Binding="{Binding VoiceAliasName}" Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="2" Background="{StaticResource Bg2}"
+                            BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                            CornerRadius="5" Padding="12" Margin="0,10,0,0"
+                            Visibility="{Binding ChannelRewards.HasSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DockPanel Grid.Column="0">
+                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.RewardMessages}" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                                <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding ChannelRewards.Messages}"
+                                          SelectedItem="{Binding ChannelRewards.SelectedMessage}" Height="100">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{StaticResource Col.Weight}" Binding="{Binding Weight}" Width="60"/>
+                                        <DataGridTextColumn Header="{StaticResource Col.Enabled}" Binding="{Binding Enabled}" Width="60"/>
+                                        <DataGridTextColumn Header="{StaticResource Col.Message}" Binding="{Binding Template}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="60"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="70"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="6"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="6"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Weight}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ChannelRewards.EditWeight}"
+                                             ToolTip="{DynamicResource Tip.MessageWeight}"/>
+                                    <CheckBox Grid.Row="0" Grid.Column="2" Content="{DynamicResource Chk.Enabled}"
+                                              IsChecked="{Binding ChannelRewards.EditEnabled}" HorizontalAlignment="Right"
+                                              ToolTip="{DynamicResource Tip.MessageEnabled}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Message}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding ChannelRewards.EditTemplate}"
+                                             ToolTip="{DynamicResource Tip.MessageTemplate}"/>
+                                    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="{DynamicResource Btn.Add}" Command="{Binding ChannelRewards.AddMessageCommand}"
+                                                Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddMessage}"/>
+                                        <Button Content="{DynamicResource Btn.Delete}" Command="{Binding ChannelRewards.DeleteMessageCommand}"
+                                                Style="{StaticResource DangerButton}" Margin="0,0,4,0"
+                                                ToolTip="{DynamicResource Tip.DeleteMessage}"/>
+                                        <Button Content="{DynamicResource Btn.Save}" Command="{Binding ChannelRewards.SaveMessageCommand}"
+                                                Style="{StaticResource AccentButton}"
+                                                ToolTip="{DynamicResource Tip.SaveMessage}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DockPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{DynamicResource Section.Settings}" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                <CheckBox Content="{DynamicResource Chk.Ignored}" IsChecked="{Binding ChannelRewards.SelectedReward.IsIgnored}"
+                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.RewardIgnored}"/>
+                                <CheckBox Content="{DynamicResource Chk.SayInput}" IsChecked="{Binding ChannelRewards.SelectedReward.SayInput}"
+                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.RewardSayInput}"/>
+                                <TextBlock Text="{DynamicResource Lbl.VoiceAlias}" Style="{StaticResource MutedText}" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding ChannelRewards.AliasNames}"
+                                          SelectedItem="{Binding ChannelRewards.SelectedReward.VoiceAliasName}"
+                                          ToolTip="{DynamicResource Tip.RewardVoiceAlias}"/>
+                                <Button Content="{DynamicResource Btn.SaveReward}" Command="{Binding ChannelRewards.SaveRewardCommand}"
+                                        Style="{StaticResource AccentButton}" Margin="0,12,0,4"
+                                        ToolTip="{DynamicResource Tip.SaveReward}"/>
+                                <Button Content="{DynamicResource Btn.RemoveReward}" Command="{Binding ChannelRewards.RemoveRewardCommand}"
+                                        Style="{StaticResource DangerButton}"
+                                        ToolTip="{DynamicResource Tip.RemoveReward}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                </Grid>
+            </TabItem>
+
+            <!-- ═══════════════ SETTINGS ═══════════════ -->
+            <TabItem Header="{DynamicResource Tab.Settings}">
+                <TabControl>
+
+                    <!-- ─── General ─── -->
+                    <TabItem Header="{DynamicResource Tab.General}">
+                        <ScrollViewer Padding="16">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Left column -->
+                                    <StackPanel Grid.Column="0">
+                                        <GroupBox Header="{StaticResource Section.Instance}" Margin="0,0,0,12">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="80"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="8"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Id}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding GeneralSettings.InstanceId, Mode=OneWay}" IsReadOnly="True"
+                                                         Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"
+                                                         ToolTip="{DynamicResource Tip.InstanceId}"/>
+                                                <Button Grid.Row="0" Grid.Column="2" Content="{DynamicResource Btn.Reset}"
+                                                        Command="{Binding GeneralSettings.ResetInstanceIdCommand}" Margin="6,0,0,0"
+                                                        ToolTip="{DynamicResource Tip.ResetInstanceId}"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Name}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding GeneralSettings.InstanceName}"
+                                                         ToolTip="{DynamicResource Tip.InstanceName}"/>
+                                            </Grid>
+                                        </GroupBox>
+
+                                        <GroupBox Header="{StaticResource Section.Flags}" Margin="0,0,0,12">
+                                            <CheckBox Content="{DynamicResource Chk.Enabled}" IsChecked="{Binding GeneralSettings.Enabled}"
+                                                      ToolTip="{DynamicResource Tip.GeneralEnabled}"/>
+                                        </GroupBox>
+
+                                        <GroupBox Header="{StaticResource Section.WindowBehaviour}" Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <CheckBox Content="{DynamicResource Chk.MinimizeToTray}" IsChecked="{Binding GeneralSettings.MinimizeToTray}"
+                                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.MinimizeToTray}"/>
+                                                <CheckBox Content="{DynamicResource Chk.ConfirmationOnClose}" IsChecked="{Binding GeneralSettings.ConfirmationOnClose}"
+                                                          Margin="0,0,0,8" ToolTip="{DynamicResource Tip.ConfirmationOnClose}"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="{DynamicResource Lbl.LogLevel}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <ComboBox ItemsSource="{Binding GeneralSettings.LogLevels}"
+                                                              SelectedItem="{Binding GeneralSettings.LogLevel}" Width="120"
+                                                              ToolTip="{DynamicResource Tip.LogLevel}"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="{DynamicResource Lbl.Language}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <ComboBox ItemsSource="{Binding GeneralSettings.AvailableLanguages}"
+                                                              SelectedItem="{Binding GeneralSettings.Language}" Width="120"
+                                                              ToolTip="{DynamicResource Tip.Language}"/>
+                                                </StackPanel>
+                                                <CheckBox Content="{DynamicResource Chk.ShowTooltips}" IsChecked="{Binding GeneralSettings.ShowTooltips}"
+                                                          ToolTip="{DynamicResource Tip.ShowTooltips}"/>
+                                            </StackPanel>
+                                        </GroupBox>
+
+                                    </StackPanel>
+
+                                    <!-- Right column -->
+                                    <StackPanel Grid.Column="2">
+                                        <GroupBox Header="{StaticResource Section.AudioOutput}" Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <ComboBox ItemsSource="{Binding GeneralSettings.OutputDevices}"
+                                                              SelectedValuePath="Id"
+                                                              SelectedValue="{Binding GeneralSettings.AudioOutputDeviceId}"
+                                                              ToolTip="{DynamicResource Tip.AudioDevice}">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding Name}"/>
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                    <Button Content="{DynamicResource Btn.Refresh}" Command="{Binding GeneralSettings.RefreshDevicesCommand}"
+                                                            Margin="8,0,0,0" ToolTip="{DynamicResource Tip.RefreshDevices}"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="{DynamicResource Lbl.Volume}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <Slider Minimum="0" Maximum="100"
+                                                            Value="{Binding GeneralSettings.ApplicationVolume}" Width="160"
+                                                            ToolTip="{DynamicResource Tip.Volume}"/>
+                                                    <TextBlock Margin="10,0,0,0" VerticalAlignment="Center">
+                                                        <Run Text="{Binding GeneralSettings.ApplicationVolume}"/>
+                                                        <Run Text="{DynamicResource Lbl.Percent}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <CheckBox Content="{DynamicResource Chk.DisableAudioOutput}"
+                                                          IsChecked="{Binding GeneralSettings.DisableAudioOutput}"
+                                                          Margin="0,0,0,6"
+                                                          ToolTip="{DynamicResource Tip.DisableAudioOutput}"/>
+                                                <CheckBox Content="{DynamicResource Chk.SimultaneousMode}"
+                                                          IsChecked="{Binding GeneralSettings.SimultaneousMode}"
+                                                          ToolTip="{DynamicResource Tip.SimultaneousMode}"/>
+                                            </StackPanel>
+                                        </GroupBox>
+
+                                        <GroupBox Header="{StaticResource Section.SaveTtsToFile}" Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <CheckBox Content="{DynamicResource Chk.SaveTtsToFile}"
+                                                          IsChecked="{Binding GeneralSettings.SaveTts}" Margin="0,0,0,8"
+                                                          ToolTip="{DynamicResource Tip.SaveTts}"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding GeneralSettings.SaveTtsFolder}" Width="220"
+                                                             ToolTip="{DynamicResource Tip.SaveTtsFolder}"/>
+                                                    <Button Content="{DynamicResource Btn.Browse}" Command="{Binding GeneralSettings.BrowseFolderCommand}"
+                                                            Margin="6,0,0,0" Padding="10,5"
+                                                            ToolTip="{DynamicResource Tip.BrowseTtsFolder}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </GroupBox>
+
+                                        <GroupBox Header="{StaticResource Section.DefaultAliases}" Margin="0,0,0,12">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="130"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="8"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="8"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.DefaultVoiceAlias}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding GeneralSettings.DefaultVoiceAlias}"
+                                                         ToolTip="{DynamicResource Tip.DefaultVoiceAlias}"/>
+                                                <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                                          Content="{DynamicResource Chk.UseHighlightVoice}"
+                                                          IsChecked="{Binding GeneralSettings.UseHighlightVoice}"
+                                                          ToolTip="{DynamicResource Tip.UseHighlightVoice}"/>
+                                                <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.HighlightVoiceAlias}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding GeneralSettings.HighlightVoiceAlias}"
+                                                         ToolTip="{DynamicResource Tip.HighlightVoiceAlias}"/>
+                                            </Grid>
+                                        </GroupBox>
+                                    </StackPanel>
+                                </Grid>
+
+                                <GroupBox Header="{StaticResource Section.ImportSpeakerBot}" Margin="0,12,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource Lbl.ImportSpeakerBotDesc}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <TextBox Text="{Binding Import.FolderPath}" Width="280" IsReadOnly="True"
+                                                     ToolTip="{DynamicResource Tip.ImportFolder}"/>
+                                            <Button Content="{DynamicResource Btn.Browse}" Command="{Binding Import.BrowseFolderCommand}"
+                                                    Margin="6,0,0,0" Padding="10,5"
+                                                    ToolTip="{DynamicResource Tip.BrowseImportFolder}"/>
+                                        </StackPanel>
+                                        <Button Content="{DynamicResource Btn.ImportNow}" Command="{Binding Import.ImportCommand}"
+                                                Style="{StaticResource AccentButton}" HorizontalAlignment="Left" Margin="0,0,0,8"
+                                                ToolTip="{DynamicResource Tip.ImportNow}"/>
+                                        <TextBlock Text="{Binding Import.StatusMessage}" TextWrapping="Wrap"
+                                                   Visibility="{Binding Import.HasStatusMessage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Import.IsError}" Value="True">
+                                                            <Setter Property="Foreground" Value="#EF4444"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Import.IsError}" Value="False">
+                                                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </GroupBox>
+
+                                <Button Content="{DynamicResource Btn.SaveSettings}" Command="{Binding GeneralSettings.SaveCommand}"
+                                        Style="{StaticResource AccentButton}" HorizontalAlignment="Left"
+                                        ToolTip="{DynamicResource Tip.SaveGeneralSettings}"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ─── Accounts ─── -->
+                    <TabItem Header="{DynamicResource Tab.Accounts}">
+                        <TabControl>
+                            <TabItem Header="{DynamicResource Tab.Twitch}">
+                                <Grid Margin="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <GroupBox Grid.Column="0" Header="{StaticResource Section.Account}">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                                <Border Width="48" Height="48" CornerRadius="24"
+                                                        Background="{StaticResource Bg4}" Margin="0,0,12,0"
+                                                        ClipToBounds="True">
+                                                    <Grid>
+                                                        <TextBlock Text="T" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   FontSize="18" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                                                        <Image Source="{Binding Accounts.TwitchAvatarUrl}" Stretch="UniformToFill"/>
+                                                    </Grid>
+                                                </Border>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Accounts.TwitchLogin}" FontSize="15" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Accounts.TwitchBroadcasterType}" Style="{StaticResource MutedText}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="{DynamicResource Btn.Login}" Command="{Binding Accounts.TwitchConnectCommand}"
+                                                        Style="{StaticResource AccentButton}" Margin="0,0,8,0"
+                                                        ToolTip="{DynamicResource Tip.TwitchLogin}"/>
+                                                <Button Content="{DynamicResource Btn.Logout}" Command="{Binding Accounts.TwitchLogoutCommand}"
+                                                        Margin="0,0,8,0" ToolTip="{DynamicResource Tip.TwitchLogout}"/>
+                                                <Button Content="{DynamicResource Btn.Forget}" Command="{Binding Accounts.TwitchForgetCommand}"
+                                                        Style="{StaticResource DangerButton}"
+                                                        ToolTip="{DynamicResource Tip.TwitchForget}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </GroupBox>
+
+                                    <GroupBox Grid.Column="2" Header="{StaticResource Section.Services}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="90"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.ChatClient}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <Button Grid.Row="0" Grid.Column="1" Content="{Binding Accounts.ChatClientStatus}"
+                                                    Command="{Binding Accounts.ChatClientToggleCommand}" HorizontalAlignment="Left"
+                                                    ToolTip="{DynamicResource Tip.ChatClientToggle}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.EventSub}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <Button Grid.Row="2" Grid.Column="1" Content="{Binding Accounts.EventSubStatus}"
+                                                    Command="{Binding Accounts.EventSubToggleCommand}" HorizontalAlignment="Left"
+                                                    ToolTip="{DynamicResource Tip.EventSubToggle}"/>
+                                        </Grid>
+                                    </GroupBox>
+                                </Grid>
+                            </TabItem>
+                        </TabControl>
+                    </TabItem>
+
+                    <!-- ─── Voice Gate ─── -->
+                    <TabItem Header="{DynamicResource Tab.VoiceGate}">
+                        <Grid Margin="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="260"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <GroupBox Header="{StaticResource Section.AudioDeviceToMonitor}" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <ComboBox ItemsSource="{Binding VoiceGate.InputDevices}"
+                                                          SelectedItem="{Binding VoiceGate.SelectedDevice}"
+                                                          Width="200" ToolTip="{DynamicResource Tip.VoiceGateDevice}">
+                                                    <ComboBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding Name}"/>
+                                                        </DataTemplate>
+                                                    </ComboBox.ItemTemplate>
+                                                </ComboBox>
+                                                <Button Content="{DynamicResource Btn.Refresh}" Command="{Binding VoiceGate.RefreshDevicesCommand}"
+                                                        Margin="8,0,0,0" ToolTip="{DynamicResource Tip.RefreshGateDevices}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <Button Content="{DynamicResource Btn.Start}" Command="{Binding VoiceGate.StartCommand}"
+                                                        Style="{StaticResource AccentButton}" Margin="0,0,8,0"
+                                                        ToolTip="{DynamicResource Tip.StartVoiceGate}"/>
+                                                <Button Content="{DynamicResource Btn.Stop}" Command="{Binding VoiceGate.StopCommand}"
+                                                        Margin="0,0,16,0" ToolTip="{DynamicResource Tip.StopVoiceGate}"/>
+                                                <CheckBox Content="{DynamicResource Chk.AutoStart}" IsChecked="{Binding VoiceGate.AutoStart}"
+                                                          VerticalAlignment="Center" ToolTip="{DynamicResource Tip.VoiceGateAutoStart}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{DynamicResource Lbl.Volume}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <ProgressBar Value="{Binding VoiceGate.Volume}" Width="200" Maximum="100"/>
+                                                <TextBlock Margin="8,0,0,0" VerticalAlignment="Center">
+                                                    <Run Text="{Binding VoiceGate.Volume, StringFormat='0'}"/>
+                                                    <Run Text="{DynamicResource Lbl.Percent}"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </GroupBox>
+
+                                    <GroupBox Header="{StaticResource Section.Profiles}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                                <TextBox Text="{Binding VoiceGate.NewProfileName}" Width="140" Margin="0,0,6,0"/>
+                                                <Button Content="{DynamicResource Btn.AddProfile}" Command="{Binding VoiceGate.AddProfileCommand}"
+                                                        Margin="0,0,6,0" ToolTip="{DynamicResource Tip.AddVoiceGateProfile}"/>
+                                                <Button Content="{DynamicResource Btn.Delete}" Command="{Binding VoiceGate.DeleteProfileCommand}"
+                                                        Style="{StaticResource DangerButton}"
+                                                        ToolTip="{DynamicResource Tip.DeleteVoiceGateProfile}"/>
+                                            </StackPanel>
+                                            <DataGrid ItemsSource="{Binding VoiceGate.Profiles}"
+                                                      SelectedItem="{Binding VoiceGate.SelectedProfile}" Height="120">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="{StaticResource Col.Name}" Binding="{Binding Name}" Width="*"/>
+                                                    <DataGridTextColumn Header="{StaticResource Col.Device}" Binding="{Binding DeviceId}" Width="130"/>
+                                                    <DataGridTextColumn Header="{StaticResource Col.Threshold}" Binding="{Binding ThresholdDb}" Width="90"/>
+                                                    <DataGridTextColumn Header="{StaticResource Col.TimeoutMs}" Binding="{Binding TimeoutMs}" Width="90"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </DockPanel>
+                                    </GroupBox>
+                                </StackPanel>
+
+                                <Border Grid.Column="2" Background="{StaticResource Bg2}"
+                                        BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                                        CornerRadius="5" Padding="12">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource Section.Settings}" Style="{StaticResource SectionLabel}" Margin="0,0,0,12"/>
+                                        <TextBlock>
+                                            <Run Text="{DynamicResource Lbl.PauseThreshold}"/>
+                                            <Run Text="{Binding VoiceGate.PauseThreshold}"/>
+                                            <Run Text="{DynamicResource Lbl.Percent}"/>
+                                        </TextBlock>
+                                        <Slider Minimum="0" Maximum="100" Value="{Binding VoiceGate.PauseThreshold}"
+                                                Margin="0,6,0,12" ToolTip="{DynamicResource Tip.PauseThreshold}"/>
+                                        <TextBlock>
+                                            <Run Text="{DynamicResource Lbl.ResumeThreshold}"/>
+                                            <Run Text="{Binding VoiceGate.ResumeThreshold}"/>
+                                            <Run Text="{DynamicResource Lbl.Percent}"/>
+                                        </TextBlock>
+                                        <Slider Minimum="0" Maximum="100" Value="{Binding VoiceGate.ResumeThreshold}"
+                                                Margin="0,6,0,12" ToolTip="{DynamicResource Tip.ResumeThreshold}"/>
+                                        <TextBlock Text="{DynamicResource Lbl.ResumeWaitTimeout}" Style="{StaticResource MutedText}" Margin="0,0,0,4"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBox Text="{Binding VoiceGate.ResumeWaitMs}" Width="80"
+                                                     ToolTip="{DynamicResource Tip.ResumeWaitMs}"/>
+                                            <TextBlock Text="{DynamicResource Lbl.Ms}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- ─── Speech Engines ─── -->
+                    <TabItem Header="{DynamicResource Tab.SpeechEngines}">
+                        <Grid Margin="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DockPanel Grid.Column="0">
+                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.Engines}" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="{DynamicResource Btn.Add}" Command="{Binding SpeechEngines.ShowAddDialogCommand}"
+                                            Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddEngine}"/>
+                                    <Button Content="{DynamicResource Btn.Remove}" Command="{Binding SpeechEngines.RemoveCommand}"
+                                            Style="{StaticResource DangerButton}"
+                                            ToolTip="{DynamicResource Tip.RemoveEngine}"/>
+                                </StackPanel>
+                                <ListBox ItemsSource="{Binding SpeechEngines.Engines}"
+                                         SelectedItem="{Binding SpeechEngines.SelectedEngine}"
+                                         BorderThickness="0"
+                                         Background="{StaticResource Bg2}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding DisplayName}"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+
+                            <DockPanel Grid.Column="1" Margin="12,0,0,0">
+                                <TextBlock DockPanel.Dock="Top"
+                                           Text="{Binding SpeechEngines.SelectedEngine.VoiceCount}"
+                                           FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <ListBox ItemsSource="{Binding SpeechEngines.SelectedEngine.Voices}"
+                                         BorderThickness="0" Background="{StaticResource Bg2}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" Padding="4,2"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- ─── Ignored Voices/Locales ─── -->
+                    <TabItem Header="{DynamicResource Tab.IgnoredVoices}">
+                        <Grid Margin="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Grid Grid.Column="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="50"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.AvailableVoices}"
+                                           Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="{DynamicResource Lbl.IgnoredVoicesList}"
+                                           Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+
+                                <ListBox Grid.Row="1" Grid.Column="0"
+                                         ItemsSource="{Binding IgnoredVoices.AvailableVoices}"
+                                         SelectedItem="{Binding IgnoredVoices.SelectedAvailableVoice}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding}" Padding="2,1" FontSize="12"/></DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <StackPanel Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <Button Content="{DynamicResource Btn.IgnoreArrow}" Command="{Binding IgnoredVoices.IgnoreVoiceCommand}"
+                                            Padding="8,6" Margin="0,4" ToolTip="{DynamicResource Tip.IgnoreVoice}"/>
+                                    <Button Content="{DynamicResource Btn.UnignoreArrow}" Command="{Binding IgnoredVoices.UnignoreVoiceCommand}"
+                                            Padding="8,6" Margin="0,4" ToolTip="{DynamicResource Tip.UnignoreVoice}"/>
+                                </StackPanel>
+
+                                <ListBox Grid.Row="1" Grid.Column="2"
+                                         ItemsSource="{Binding IgnoredVoices.IgnoredVoices}"
+                                         SelectedItem="{Binding IgnoredVoices.SelectedIgnoredVoice}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding}" Padding="2,1" FontSize="12"/></DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+
+                            <Grid Grid.Column="2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Text="{DynamicResource Lbl.AvailableLocales}" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding IgnoredVoices.AvailableLocales}"
+                                         SelectedItem="{Binding IgnoredVoices.SelectedAvailableLocale}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding}" Padding="2,1" FontSize="12"/></DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,4">
+                                    <Button Content="{DynamicResource Btn.IgnoreLocale}" Command="{Binding IgnoredVoices.IgnoreLocaleCommand}"
+                                            Margin="0,0,4,0" ToolTip="{DynamicResource Tip.IgnoreLocale}"/>
+                                    <Button Content="{DynamicResource Btn.UnignoreLocale}" Command="{Binding IgnoredVoices.UnignoreLocaleCommand}"
+                                            ToolTip="{DynamicResource Tip.UnignoreLocale}"/>
+                                </StackPanel>
+
+                                <ListBox Grid.Row="3" ItemsSource="{Binding IgnoredVoices.IgnoredLocales}"
+                                         SelectedItem="{Binding IgnoredVoices.SelectedIgnoredLocale}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding}" Padding="2,1" FontSize="12"/></DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <Border Grid.Row="4" Background="{StaticResource Bg3}" CornerRadius="4" Padding="8,6" Margin="0,8,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource Section.Profiles}" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                                        <ComboBox ItemsSource="{Binding IgnoredVoices.Profiles}"
+                                                  SelectedItem="{Binding IgnoredVoices.SelectedProfile}"
+                                                  Margin="0,0,0,6">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Name}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBox Text="{Binding IgnoredVoices.NewProfileName}" Margin="0,0,0,6"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="{DynamicResource Btn.New}" Command="{Binding IgnoredVoices.NewProfileCommand}"
+                                                    Margin="0,0,4,0" ToolTip="{DynamicResource Tip.NewVoiceProfile}"/>
+                                            <Button Content="{DynamicResource Btn.Delete}" Command="{Binding IgnoredVoices.DeleteProfileCommand}"
+                                                    Style="{StaticResource DangerButton}"
+                                                    ToolTip="{DynamicResource Tip.DeleteVoiceProfile}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- ─── Speaking Options ─── -->
+                    <TabItem Header="{DynamicResource Tab.SpeakingOptions}">
+                        <ScrollViewer Padding="16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <GroupBox Header="{StaticResource Section.SpeakingMode}" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <TextBlock Text="{DynamicResource Lbl.Mode}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <ComboBox ItemsSource="{Binding SpeakingOptions.AvailableModes}"
+                                                          SelectedItem="{Binding SpeakingOptions.Mode}" Width="120"
+                                                          ToolTip="{DynamicResource Tip.SpeakingMode}"/>
+                                            </StackPanel>
+                                            <CheckBox Content="{DynamicResource Chk.SayUsername}" IsChecked="{Binding SpeakingOptions.SayUsername}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.SayUsername}"/>
+                                            <StackPanel Orientation="Horizontal" Margin="20,0,0,8">
+                                                <TextBlock Text="{DynamicResource Lbl.Postfix}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBox Text="{Binding SpeakingOptions.SayUsernamePrefix}" Width="80"
+                                                         ToolTip="{DynamicResource Tip.UsernamePostfix}"/>
+                                            </StackPanel>
+                                            <CheckBox Content="{DynamicResource Chk.StickyRandomVoice}" IsChecked="{Binding SpeakingOptions.StickyRandomVoice}"
+                                                      Margin="0,0,0,8" ToolTip="{DynamicResource Tip.StickyRandomVoice}"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <CheckBox Content="{DynamicResource Lbl.HighlightVoiceAliasSuffix}" IsChecked="{Binding SpeakingOptions.UseHighlightVoice}"
+                                                          VerticalAlignment="Center" Margin="0,0,6,0"
+                                                          ToolTip="{DynamicResource Tip.UseHighlightVoice2}"/>
+                                                <TextBox Text="{Binding SpeakingOptions.HighlightVoiceAlias}" Width="120"
+                                                         ToolTip="{DynamicResource Tip.HighlightVoiceAliasInput}"/>
+                                            </StackPanel>
+                                            <CheckBox Content="{DynamicResource Chk.OnlySayUsernameIfDifferent}" IsChecked="{Binding SpeakingOptions.OnlySayUsernameIfDifferent}"
+                                                      Margin="0,0,0,8" ToolTip="{DynamicResource Tip.OnlySayUsernameIfDifferent}"/>
+                                            <CheckBox Content="{DynamicResource Chk.ReplaceNameWithNickname}" IsChecked="{Binding SpeakingOptions.ReplaceNameWithNickname}"
+                                                      Margin="0,0,0,8" ToolTip="{DynamicResource Tip.ReplaceNameWithNickname}"/>
+                                        </StackPanel>
+                                    </GroupBox>
+
+                                    <GroupBox Header="{StaticResource Section.Limits}" Margin="0,0,0,12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Cooldown}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                                                <TextBox Text="{Binding SpeakingOptions.CooldownSeconds}" Width="60"
+                                                         ToolTip="{DynamicResource Tip.CooldownSeconds}"/>
+                                                <TextBlock Text="{DynamicResource Lbl.SecondsPerUser}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.MaxWords}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                                                <TextBox Text="{Binding SpeakingOptions.MaxWords}" Width="60"
+                                                         ToolTip="{DynamicResource Tip.MaxWords}"/>
+                                                <CheckBox Content="{DynamicResource Chk.TreatSymbolsAsSpaces}" IsChecked="{Binding SpeakingOptions.WordLimitSymbolsAsSpaces}"
+                                                          VerticalAlignment="Center" Margin="12,0,0,0"
+                                                          ToolTip="{DynamicResource Tip.TreatSymbolsAsSpaces}"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.MaxChars}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                                                <TextBox Text="{Binding SpeakingOptions.MaxChars}" Width="60"
+                                                         ToolTip="{DynamicResource Tip.MaxChars}"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.UrlFilter}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Row="6" Grid.Column="1"
+                                                      ItemsSource="{Binding SpeakingOptions.UrlFilterModes}"
+                                                      SelectedItem="{Binding SpeakingOptions.UrlFilterMode}"
+                                                      ToolTip="{DynamicResource Tip.UrlFilterMode}"/>
+                                            <TextBlock Grid.Row="8" Grid.Column="0" Text="{DynamicResource Lbl.NotAllowedText}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding SpeakingOptions.NotAllowedText}"
+                                                     ToolTip="{DynamicResource Tip.NotAllowedText}"/>
+                                        </Grid>
+                                    </GroupBox>
+
+                                    <GroupBox Header="{StaticResource Section.StopSkipOn}" Margin="0,0,0,12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{DynamicResource Col.Stop}" Style="{StaticResource MutedText}" Margin="0,0,0,4"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{DynamicResource Col.Skip}" Style="{StaticResource MutedText}" Margin="8,0,0,4"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Lbl.MessageDeleted}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,0,6"/>
+                                            <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding SpeakingOptions.StopOnMessageDeleted}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.StopOnMsgDeleted}"/>
+                                            <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding SpeakingOptions.SkipOnMessageDeleted}"
+                                                      Margin="8,0,0,6" ToolTip="{DynamicResource Tip.SkipOnMsgDeleted}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.UserTimedOut}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,0,6"/>
+                                            <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding SpeakingOptions.StopOnUserTimedOut}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.StopOnTimedOut}"/>
+                                            <CheckBox Grid.Row="2" Grid.Column="2" IsChecked="{Binding SpeakingOptions.SkipOnUserTimedOut}"
+                                                      Margin="8,0,0,6" ToolTip="{DynamicResource Tip.SkipOnTimedOut}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{DynamicResource Lbl.UserBanned}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding SpeakingOptions.StopOnUserBanned}"
+                                                      ToolTip="{DynamicResource Tip.StopOnBanned}"/>
+                                            <CheckBox Grid.Row="3" Grid.Column="2" IsChecked="{Binding SpeakingOptions.SkipOnUserBanned}"
+                                                      Margin="8,0,0,0" ToolTip="{DynamicResource Tip.SkipOnBanned}"/>
+                                        </Grid>
+                                    </GroupBox>
+
+                                    <GroupBox Header="{StaticResource Section.Permissions}" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <CheckBox Content="{DynamicResource Chk.Moderators}" IsChecked="{Binding SpeakingOptions.AllowModerators}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.AllowModerators}"/>
+                                            <CheckBox Content="{DynamicResource Chk.Subscribers}" IsChecked="{Binding SpeakingOptions.AllowSubscribers}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.AllowSubscribers}"/>
+                                            <CheckBox Content="{DynamicResource Chk.VIPs}" IsChecked="{Binding SpeakingOptions.AllowVIPs}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.AllowVips}"/>
+                                            <CheckBox Content="{DynamicResource Chk.Regulars}" IsChecked="{Binding SpeakingOptions.AllowRegulars}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.AllowRegulars}"/>
+                                            <CheckBox Content="{DynamicResource Chk.Everyone}" IsChecked="{Binding SpeakingOptions.AllowEveryone}"
+                                                      ToolTip="{DynamicResource Tip.AllowEveryone}"/>
+                                        </StackPanel>
+                                    </GroupBox>
+
+                                    <GroupBox Header="{StaticResource Section.CommandOptions}">
+                                        <CheckBox Content="{DynamicResource Chk.SilenceCommandOutput}" IsChecked="{Binding SpeakingOptions.SilenceCommandOutput}"
+                                                  ToolTip="{DynamicResource Tip.SilenceCommandOutput}"/>
+                                    </GroupBox>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2">
+                                    <GroupBox Header="{StaticResource Section.Emotes}" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <CheckBox Content="{DynamicResource Chk.IgnoreTwitchEmotes}" IsChecked="{Binding SpeakingOptions.StripTwitchEmotes}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.IgnoreTwitchEmotes}"/>
+                                            <CheckBox Content="{DynamicResource Chk.IgnoreBttvEmotes}" IsChecked="{Binding SpeakingOptions.StripBttvEmotes}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.IgnoreBttvEmotes}"/>
+                                            <CheckBox Content="{DynamicResource Chk.IgnoreFfzEmotes}" IsChecked="{Binding SpeakingOptions.StripFfzEmotes}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.IgnoreFfzEmotes}"/>
+                                            <CheckBox Content="{DynamicResource Chk.IgnoreSevenTvEmotes}" IsChecked="{Binding SpeakingOptions.StripSevenTvEmotes}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.IgnoreSevenTvEmotes}"/>
+                                            <CheckBox Content="{DynamicResource Chk.IgnoreTwemoji}" IsChecked="{Binding SpeakingOptions.StripTwemoji}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.IgnoreTwemoji}"/>
+                                            <CheckBox Content="{DynamicResource Chk.IgnoreCheermotes}" IsChecked="{Binding SpeakingOptions.StripCheermotes}"
+                                                      Margin="0,0,0,6" ToolTip="{DynamicResource Tip.IgnoreCheermotes}"/>
+                                            <CheckBox Content="{DynamicResource Chk.AllowFirstEmote}" IsChecked="{Binding SpeakingOptions.AllowFirstEmote}"
+                                                      Margin="0,0,0,8" ToolTip="{DynamicResource Tip.AllowFirstEmote}"/>
+                                            <TextBlock Text="{DynamicResource Section.AllowedEmotes}" Style="{StaticResource SectionLabel}" Margin="0,4,0,4"/>
+                                            <ListBox ItemsSource="{Binding SpeakingOptions.AllowedEmotes}"
+                                                     SelectedItem="{Binding SpeakingOptions.SelectedAllowedEmote}"
+                                                     Height="80" BorderThickness="0" Background="{StaticResource Bg3}">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding}" FontSize="12"/></DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                <TextBox Text="{Binding SpeakingOptions.NewAllowedEmote}" Width="120" Margin="0,0,6,0"/>
+                                                <Button Content="{DynamicResource Btn.Add}" Command="{Binding SpeakingOptions.AddEmoteCommand}"
+                                                        Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddAllowedEmote}"/>
+                                                <Button Content="{DynamicResource Btn.Del}" Command="{Binding SpeakingOptions.DeleteEmoteCommand}"
+                                                        Style="{StaticResource DangerButton}"
+                                                        ToolTip="{DynamicResource Tip.DelAllowedEmote}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </GroupBox>
+
+                                    <GroupBox Header="{StaticResource Section.TtsCommands}" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <ListBox ItemsSource="{Binding SpeakingOptions.TtsCommands}"
+                                                     SelectedItem="{Binding SpeakingOptions.SelectedTtsCommand}"
+                                                     Height="80" BorderThickness="0" Background="{StaticResource Bg3}">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding}" FontSize="12"/></DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                <TextBox Text="{Binding SpeakingOptions.NewTtsCommand}" Width="120" Margin="0,0,6,0"/>
+                                                <Button Content="{DynamicResource Btn.Add}" Command="{Binding SpeakingOptions.AddTtsCommandCommand}"
+                                                        Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddTtsCommand}"/>
+                                                <Button Content="{DynamicResource Btn.Del}" Command="{Binding SpeakingOptions.DeleteTtsCommandCommand}"
+                                                        Style="{StaticResource DangerButton}"
+                                                        ToolTip="{DynamicResource Tip.DelTtsCommand}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </GroupBox>
+
+                                    <GroupBox Header="{StaticResource Section.IgnoredPrefixes}">
+                                        <StackPanel>
+                                            <CheckBox Content="{DynamicResource Chk.IgnorePrefixedWith}" Margin="0,0,0,6"/>
+                                            <ListBox ItemsSource="{Binding SpeakingOptions.IgnoredPrefixes}"
+                                                     SelectedItem="{Binding SpeakingOptions.SelectedIgnoredPrefix}"
+                                                     Height="80" BorderThickness="0" Background="{StaticResource Bg3}">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding}" FontSize="12"/></DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                <TextBox Text="{Binding SpeakingOptions.NewIgnoredPrefix}" Width="80" Margin="0,0,6,0"/>
+                                                <Button Content="{DynamicResource Btn.Add}" Command="{Binding SpeakingOptions.AddIgnoredPrefixCommand}"
+                                                        Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddIgnoredPrefix}"/>
+                                                <Button Content="{DynamicResource Btn.Del}" Command="{Binding SpeakingOptions.DeleteIgnoredPrefixCommand}"
+                                                        Style="{StaticResource DangerButton}"
+                                                        ToolTip="{DynamicResource Tip.DelIgnoredPrefix}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </GroupBox>
+                                </StackPanel>
+                            </Grid>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ─── Filters ─── -->
+                    <TabItem Header="{DynamicResource Tab.Filters}">
+                        <DockPanel Margin="12">
+                            <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.Filters}" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+
+                            <Border DockPanel.Dock="Bottom" Background="{StaticResource Bg2}"
+                                    BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                                    CornerRadius="5" Padding="10" Margin="0,8,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="6"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="6"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="6"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="8"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="8"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Mode}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Replacement.AvailableModes}"
+                                              SelectedItem="{Binding Replacement.EditMode}"
+                                              ToolTip="{DynamicResource Tip.FilterMode}"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Match}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Replacement.EditPattern}"
+                                             ToolTip="{DynamicResource Tip.FilterMatch}"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.With}" Style="{StaticResource MutedText}" VerticalAlignment="Center"
+                                               Visibility="{Binding Replacement.IsReplaceMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Replacement.EditReplacement}"
+                                             Visibility="{Binding Replacement.IsReplaceMode, Converter={StaticResource BoolToVisibilityConverter}}"
+                                             ToolTip="{DynamicResource Tip.FilterWith}"/>
+
+                                    <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+                                        <CheckBox Content="{DynamicResource Chk.Enabled}" IsChecked="{Binding Replacement.EditEnabled}"
+                                                  Margin="0,0,12,0" ToolTip="{DynamicResource Tip.FilterEnabled}"/>
+                                        <CheckBox Content="{DynamicResource Chk.Regex}" IsChecked="{Binding Replacement.EditIsRegex}"
+                                                  ToolTip="{DynamicResource Tip.FilterRegex}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="{DynamicResource Btn.Add}" Command="{Binding Replacement.AddReplacementCommand}"
+                                                Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddFilter}"/>
+                                        <Button Content="{DynamicResource Btn.Delete}" Command="{Binding Replacement.DeleteReplacementCommand}"
+                                                Style="{StaticResource DangerButton}" Margin="0,0,4,0"
+                                                ToolTip="{DynamicResource Tip.DeleteFilter}"/>
+                                        <Button Content="{DynamicResource Btn.Save}" Command="{Binding Replacement.SaveReplacementCommand}"
+                                                Style="{StaticResource AccentButton}"
+                                                ToolTip="{DynamicResource Tip.SaveFilter}"/>
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="10" Grid.Column="0" Text="{DynamicResource Lbl.Sample}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Row="10" Grid.Column="1">
+                                        <TextBox Text="{Binding Replacement.SampleInput, UpdateSourceTrigger=PropertyChanged}"
+                                                 Margin="0,0,0,4" ToolTip="{DynamicResource Tip.FilterSampleInput}"/>
+                                        <TextBox Text="{Binding Replacement.SampleOutput, Mode=OneWay}" IsReadOnly="True"
+                                                 Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"
+                                                 ToolTip="{DynamicResource Tip.FilterSampleOutput}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <DataGrid ItemsSource="{Binding Replacement.Replacements}"
+                                      SelectedItem="{Binding Replacement.SelectedReplacement}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{StaticResource Col.Mode}" Binding="{Binding Mode}" Width="60"/>
+                                    <DataGridCheckBoxColumn Header="{StaticResource Col.Regex}" Binding="{Binding IsRegex}" Width="50"/>
+                                    <DataGridCheckBoxColumn Header="{StaticResource Col.On}" Binding="{Binding Enabled}" Width="40"/>
+                                    <DataGridTextColumn Header="{StaticResource Col.Pattern}" Binding="{Binding Pattern}" Width="*"/>
+                                    <DataGridTextColumn Header="{StaticResource Col.ReplaceWith}" Binding="{Binding Replacement}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+
+                    <!-- ─── Voice Aliases ─── -->
+                    <TabItem Header="{DynamicResource Tab.VoiceAliases}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="1"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="1"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DataGrid Grid.Column="0" VerticalAlignment="Stretch"
+                                      ItemsSource="{Binding VoiceAliases.Aliases}"
+                                      SelectedItem="{Binding VoiceAliases.SelectedAlias}"
+                                      AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                                      IsReadOnly="True" SelectionMode="Single" BorderThickness="0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{StaticResource Col.Name}" Binding="{Binding Name}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <Border Grid.Column="1" Background="{StaticResource BorderBrush0}"/>
+
+                            <DockPanel Grid.Column="2" VerticalAlignment="Stretch">
+                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Lbl.InUse}" Margin="6,6,6,2" FontSize="12"/>
+                                <ListBox ItemsSource="{Binding VoiceAliases.InUseUsers}"
+                                         BorderThickness="0" Background="Transparent">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+
+                            <Border Grid.Column="3" Background="{StaticResource BorderBrush0}"/>
+
+                            <DockPanel Grid.Column="4">
+
+                                <DockPanel DockPanel.Dock="Top" Margin="6,6,6,4">
+                                    <Button DockPanel.Dock="Right" Content="{DynamicResource Btn.Add}"
+                                            Command="{Binding VoiceAliases.AddAliasCommand}"
+                                            Margin="4,0,0,0" VerticalAlignment="Center"
+                                            ToolTip="{DynamicResource Tip.AddVoiceAlias}"/>
+                                    <Button DockPanel.Dock="Right" Content="{DynamicResource Btn.Rename}"
+                                            Command="{Binding VoiceAliases.RenameCommand}"
+                                            Margin="4,0,0,0" VerticalAlignment="Center"
+                                            ToolTip="{DynamicResource Tip.RenameVoiceAlias}"/>
+                                    <TextBlock DockPanel.Dock="Left" Text="{DynamicResource Lbl.Name}" VerticalAlignment="Center"
+                                               Margin="0,0,8,0" Width="40"/>
+                                    <TextBox Text="{Binding VoiceAliases.DetailName, UpdateSourceTrigger=PropertyChanged}"
+                                             VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <DockPanel IsEnabled="{Binding VoiceAliases.HasSelected}">
+
+                                    <StackPanel DockPanel.Dock="Bottom" Margin="6,4,6,6">
+                                        <DockPanel Margin="0,0,0,4">
+                                            <TextBlock DockPanel.Dock="Left" Text="{DynamicResource Lbl.Voice}" VerticalAlignment="Center" Width="42"/>
+                                            <ComboBox SelectedItem="{Binding VoiceAliases.TestSpeakVoice}"
+                                                      ItemsSource="{Binding VoiceAliases.SpeakVoices}"
+                                                      ToolTip="{DynamicResource Tip.VoiceAliasTestVoice}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Name}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </DockPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="4"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <DockPanel Grid.Row="0" Grid.Column="0">
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                    <Slider Minimum="0" Maximum="100" Value="{Binding VoiceAliases.TestVolume}"
+                                                            Width="80" VerticalAlignment="Center"
+                                                            ToolTip="{DynamicResource Tip.VoiceAliasVolume}"/>
+                                                    <TextBlock VerticalAlignment="Center" Margin="6,0,0,0"><Run Text="{DynamicResource Lbl.Volume}"/><Run Text=" "/><Run Text="{Binding VoiceAliases.TestVolume}"/><Run Text="{DynamicResource Lbl.Percent}"/></TextBlock>
+                                                </StackPanel>
+                                                <TextBox Text="{Binding VoiceAliases.TestMessage}"
+                                                         ToolTip="{DynamicResource Tip.VoiceAliasTestMessage}"/>
+                                            </DockPanel>
+                                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0">
+                                                <Button Content="{DynamicResource Btn.SetDefault}" Command="{Binding VoiceAliases.SetDefaultVoiceCommand}"
+                                                        Margin="0,0,3,0" ToolTip="{DynamicResource Tip.SetDefaultVoice}"/>
+                                                <Button Content="{DynamicResource Btn.Add}" Command="{Binding VoiceAliases.AddVoiceCommand}"
+                                                        ToolTip="{DynamicResource Tip.AddVoiceToAlias}"/>
+                                            </StackPanel>
+
+                                            <ItemsControl Grid.Row="2" Grid.Column="0"
+                                                          ItemsSource="{Binding VoiceAliases.ParamRows}"
+                                                          VerticalAlignment="Center">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Def.Label}" Style="{StaticResource MutedText}"
+                                                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                                                        Visibility="{Binding IsSlider, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                <Slider Value="{Binding SliderValue, Mode=TwoWay}"
+                                                                        Minimum="{Binding Def.Min}" Maximum="{Binding Def.Max}"
+                                                                        SmallChange="{Binding Def.Step}" LargeChange="{Binding Def.Step}"
+                                                                        Width="70" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding DisplayValue}" VerticalAlignment="Center"
+                                                                           Margin="4,0,0,0" Width="32" FontFamily="Consolas" FontSize="11"/>
+                                                            </StackPanel>
+                                                            <ComboBox ItemsSource="{Binding Def.Options}" SelectedItem="{Binding Value}"
+                                                                      Width="150" VerticalAlignment="Center"
+                                                                      Visibility="{Binding IsComboBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <Button Grid.Row="2" Grid.Column="1" Content="{DynamicResource Btn.TestSpeak}"
+                                                    Command="{Binding VoiceAliases.TestSpeakCommand}"
+                                                    HorizontalAlignment="Stretch" Margin="6,0,0,0"
+                                                    ToolTip="{DynamicResource Tip.TestSpeak}"/>
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <DockPanel Margin="6,4,6,0">
+                                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                                            <TextBlock DockPanel.Dock="Left" Text="{DynamicResource Lbl.OutputDevice}"
+                                                       VerticalAlignment="Center" Width="90"/>
+                                            <ComboBox SelectedValue="{Binding VoiceAliases.DetailOutputDeviceId}"
+                                                      SelectedValuePath="Id"
+                                                      ItemsSource="{Binding VoiceAliases.OutputDevices}"
+                                                      ToolTip="{DynamicResource Tip.VoiceAliasOutputDevice}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Name}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </DockPanel>
+                                        <DataGrid ItemsSource="{Binding VoiceAliases.AliasVoices}"
+                                                  SelectedItem="{Binding VoiceAliases.SelectedVoice}"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  BorderThickness="1" BorderBrush="{StaticResource BorderBrush0}"
+                                                  PreviewMouseLeftButtonDown="AliasVoicesDataGrid_PreviewMouseLeftButtonDown">
+                                            <DataGrid.ContextMenu>
+                                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                    <MenuItem Header="{StaticResource Btn.Remove}" Command="{Binding VoiceAliases.RemoveVoiceCommand}"/>
+                                                    <MenuItem Header="{StaticResource Btn.RemoveAll}" Command="{Binding VoiceAliases.RemoveAllVoicesCommand}"/>
+                                                </ContextMenu>
+                                            </DataGrid.ContextMenu>
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{StaticResource Col.Name}" Binding="{Binding Name}" Width="*"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </DockPanel>
+
+                                </DockPanel>
+                            </DockPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- ─── WebSocket Server ─── -->
+                    <TabItem Header="{DynamicResource Tab.WebSocket}">
+                        <StackPanel Margin="16" MaxWidth="400" HorizontalAlignment="Left">
+                            <GroupBox Header="{StaticResource Section.Settings}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="6"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="6"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="6"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                              Content="{DynamicResource Chk.AutoStart}" IsChecked="{Binding WebSocketServer.AutoStart}"
+                                              ToolTip="{DynamicResource Tip.WsAutoStart}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Address}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding WebSocketServer.Address}"
+                                             ToolTip="{DynamicResource Tip.WsAddress}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.Port}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding WebSocketServer.Port}"
+                                             ToolTip="{DynamicResource Tip.WsPort}"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.Endpoint}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding WebSocketServer.Endpoint}"
+                                             ToolTip="{DynamicResource Tip.WsEndpoint}"/>
+                                </Grid>
+                            </GroupBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <Button Content="{DynamicResource Btn.StartServer}" Command="{Binding WebSocketServer.StartCommand}"
+                                        Style="{StaticResource AccentButton}" Margin="0,0,8,0"
+                                        ToolTip="{DynamicResource Tip.StartWsServer}"/>
+                                <Button Content="{DynamicResource Btn.StopServer}" Command="{Binding WebSocketServer.StopCommand}"
+                                        Margin="0,0,8,0" ToolTip="{DynamicResource Tip.StopWsServer}"/>
+                                <Button Content="{DynamicResource Btn.Save}" Command="{Binding WebSocketServer.SaveCommand}"
+                                        ToolTip="{DynamicResource Tip.SaveWsSettings}"/>
+                            </StackPanel>
+                            <TextBlock Margin="0,16,0,0" Style="{StaticResource MutedText}"
+                                       Text="{DynamicResource Info.UdpServer}"/>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- ─── Custom APIs ─── -->
+                    <TabItem Header="{DynamicResource Tab.CustomApis}">
+                        <Grid Margin="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DockPanel Grid.Column="0">
+                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.CustomApiServers}" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="{DynamicResource Btn.Add}" Command="{Binding CustomApis.AddCommand}"
+                                            Style="{StaticResource AccentButton}" Margin="0,0,4,0"
+                                            ToolTip="{DynamicResource Tip.AddCustomApi}"/>
+                                    <Button Content="{DynamicResource Btn.Delete}" Command="{Binding CustomApis.DeleteCommand}"
+                                            Style="{StaticResource DangerButton}"
+                                            ToolTip="{DynamicResource Tip.DeleteCustomApi}"/>
+                                </StackPanel>
+                                <ListBox ItemsSource="{Binding CustomApis.Definitions}"
+                                         SelectedItem="{Binding CustomApis.Selected}"
+                                         BorderThickness="0" Background="{StaticResource Bg2}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="2">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding SynthUrl}"
+                                                           FontSize="11" FontFamily="Consolas"
+                                                           TextTrimming="CharacterEllipsis">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding SynthUrl}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+
+                            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                                <ScrollViewer.Style>
+                                    <Style TargetType="ScrollViewer">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CustomApis.HasSelected}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ScrollViewer.Style>
+                                <StackPanel Margin="0,0,8,0">
+
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="16"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{DynamicResource Section.Name}" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding CustomApis.Edit.Name, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                                            <CheckBox Content="{DynamicResource Chk.Enabled}" IsChecked="{Binding CustomApis.Edit.Enabled}"
+                                                      ToolTip="{DynamicResource Tip.CustomApiEnabled}"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border Background="{StaticResource Bg2}" BorderBrush="{StaticResource BorderBrush0}"
+                                            BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource Section.Synthesis}" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{DynamicResource Lbl.Url}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBox Text="{Binding CustomApis.Edit.SynthUrl, UpdateSourceTrigger=PropertyChanged}"
+                                                             FontFamily="Consolas" FontSize="12"
+                                                             ToolTip="{DynamicResource Tip.SynthUrl}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="{DynamicResource Lbl.Method}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <ComboBox ItemsSource="{Binding CustomApis.Edit.Methods}" SelectedItem="{Binding CustomApis.Edit.SynthMethod}"
+                                                              ToolTip="{DynamicResource Tip.SynthMethod}">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <TextBlock Text="{DynamicResource Lbl.BodyTemplate}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                            <TextBox Text="{Binding CustomApis.Edit.SynthBodyTemplate, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontFamily="Consolas" FontSize="12" AcceptsReturn="True"
+                                                     TextWrapping="Wrap" MinHeight="60" Margin="0,0,0,8"
+                                                     ToolTip="{DynamicResource Tip.SynthBody}"/>
+
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{DynamicResource Lbl.ResponseFormat}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <ComboBox ItemsSource="{Binding CustomApis.Edit.ResponseFormats}" SelectedItem="{Binding CustomApis.Edit.ResponseFormat}"
+                                                              ToolTip="{DynamicResource Tip.ResponseFormat}">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2"
+                                                            Visibility="{Binding CustomApis.Edit.IsJsonResponse, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                    <TextBlock Text="{DynamicResource Lbl.JsonPath}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBox Text="{Binding CustomApis.Edit.ResponseAudioPath, UpdateSourceTrigger=PropertyChanged}"
+                                                             FontFamily="Consolas" FontSize="12"
+                                                             ToolTip="{DynamicResource Tip.JsonAudioPath}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="4">
+                                                    <TextBlock Text="{DynamicResource Lbl.AudioFormat}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <ComboBox ItemsSource="{Binding CustomApis.Edit.AudioFormats}" SelectedItem="{Binding CustomApis.Edit.AudioFormat}"
+                                                              ToolTip="{DynamicResource Tip.AudioFormat}">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <TextBlock Text="{DynamicResource Section.Headers}" Style="{StaticResource SectionLabel}" Margin="0,4,0,6"/>
+                                            <ItemsControl ItemsSource="{Binding CustomApis.Edit.SynthHeaders}" Margin="0,0,0,6">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,0,0,4">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="8"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="6"/>
+                                                                <ColumnDefinition Width="28"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Grid.Column="0" Text="{Binding Key, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                                                            <TextBox Grid.Column="2" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                                                            <Button Grid.Column="4" Content="×" Padding="0"
+                                                                    Command="{Binding DataContext.CustomApis.Edit.RemoveSynthHeaderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <Button Content="{DynamicResource Btn.AddHeader}" HorizontalAlignment="Left" Padding="10,4"
+                                                    Command="{Binding CustomApis.Edit.AddSynthHeaderCommand}"
+                                                    ToolTip="{DynamicResource Tip.AddSynthHeader}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Background="{StaticResource Bg2}" BorderBrush="{StaticResource BorderBrush0}"
+                                            BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource Section.Voices}" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{DynamicResource Lbl.Url}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBox Text="{Binding CustomApis.Edit.VoicesUrl, UpdateSourceTrigger=PropertyChanged}"
+                                                             FontFamily="Consolas" FontSize="12"
+                                                             ToolTip="{DynamicResource Tip.VoicesUrl}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="{DynamicResource Lbl.Method}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <ComboBox ItemsSource="{Binding CustomApis.Edit.Methods}" SelectedItem="{Binding CustomApis.Edit.VoicesMethod}"
+                                                              ToolTip="{DynamicResource Tip.VoicesMethod}">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{DynamicResource Lbl.ArrayPath}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBox Text="{Binding CustomApis.Edit.VoicesArrayPath, UpdateSourceTrigger=PropertyChanged}"
+                                                             FontFamily="Consolas" FontSize="12"
+                                                             ToolTip="{DynamicResource Tip.VoicesArrayPath}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="{DynamicResource Lbl.VoiceIdPath}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBox Text="{Binding CustomApis.Edit.VoiceIdField, UpdateSourceTrigger=PropertyChanged}"
+                                                             FontFamily="Consolas" FontSize="12"
+                                                             ToolTip="{DynamicResource Tip.VoiceIdFieldPath}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="4">
+                                                    <TextBlock Text="{DynamicResource Lbl.DisplayNamePath}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBox Text="{Binding CustomApis.Edit.VoiceNameField, UpdateSourceTrigger=PropertyChanged}"
+                                                             FontFamily="Consolas" FontSize="12"
+                                                             ToolTip="{DynamicResource Tip.VoiceNameFieldPath}"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <TextBlock Text="{DynamicResource Section.Headers}" Style="{StaticResource SectionLabel}" Margin="0,4,0,6"/>
+                                            <ItemsControl ItemsSource="{Binding CustomApis.Edit.VoicesHeaders}" Margin="0,0,0,6">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,0,0,4">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="8"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="6"/>
+                                                                <ColumnDefinition Width="28"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Grid.Column="0" Text="{Binding Key, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                                                            <TextBox Grid.Column="2" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                                                            <Button Grid.Column="4" Content="×" Padding="0"
+                                                                    Command="{Binding DataContext.CustomApis.Edit.RemoveVoicesHeaderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <Button Content="{DynamicResource Btn.AddHeader}" HorizontalAlignment="Left" Padding="10,4"
+                                                    Command="{Binding CustomApis.Edit.AddVoicesHeaderCommand}"
+                                                    ToolTip="{DynamicResource Tip.AddVoicesHeader}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Button Content="{DynamicResource Btn.SaveEngine}" HorizontalAlignment="Right" Padding="20,7"
+                                            Style="{StaticResource AccentButton}"
+                                            Command="{Binding CustomApis.SaveCommand}"
+                                            Margin="0,0,0,12"
+                                            ToolTip="{DynamicResource Tip.SaveCustomApi}"/>
+
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+
+                </TabControl>
+            </TabItem>
+
+        </TabControl>
+    </DockPanel>
+</Window>

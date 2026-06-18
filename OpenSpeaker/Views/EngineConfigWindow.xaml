@@ -1,0 +1,67 @@
+<Window x:Class="OpenSpeaker.Views.EngineConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add Speech Engine" Width="480" SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Bg1}"
+        Foreground="{StaticResource TextPrimary}">
+    <StackPanel Margin="24">
+        <TextBlock Text="SELECT ENGINE" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+
+        <ComboBox ItemsSource="{Binding Engines}"
+                  SelectedItem="{Binding SelectedEngine}"
+                  Margin="0,0,0,20">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding DisplayName}"/>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <ItemsControl ItemsSource="{Binding Fields}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="{Binding Label}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondary}"/>
+
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                 FontFamily="Consolas"/>
+
+                        <Button Grid.Column="2" Content="Browse" Padding="8,4" Margin="4,0,0,0"
+                                Command="{Binding DataContext.BrowseFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFilePath}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Cancel" Padding="20,7" Margin="0,0,8,0"
+                    Command="{Binding CancelCommand}"/>
+            <Button Content="Add Engine" Padding="20,7"
+                    Style="{StaticResource AccentButton}"
+                    Command="{Binding OkCommand}"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

@@ -1,0 +1,182 @@
+<Window x:Class="OpenSpeaker.Views.CustomApiConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Custom API Engine" Width="560" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Bg1}" Foreground="{StaticResource TextPrimary}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="700">
+        <StackPanel Margin="20">
+
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="NAME" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                    <CheckBox Content="Enabled" IsChecked="{Binding Enabled}"/>
+                </StackPanel>
+            </Grid>
+
+            <Border Background="{StaticResource Bg2}" BorderBrush="{StaticResource BorderBrush0}"
+                    BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="SYNTHESIS" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="90"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="URL" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <TextBox Text="{Binding SynthUrl, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Method" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <ComboBox ItemsSource="{Binding Methods}" SelectedItem="{Binding SynthMethod}">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="Body Template" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                    <TextBox Text="{Binding SynthBodyTemplate, UpdateSourceTrigger=PropertyChanged}"
+                             FontFamily="Consolas" FontSize="12" AcceptsReturn="True"
+                             TextWrapping="Wrap" MinHeight="60" Margin="0,0,0,8"/>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="90"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Response Format" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <ComboBox ItemsSource="{Binding ResponseFormats}" SelectedItem="{Binding ResponseFormat}">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Response Path" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <TextBox Text="{Binding ResponseAudioPath, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Audio Format" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <ComboBox ItemsSource="{Binding AudioFormats}" SelectedItem="{Binding AudioFormat}">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="HEADERS" Style="{StaticResource SectionLabel}" Margin="0,4,0,6"/>
+                    <ItemsControl ItemsSource="{Binding SynthHeaders}" Margin="0,0,0,6">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="6"/>
+                                        <ColumnDefinition Width="28"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Text="{Binding Key, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                                    <TextBox Grid.Column="2" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                                    <Button Grid.Column="4" Content="×" Padding="0"
+                                            Command="{Binding DataContext.RemoveSynthHeaderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="+ Add Header" HorizontalAlignment="Left" Padding="10,4"
+                            Command="{Binding AddSynthHeaderCommand}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="{StaticResource Bg2}" BorderBrush="{StaticResource BorderBrush0}"
+                    BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="VOICES  (leave URL blank to skip)" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="90"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="URL" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <TextBox Text="{Binding VoicesUrl, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Method" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <ComboBox ItemsSource="{Binding Methods}" SelectedItem="{Binding VoicesMethod}">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Array Path" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <TextBox Text="{Binding VoicesArrayPath, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="ID Field" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <TextBox Text="{Binding VoiceIdField, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Name Field" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                            <TextBox Text="{Binding VoiceNameField, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="HEADERS" Style="{StaticResource SectionLabel}" Margin="0,4,0,6"/>
+                    <ItemsControl ItemsSource="{Binding VoicesHeaders}" Margin="0,0,0,6">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="6"/>
+                                        <ColumnDefinition Width="28"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Text="{Binding Key, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                                    <TextBox Grid.Column="2" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="12"/>
+                                    <Button Grid.Column="4" Content="×" Padding="0"
+                                            Command="{Binding DataContext.RemoveVoicesHeaderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="+ Add Header" HorizontalAlignment="Left" Padding="10,4"
+                            Command="{Binding AddVoicesHeaderCommand}"/>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" Padding="20,7" Margin="0,0,8,0" Command="{Binding CancelCommand}"/>
+                <Button Content="Save Engine" Padding="20,7" Style="{StaticResource AccentButton}" Command="{Binding OkCommand}"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

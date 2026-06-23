@@ -2,7 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
-    <!-- ═══════════════ UI TEXT ═══════════════ -->
+    <!-- UI TEXT -->
 
     <sys:String x:Key="App.Title">OpenSpeaker</sys:String>
 
@@ -251,7 +251,7 @@
     <!-- Misc -->
     <sys:String x:Key="Info.UdpServer">UDP server always runs on port 6669.</sys:String>
 
-    <!-- ═══════════════ TOOLTIPS ═══════════════ -->
+    <!-- TOOLTIPS -->
 
     <!-- Header bar -->
     <sys:String x:Key="Tip.SilenceTts">Stop all currently playing and queued TTS audio immediately.</sys:String>
@@ -260,7 +260,7 @@
     <sys:String x:Key="Tip.HeaderEnabled">Globally enable or disable all TTS processing.</sys:String>
 
     <!-- Status bar -->
-    <sys:String x:Key="Tip.PauseQueue">Pause the TTS queue — new items are accepted but not played.</sys:String>
+    <sys:String x:Key="Tip.PauseQueue">Pause the TTS queue - new items are accepted but not played.</sys:String>
     <sys:String x:Key="Tip.ResumeQueue">Resume a paused TTS queue and continue playing items.</sys:String>
     <sys:String x:Key="Tip.SkipCurrent">Skip the currently playing TTS audio.</sys:String>
     <sys:String x:Key="Tip.ClearQueue">Remove all pending items from the TTS queue.</sys:String>
@@ -364,7 +364,7 @@
     <sys:String x:Key="Tip.RemoveEngine">Remove the selected speech engine.</sys:String>
 
     <!-- Ignored Voices -->
-    <sys:String x:Key="Tip.IgnoreVoice">Move the selected voice to the ignored list — excluded from random selection.</sys:String>
+    <sys:String x:Key="Tip.IgnoreVoice">Move the selected voice to the ignored list - excluded from random selection.</sys:String>
     <sys:String x:Key="Tip.UnignoreVoice">Remove the selected voice from the ignored list.</sys:String>
     <sys:String x:Key="Tip.IgnoreLocale">Ignore all voices with this language/locale code.</sys:String>
     <sys:String x:Key="Tip.UnignoreLocale">Remove this locale from the ignored list.</sys:String>
@@ -410,7 +410,7 @@
     <sys:String x:Key="Tip.DelAllowedEmote">Remove the selected emote from the always-allowed list.</sys:String>
     <sys:String x:Key="Tip.AddTtsCommand">Add the entered text as a TTS trigger command prefix.</sys:String>
     <sys:String x:Key="Tip.DelTtsCommand">Remove the selected TTS command from the list.</sys:String>
-    <sys:String x:Key="Tip.AddIgnoredPrefix">Add the entered prefix — messages starting with it will be ignored.</sys:String>
+    <sys:String x:Key="Tip.AddIgnoredPrefix">Add the entered prefix - messages starting with it will be ignored.</sys:String>
     <sys:String x:Key="Tip.DelIgnoredPrefix">Remove the selected prefix from the ignored list.</sys:String>
 
     <!-- Filters -->

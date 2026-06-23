@@ -30,16 +30,56 @@
     <PackageReference Include="LuaCSharp" Version="0.5.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <UserAssetTemplate Include="$(MSBuildProjectDirectory)\Themes\LightTheme.xaml">
+      <Dest>Themes\Light.xaml</Dest>
+    </UserAssetTemplate>
+    <UserAssetTemplate Include="$(MSBuildProjectDirectory)\Themes\README.txt">
+      <Dest>Themes\README.txt</Dest>
+    </UserAssetTemplate>
+    <UserAssetTemplate Include="$(MSBuildProjectDirectory)\Localization\en.xaml">
+      <Dest>Localization\English.xaml</Dest>
+    </UserAssetTemplate>
+    <UserAssetTemplate Include="$(MSBuildProjectDirectory)\Localization\README.txt">
+      <Dest>Localization\README.txt</Dest>
+    </UserAssetTemplate>
+  </ItemGroup>
+
+  <UsingTask TaskName="EmitLooseTheme" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Destination ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var text = System.IO.File.ReadAllText(Source);
+        text = text.Replace("clr-namespace:OpenSpeaker.Converters\"", "clr-namespace:OpenSpeaker.Converters;assembly=OpenSpeaker\"");
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Destination));
+        System.IO.File.WriteAllText(Destination, text);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="CopyUserAssetTemplates" AfterTargets="Build">
+    <Copy SourceFiles="@(UserAssetTemplate)" DestinationFiles="@(UserAssetTemplate->'$(OutputPath)%(Dest)')" SkipUnchangedFiles="true" />
+    <EmitLooseTheme Source="$(MSBuildProjectDirectory)\Themes\DarkTheme.xaml" Destination="$(OutputPath)Themes\Dark.xaml" />
+  </Target>
+
+  <Target Name="CopyUserAssetTemplatesOnPublish" AfterTargets="Publish">
+    <Copy SourceFiles="@(UserAssetTemplate)" DestinationFiles="@(UserAssetTemplate->'$(PublishDir)%(Dest)')" SkipUnchangedFiles="true" />
+    <EmitLooseTheme Source="$(MSBuildProjectDirectory)\Themes\DarkTheme.xaml" Destination="$(PublishDir)Themes\Dark.xaml" />
+  </Target>
+
   <Target Name="CopyMoveAfterFiles" AfterTargets="Build">
     <ItemGroup>
-      <MoveAfterFiles Include="$(MSBuildProjectDirectory)\move-after\**\*" />
+      <MoveAfterFiles Include="$(MSBuildProjectDirectory)\Content\**\*" />
     </ItemGroup>
     <Copy SourceFiles="@(MoveAfterFiles)" DestinationFiles="@(MoveAfterFiles->'$(OutputPath)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
   <Target Name="CopyMoveAfterFilesOnPublish" AfterTargets="Publish">
     <ItemGroup>
-      <MoveAfterFiles Include="$(MSBuildProjectDirectory)\move-after\**\*" />
+      <MoveAfterFiles Include="$(MSBuildProjectDirectory)\Content\**\*" />
     </ItemGroup>
     <Copy SourceFiles="@(MoveAfterFiles)" DestinationFiles="@(MoveAfterFiles->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>

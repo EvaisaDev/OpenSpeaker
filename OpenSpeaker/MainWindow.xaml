@@ -30,6 +30,14 @@
                     <TextBlock Text="{Binding UpdateNotice}" Foreground="{DynamicResource YellowBrush}"
                                VerticalAlignment="Center" Margin="0,0,16,0"
                                Visibility="{Binding UpdateNotice, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <Button Content="{Binding Update.UpdateButtonText}" Style="{DynamicResource GhostButton}"
+                            Command="{Binding Update.UpdateCommand}" Margin="0,0,12,0" VerticalAlignment="Center"
+                            Foreground="{DynamicResource YellowBrush}"
+                            Visibility="{Binding Update.IsUpdateAvailable, Converter={StaticResource BoolToVisibilityConverter}}"
+                            ToolTip="A new version is available. Click to download and restart."/>
+                    <TextBlock Text="{Binding Update.VersionText}" Style="{DynamicResource MutedText}"
+                               VerticalAlignment="Center" Margin="0,0,16,0"
+                               ToolTip="Current version"/>
                     <ComboBox x:Name="ProfileComboBox" Width="160"
                               ItemsSource="{Binding Profile.Profiles}"
                               SelectedItem="{Binding Profile.SelectedProfile, Mode=OneWay}"
@@ -679,11 +687,23 @@
                                                     <ComboBox ItemsSource="{Binding GeneralSettings.AvailableLanguages}"
                                                               SelectedItem="{Binding GeneralSettings.Language}" Width="120"
                                                               ToolTip="{DynamicResource Tip.Language}"/>
+                                                    <Button Content="Refresh" Command="{Binding GeneralSettings.RefreshLanguagesCommand}"
+                                                            Margin="6,0,0,0" Padding="8,2"
+                                                            ToolTip="Re-scan the Localization folder for added languages"/>
+                                                    <Button Content="Open Folder" Command="{Binding GeneralSettings.OpenLanguagesFolderCommand}"
+                                                            Margin="6,0,0,0" Padding="8,2"
+                                                            ToolTip="Open the Localization folder where custom language files can be added"/>
                                                 </StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                                     <TextBlock Text="Theme" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                                     <ComboBox ItemsSource="{Binding GeneralSettings.AvailableThemes}"
                                                               SelectedItem="{Binding GeneralSettings.Theme}" Width="120"/>
+                                                    <Button Content="Refresh" Command="{Binding GeneralSettings.RefreshThemesCommand}"
+                                                            Margin="6,0,0,0" Padding="8,2"
+                                                            ToolTip="Re-scan the Themes folder for added themes"/>
+                                                    <Button Content="Open Folder" Command="{Binding GeneralSettings.OpenThemesFolderCommand}"
+                                                            Margin="6,0,0,0" Padding="8,2"
+                                                            ToolTip="Open the Themes folder where custom theme files can be added"/>
                                                 </StackPanel>
                                                 <CheckBox Content="{DynamicResource Chk.ShowTooltips}" IsChecked="{Binding GeneralSettings.ShowTooltips}"
                                                           ToolTip="{DynamicResource Tip.ShowTooltips}"/>

@@ -4,7 +4,7 @@ using OpenSpeaker.Chat;
 using OpenSpeaker.Data;
 using OpenSpeaker.Events;
 using OpenSpeaker.Extensions;
-using OpenSpeaker.ThingsIDKWhereToPut.Logging;
+using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Models;
 using OpenSpeaker.Queue;
 using OpenSpeaker.Services;

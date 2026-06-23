@@ -1,7 +1,7 @@
 using OpenSpeaker.Data;
 using OpenSpeaker.Models;
 using OpenSpeaker.Queue;
-using OpenSpeaker.ThingsIDKWhereToPut.Logging;
+using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Twitch;
 using OpenSpeaker.Users;
 namespace OpenSpeaker.Services;

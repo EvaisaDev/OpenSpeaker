@@ -6,9 +6,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/OpenSpeaker/bin/Debug/net8.0-windows/OpenSpeaker.exe",
+            "program": "${workspaceFolder}/artifacts/bin/OpenSpeaker/debug/OpenSpeaker.exe",
             "args": [],
-            "cwd": "${workspaceFolder}/OpenSpeaker/bin/Debug/net8.0-windows",
+            "cwd": "${workspaceFolder}/artifacts/bin/OpenSpeaker/debug",
             "stopAtEntry": false,
             "console": "internalConsole",
             "exceptionBreakpoints": [

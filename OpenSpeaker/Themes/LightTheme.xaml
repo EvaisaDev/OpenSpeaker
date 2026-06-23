@@ -35,7 +35,7 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
     </Style>
 
-    <!-- TextBlock — no explicit Foreground so inheritance from Window/Button works correctly -->
+    <!-- TextBlock -->
     <Style TargetType="TextBlock">
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontFamily" Value="Segoe UI"/>

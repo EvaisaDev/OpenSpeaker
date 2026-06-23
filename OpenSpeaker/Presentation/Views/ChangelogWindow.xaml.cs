@@ -31,6 +31,12 @@ public partial class ChangelogWindow : System.Windows.Window
                 continue;
             }
 
+            if (char.IsWhiteSpace(line[0]))
+            {
+                ContentPanel.Children.Add(Indented(line.TrimStart()));
+                continue;
+            }
+
             if (Regex.IsMatch(line, @"^\s*([-*_])(\s*\1){2,}\s*$"))
             {
                 ContentPanel.Children.Add(new Border
@@ -103,6 +109,19 @@ public partial class ChangelogWindow : System.Windows.Window
         {
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(8, 2, 0, 2),
+            Foreground = (System.Windows.Media.Brush?)TryFindResource("TextSecondary")
+                ?? (System.Windows.Media.Brush?)TryFindResource("TextPrimary")
+        };
+        AddInlines(tb.Inlines, text);
+        return tb;
+    }
+
+    private TextBlock Indented(string text)
+    {
+        var tb = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(22, 1, 0, 2),
             Foreground = (System.Windows.Media.Brush?)TryFindResource("TextSecondary")
                 ?? (System.Windows.Media.Brush?)TryFindResource("TextPrimary")
         };

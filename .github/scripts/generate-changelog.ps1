@@ -8,14 +8,19 @@ param(
     [string]$Date = ''
 )
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
 if (-not $Date) { $Date = (Get-Date -Format 'yyyy-MM-dd') }
 
+function Test-Tag([string]$t) {
+    if (-not $t) { return $false }
+    git rev-parse -q --verify "refs/tags/$t" 2>$null | Out-Null
+    return $LASTEXITCODE -eq 0
+}
+
 function Resolve-Tag([string]$v) {
     foreach ($t in @($v, "v$v")) {
-        git rev-parse -q --verify "refs/tags/$t^{commit}" > $null 2>&1
-        if ($LASTEXITCODE -eq 0) { return $t }
+        if (Test-Tag $t) { return $t }
     }
     return 'HEAD'
 }
@@ -29,7 +34,8 @@ if (-not $PreviousTag) {
 
 $range = if ($PreviousTag) { "$PreviousTag..$currentTag" } else { $currentTag }
 
-$lines = git log --no-merges --pretty=format:'%h%x1f%s' $range
+$raw = git log --no-merges --pretty=format:'%h%x1f%s%x1f%b%x1e' $range | Out-String
+$records = $raw -split [char]30 | ForEach-Object { $_.Trim("`r", "`n") } | Where-Object { $_ -ne '' }
 
 $order = @('Breaking Changes', 'Features', 'Fixes', 'Performance', 'Refactoring', 'Documentation', 'Build', 'CI', 'Tests', 'Styling', 'Reverts', 'Chores', 'Other')
 $typeMap = @{
@@ -41,11 +47,12 @@ $typeMap = @{
 $buckets = [ordered]@{}
 foreach ($s in $order) { $buckets[$s] = New-Object System.Collections.Generic.List[string] }
 
-foreach ($line in $lines) {
-    if (-not $line) { continue }
-    $parts = $line.Split([char]31, 2)
-    $sha = $parts[0]
-    $subject = if ($parts.Count -gt 1) { $parts[1] } else { '' }
+foreach ($record in $records) {
+    $parts = $record.Split([char]31, 3)
+    $sha = $parts[0].Trim()
+    $subject = if ($parts.Count -gt 1) { $parts[1].Trim() } else { '' }
+    $body = if ($parts.Count -gt 2) { $parts[2] } else { '' }
+    if (-not $sha) { continue }
 
     $section = 'Other'
     $entry = $subject
@@ -68,7 +75,16 @@ foreach ($line in $lines) {
     }
 
     $shaText = if ($RepoUrl) { "([``$sha``]($RepoUrl/commit/$sha))" } else { "(``$sha``)" }
-    $buckets[$section].Add("- $entry $shaText")
+    $item = "- $entry $shaText"
+
+    $bodyLines = $body -split "`n" |
+        ForEach-Object { $_.TrimEnd("`r").TrimEnd() } |
+        Where-Object { $_.Trim() -ne '' }
+    foreach ($bl in $bodyLines) {
+        $item += "`n  $bl"
+    }
+
+    $buckets[$section].Add($item)
 }
 
 $sb = New-Object System.Text.StringBuilder

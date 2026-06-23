@@ -1,5 +1,7 @@
 using System.Speech.Synthesis;
 using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 using NAudio.Wave;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.TTS.Engines;
@@ -9,8 +11,9 @@ public class Sapi5Engine : ITtsEngine
     private static readonly IReadOnlyList<EngineParameterDef> Schema = new[]
     {
         EngineParameterDef.Slider("rate", "Rate", -10, 10, 1, 0),
-        EngineParameterDef.Slider("pitch", "Pitch (Hz)", -200, 200, 10, 0)
+        EngineParameterDef.Slider("pitch", "Pitch", -2, 2, 1, 0)
     };
+
 
     private readonly SpeechSynthesizer _synth = new();
     public string EngineId => EngineIds.Sapi5;
@@ -43,12 +46,32 @@ public class Sapi5Engine : ITtsEngine
         });
     }
 
+    private static readonly Regex EmphasisPattern = new(@"\*(\S+)", RegexOptions.Compiled);
+
+    private static string BuildInnerXml(string text)
+    {
+        var sb = new StringBuilder();
+        var lastIdx = 0;
+        foreach (Match m in EmphasisPattern.Matches(text))
+        {
+            sb.Append(System.Security.SecurityElement.Escape(text[lastIdx..m.Index]));
+            sb.Append($"<emphasis level=\"strong\">{System.Security.SecurityElement.Escape(m.Groups[1].Value)}</emphasis>");
+            lastIdx = m.Index + m.Length;
+        }
+        sb.Append(System.Security.SecurityElement.Escape(text[lastIdx..]));
+        return sb.ToString();
+    }
+
+    private static readonly string[] PitchNames = ["x-low", "low", "medium", "high", "x-high"];
+
     private static string BuildSsml(string text, int pitch)
     {
-        var contour = pitch != 0
-            ? $"<prosody pitch=\"{(pitch > 0 ? "+" : "")}{pitch}Hz\">{System.Security.SecurityElement.Escape(text)}</prosody>"
-            : System.Security.SecurityElement.Escape(text);
-        return $"<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\">{contour}</speak>";
+        var inner = BuildInnerXml(text);
+        var pitchName = PitchNames[Math.Clamp(pitch + 2, 0, 4)];
+        var body = pitch != 0
+            ? $"<prosody pitch='{pitchName}'>{inner}</prosody>"
+            : inner;
+        return $"<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\">{body}</speak>";
     }
 
     public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()

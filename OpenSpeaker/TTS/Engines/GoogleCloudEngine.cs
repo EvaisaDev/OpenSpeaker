@@ -1,5 +1,6 @@
 using System.IO;
 using Google.Cloud.TextToSpeech.V1;
+using Grpc.Core;
 using NAudio.Wave;
 using Newtonsoft.Json.Linq;
 using OpenSpeaker.Models;
@@ -16,6 +17,7 @@ public class GoogleCloudEngine : ITtsEngine
 
     private TextToSpeechClient? _client;
     private string _serviceAccountPath = string.Empty;
+    private readonly HashSet<string> _noPitchVoices = new(StringComparer.OrdinalIgnoreCase);
 
     public string EngineId => EngineIds.GoogleCloud;
     public bool IsConfigured => !string.IsNullOrEmpty(_serviceAccountPath) && File.Exists(_serviceAccountPath);
@@ -38,20 +40,38 @@ public class GoogleCloudEngine : ITtsEngine
         var voiceName = parts[0];
         var languageCode = parts.Length > 1 ? parts[1] : "en-US";
 
+        var pitch = parameters.Dbl("pitch", 0);
+        var supportsPitch = !_noPitchVoices.Contains(voiceName);
+
+        try
+        {
+            return await SynthesizeInternalAsync(voiceName, languageCode, text, parameters, supportsPitch && pitch != 0 ? pitch : null);
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument && ex.Status.Detail.Contains("pitch"))
+        {
+            _noPitchVoices.Add(voiceName);
+            return await SynthesizeInternalAsync(voiceName, languageCode, text, parameters, null);
+        }
+    }
+
+    private async Task<AudioData> SynthesizeInternalAsync(string voiceName, string languageCode, string text, SynthParams parameters, double? pitch)
+    {
+        var audioConfig = new AudioConfig
+        {
+            AudioEncoding = AudioEncoding.Linear16,
+            SpeakingRate = parameters.Dbl("speaking_rate", 1.0),
+            VolumeGainDb = parameters.Dbl("volume_gain_db", 0)
+        };
+        if (pitch.HasValue) audioConfig.Pitch = pitch.Value;
+
         var request = new SynthesizeSpeechRequest
         {
             Input = new SynthesisInput { Text = text },
             Voice = new VoiceSelectionParams { Name = voiceName, LanguageCode = languageCode },
-            AudioConfig = new AudioConfig
-            {
-                AudioEncoding = AudioEncoding.Linear16,
-                SpeakingRate = parameters.Dbl("speaking_rate", 1.0),
-                Pitch = parameters.Dbl("pitch", 0),
-                VolumeGainDb = parameters.Dbl("volume_gain_db", 0)
-            }
+            AudioConfig = audioConfig
         };
 
-        var response = await _client.SynthesizeSpeechAsync(request);
+        var response = await _client!.SynthesizeSpeechAsync(request);
         return new AudioData
         {
             Samples = response.AudioContent.ToByteArray(),

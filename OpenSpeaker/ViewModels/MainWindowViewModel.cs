@@ -24,8 +24,11 @@ public class MainWindowViewModel : BaseViewModel
     public ReplacementViewModel Replacement { get; }
     public VoiceAliasListViewModel VoiceAliases { get; }
     public WebSocketServerViewModel WebSocketServer { get; }
+    public UdpServerViewModel UdpServer { get; }
     public CustomApiViewModel CustomApis { get; }
+    public ExtensionsViewModel Extensions { get; }
     public ImportViewModel Import { get; }
+    public ProfileViewModel Profile { get; }
 
     private bool _isEnabled;
     public bool IsEnabled
@@ -43,11 +46,11 @@ public class MainWindowViewModel : BaseViewModel
 
     public AsyncRelayCommand SilenceTtsCommand { get; }
     public AsyncRelayCommand GenericSpeakCommand { get; }
-    public RelayCommand SaveAllCommand { get; }
 
-    public MainWindowViewModel(AppBootstrapper boot)
+    public MainWindowViewModel(AppBootstrapper boot, ProfileViewModel profile)
     {
         _boot = boot;
+        Profile = profile;
 
         var settings = boot.SettingsRepo.GetSettings();
         _isEnabled = settings.Enabled;
@@ -63,22 +66,41 @@ public class MainWindowViewModel : BaseViewModel
         Accounts = new AccountsViewModel(boot.TwitchAuth, boot.SettingsRepo);
         Accounts.SetTwitchService(boot.Twitch);
         VoiceGate = new VoiceGateViewModel(boot.VoiceGate, boot.Database, boot.DeviceEnumerator);
-        SpeechEngines = new SpeechEnginesViewModel(boot.Database, boot.EngineRegistry, boot.VoicePool);
-        IgnoredVoices = new IgnoredVoicesViewModel(boot.Database, boot.EngineRegistry);
-        SpeakingOptions = new SpeakingOptionsViewModel(boot.SettingsRepo);
+        SpeechEngines = new SpeechEnginesViewModel(boot.Database, boot.EngineRegistry, boot.VoicePool, boot.Extensions, boot.Logger);
+        IgnoredVoices = new IgnoredVoicesViewModel(boot.Database, boot.EngineRegistry, boot.VoicePool);
+        SpeakingOptions = new SpeakingOptionsViewModel(boot.SettingsRepo, boot.EmoteCache, boot.Twitch);
         Replacement = new ReplacementViewModel(boot.Database, boot.SettingsRepo);
-        VoiceAliases = new VoiceAliasListViewModel(boot.AliasRepo, boot.EngineRegistry, boot.DeviceEnumerator, boot.UserRepo, boot.Logger);
+        VoiceAliases = new VoiceAliasListViewModel(boot.AliasRepo, boot.EngineRegistry, boot.VoicePool, boot.DeviceEnumerator, boot.UserRepo, () => Users.AllUsers, boot.Logger);
         WebSocketServer = new WebSocketServerViewModel(boot.WsServer, boot.SettingsRepo);
+        UdpServer = new UdpServerViewModel(boot.UdpServer, boot.SettingsRepo);
         CustomApis = new CustomApiViewModel(boot.Database, boot.EngineRegistry);
+        Extensions = new ExtensionsViewModel(boot.Extensions, boot.EngineRegistry, boot.VoicePool);
 
-        var importer = new SpeakerBotImporter(boot.SettingsRepo, boot.UserRepo, boot.AliasRepo, boot.EventConfigRepo, boot.ChannelRewardRepo, boot.Database);
-        Import = new ImportViewModel(importer);
+        var importer = new SpeakerBotImporter(boot.SettingsRepo, boot.UserRepo, boot.AliasRepo, boot.EventConfigRepo, boot.ChannelRewardRepo, boot.Database, boot.EngineRegistry, boot.Logger);
+        Import = new ImportViewModel(importer, boot.Extensions)
+        {
+            OnComplete = () =>
+            {
+                boot.SettingsRepo.Invalidate();
+                Users.Refresh();
+                VoiceAliases.Refresh();
+                SpeechEngines.Refresh();
+                Events.Refresh();
+                ChannelRewards.Refresh();
+                CustomCommands.Refresh();
+                Replacement.Refresh();
+                IgnoredVoices.Refresh();
+                GeneralSettings.Refresh();
+                SpeakingOptions.Refresh();
+                WebSocketServer.Refresh();
+                UdpServer.Refresh();
+            }
+        };
 
         boot.Twitch.ChatMessage += (_, e) => Users.OnChatMessage(e.UserId);
 
         SilenceTtsCommand = new AsyncRelayCommand(SilenceTtsAsync);
         GenericSpeakCommand = new AsyncRelayCommand(GenericSpeakAsync);
-        SaveAllCommand = new RelayCommand(SaveAll);
     }
 
     private async Task SilenceTtsAsync()
@@ -89,17 +111,12 @@ public class MainWindowViewModel : BaseViewModel
 
     private async Task GenericSpeakAsync()
     {
-        var vm = new GenericSpeakerViewModel(_boot.EngineRegistry, _boot.AliasRepo);
+        var vm = new GenericSpeakerViewModel(_boot.EngineRegistry, _boot.VoicePool, _boot.Logger);
         var window = new GenericSpeakerWindow(vm);
         window.Owner = Application.Current.MainWindow;
         window.Show();
         await Task.CompletedTask;
     }
 
-    private void SaveAll()
-    {
-        GeneralSettings.SaveCommand.Execute(null);
-        SpeakingOptions.SaveCommand.Execute(null);
-        WebSocketServer.SaveCommand.Execute(null);
-    }
+
 }

@@ -1,6 +1,9 @@
+using System.Collections;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Text.RegularExpressions;
-using LiteDB;
+using System.Windows.Forms;
+using System.Windows.Input;
 using OpenSpeaker.Data;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.ViewModels;
@@ -13,31 +16,52 @@ public class ReplacementViewModel : BaseViewModel
 
     public IEnumerable<string> AvailableModes { get; } = new[] { "Replace", "Skip" };
 
+    private List<RegexReplacement> _selectedItems = new();
+
     private RegexReplacement? _selectedReplacement;
     public RegexReplacement? SelectedReplacement
     {
         get => _selectedReplacement;
-        set { SetField(ref _selectedReplacement, value); LoadEditor(); }
+        set => SetField(ref _selectedReplacement, value);
     }
 
-    private string _editMode = "Replace";
-    public string EditMode
+    private string? _editMode = "Replace";
+    public string? EditMode
     {
         get => _editMode;
         set { SetField(ref _editMode, value); OnPropertyChanged(nameof(IsReplaceMode)); }
     }
 
     private string _editPattern = string.Empty;
-    public string EditPattern { get => _editPattern; set => SetField(ref _editPattern, value); }
+    public string EditPattern
+    {
+        get => _editPattern;
+        set { SetField(ref _editPattern, value); if (!string.IsNullOrEmpty(value)) EditPatternMixed = false; }
+    }
 
     private string _editReplacement = string.Empty;
-    public string EditReplacement { get => _editReplacement; set => SetField(ref _editReplacement, value); }
+    public string EditReplacement
+    {
+        get => _editReplacement;
+        set { SetField(ref _editReplacement, value); if (!string.IsNullOrEmpty(value)) EditReplacementMixed = false; }
+    }
 
-    private bool _editIsRegex = true;
-    public bool EditIsRegex { get => _editIsRegex; set => SetField(ref _editIsRegex, value); }
+    private bool? _editIsRegex = true;
+    public bool? EditIsRegex { get => _editIsRegex; set { SetField(ref _editIsRegex, value); OnPropertyChanged(nameof(WholeWordVisible)); } }
 
-    private bool _editEnabled = true;
-    public bool EditEnabled { get => _editEnabled; set => SetField(ref _editEnabled, value); }
+    private bool? _editWholeWord = false;
+    public bool? EditWholeWord { get => _editWholeWord; set => SetField(ref _editWholeWord, value); }
+
+    private bool? _editEnabled = true;
+    public bool? EditEnabled { get => _editEnabled; set => SetField(ref _editEnabled, value); }
+
+    public bool WholeWordVisible => _editIsRegex != true;
+
+    private bool _editPatternMixed;
+    public bool EditPatternMixed { get => _editPatternMixed; private set => SetField(ref _editPatternMixed, value); }
+
+    private bool _editReplacementMixed;
+    public bool EditReplacementMixed { get => _editReplacementMixed; private set => SetField(ref _editReplacementMixed, value); }
 
     public bool IsReplaceMode => _editMode == "Replace";
 
@@ -50,67 +74,150 @@ public class ReplacementViewModel : BaseViewModel
     public RelayCommand AddReplacementCommand { get; }
     public RelayCommand DeleteReplacementCommand { get; }
     public RelayCommand SaveReplacementCommand { get; }
+    public RelayCommand ImportWordlistCommand { get; }
 
     public ReplacementViewModel(DatabaseContext db, SettingsRepository settingsRepo)
     {
         _db = db;
 
-        AddReplacementCommand = new RelayCommand(AddReplacement, () => !string.IsNullOrWhiteSpace(EditPattern));
-        DeleteReplacementCommand = new RelayCommand(DeleteReplacement, () => SelectedReplacement != null);
-        SaveReplacementCommand = new RelayCommand(SaveReplacement, () => SelectedReplacement != null);
+        AddReplacementCommand    = new RelayCommand(AddReplacement,    () => !string.IsNullOrWhiteSpace(EditPattern));
+        DeleteReplacementCommand = new RelayCommand(DeleteReplacement, () => _selectedItems.Count > 0);
+        SaveReplacementCommand   = new RelayCommand(SaveReplacement,   () => _selectedItems.Count > 0);
+        ImportWordlistCommand    = new RelayCommand(ImportWordlist);
 
         Refresh();
+    }
+
+    public void OnSelectionChanged(IList items)
+    {
+        _selectedItems = items.Cast<RegexReplacement>().ToList();
+        LoadEditor();
+        CommandManager.InvalidateRequerySuggested();
     }
 
     public void Refresh()
     {
         Replacements.Clear();
-        foreach (var r in _db.RegexReplacements.FindAll())
+        foreach (var r in _db.RegexReplacements.FindAll().OrderBy(r => r.Order))
             Replacements.Add(r);
     }
 
     private void LoadEditor()
     {
-        if (_selectedReplacement == null) return;
-        EditMode = string.IsNullOrEmpty(_selectedReplacement.Mode) ? "Replace" : _selectedReplacement.Mode;
-        EditPattern = _selectedReplacement.Pattern;
-        EditReplacement = _selectedReplacement.Replacement;
-        EditIsRegex = _selectedReplacement.IsRegex;
-        EditEnabled = _selectedReplacement.Enabled;
+        if (_selectedItems.Count == 0)
+        {
+            EditMode            = "Replace";
+            EditPattern         = string.Empty;
+            EditReplacement     = string.Empty;
+            EditIsRegex         = true;
+            EditWholeWord        = false;
+            EditEnabled         = true;
+            EditPatternMixed     = false;
+            EditReplacementMixed = false;
+            return;
+        }
+
+        var first     = _selectedItems[0];
+        var firstMode = string.IsNullOrEmpty(first.Mode) ? "Replace" : first.Mode;
+
+        EditMode = _selectedItems.All(r => (r.Mode ?? "Replace") == firstMode) ? firstMode : null;
+
+        var allSamePattern = _selectedItems.All(r => r.Pattern == first.Pattern);
+        EditPatternMixed = !allSamePattern;
+        EditPattern      = allSamePattern ? first.Pattern : string.Empty;
+
+        var allSameReplacement = _selectedItems.All(r => r.Replacement == first.Replacement);
+        EditReplacementMixed = !allSameReplacement;
+        EditReplacement      = allSameReplacement ? first.Replacement : string.Empty;
+
+        var allSameRegex = _selectedItems.All(r => r.IsRegex == first.IsRegex);
+        EditIsRegex = allSameRegex ? first.IsRegex : (bool?)null;
+
+        var allSameWholeWord = _selectedItems.All(r => r.WholeWord == first.WholeWord);
+        EditWholeWord = allSameWholeWord ? first.WholeWord : (bool?)null;
+
+        var allSameEnabled = _selectedItems.All(r => r.Enabled == first.Enabled);
+        EditEnabled = allSameEnabled ? first.Enabled : (bool?)null;
     }
 
     private void AddReplacement()
     {
         var r = new RegexReplacement
         {
-            Mode = EditMode,
-            Pattern = EditPattern,
+            Mode        = EditMode ?? "Replace",
+            Pattern     = EditPattern,
             Replacement = EditReplacement,
-            IsRegex = EditIsRegex,
-            Enabled = EditEnabled
+            IsRegex     = EditIsRegex ?? true,
+            WholeWord   = EditWholeWord ?? false,
+            Enabled     = EditEnabled ?? true,
+            Order       = Replacements.Count,
         };
         _db.RegexReplacements.Insert(r);
         Replacements.Add(r);
         SelectedReplacement = r;
+        _selectedItems = new List<RegexReplacement> { r };
+        CommandManager.InvalidateRequerySuggested();
     }
 
     private void DeleteReplacement()
     {
-        if (_selectedReplacement == null) return;
-        _db.RegexReplacements.Delete(_selectedReplacement.Id);
-        Replacements.Remove(_selectedReplacement);
+        var toDelete = _selectedItems.ToList();
+        foreach (var r in toDelete)
+        {
+            _db.RegexReplacements.Delete(r.Id);
+            Replacements.Remove(r);
+        }
+        _selectedItems.Clear();
         SelectedReplacement = null;
+        LoadEditor();
+        CommandManager.InvalidateRequerySuggested();
     }
 
     private void SaveReplacement()
     {
-        if (_selectedReplacement == null) return;
-        _selectedReplacement.Mode = EditMode;
-        _selectedReplacement.Pattern = EditPattern;
-        _selectedReplacement.Replacement = EditReplacement;
-        _selectedReplacement.IsRegex = EditIsRegex;
-        _selectedReplacement.Enabled = EditEnabled;
-        _db.RegexReplacements.Upsert(_selectedReplacement);
+        if (_selectedItems.Count == 0) return;
+
+        foreach (var r in _selectedItems)
+        {
+            if (EditMode != null) r.Mode = EditMode;
+            if (!EditPatternMixed || !string.IsNullOrEmpty(EditPattern)) r.Pattern = EditPattern;
+            var targetMode = EditMode ?? r.Mode ?? "Replace";
+            if (targetMode == "Replace" && (!EditReplacementMixed || !string.IsNullOrEmpty(EditReplacement)))
+                r.Replacement = EditReplacement;
+            if (EditIsRegex.HasValue) r.IsRegex = EditIsRegex.Value;
+            if (EditWholeWord.HasValue) r.WholeWord = EditWholeWord.Value;
+            if (EditEnabled.HasValue) r.Enabled = EditEnabled.Value;
+            _db.RegexReplacements.Upsert(r);
+        }
+    }
+
+    private void ImportWordlist()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title  = "Import Word List",
+            Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+        };
+        if (dialog.ShowDialog() != DialogResult.OK) return;
+
+        var lines     = File.ReadAllLines(dialog.FileName)
+            .Select(l => l.Trim())
+            .Where(l => !string.IsNullOrEmpty(l))
+            .ToList();
+        var nextOrder = _db.RegexReplacements.Count();
+        foreach (var word in lines)
+        {
+            _db.RegexReplacements.Insert(new RegexReplacement
+            {
+                Pattern     = word,
+                Replacement = string.Empty,
+                IsRegex     = false,
+                Mode        = "Skip",
+                Enabled     = true,
+                Order       = nextOrder++,
+            });
+        }
+        Refresh();
     }
 
     private void ApplySample()
@@ -123,13 +230,15 @@ public class ReplacementViewModel : BaseViewModel
             if (mode == "Skip")
             {
                 bool skip;
-                if (r.IsRegex) { try { skip = Regex.IsMatch(text, r.Pattern); } catch { continue; } }
+                if (r.IsRegex) { try { skip = Regex.IsMatch(text, r.Pattern, RegexOptions.IgnoreCase); } catch { continue; } }
+                else if (r.WholeWord) { try { skip = Regex.IsMatch(text, $@"\b{Regex.Escape(r.Pattern)}\b", RegexOptions.IgnoreCase); } catch { continue; } }
                 else { skip = text.Contains(r.Pattern, StringComparison.OrdinalIgnoreCase); }
                 if (skip) { text = string.Empty; break; }
             }
             else
             {
-                if (r.IsRegex) { try { text = Regex.Replace(text, r.Pattern, r.Replacement); } catch { } }
+                if (r.IsRegex) { try { text = Regex.Replace(text, r.Pattern, r.Replacement, RegexOptions.IgnoreCase); } catch { } }
+                else if (r.WholeWord) { try { text = Regex.Replace(text, $@"\b{Regex.Escape(r.Pattern)}\b", r.Replacement, RegexOptions.IgnoreCase); } catch { } }
                 else { text = text.Replace(r.Pattern, r.Replacement, StringComparison.OrdinalIgnoreCase); }
             }
         }

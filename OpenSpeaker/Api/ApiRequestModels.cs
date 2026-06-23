@@ -40,6 +40,24 @@ public class EventsRequest : BaseRequest
     public string State { get; set; } = string.Empty;
 }
 
+public class SubscribeRequest : BaseRequest
+{
+    [JsonProperty("events")]
+    public Newtonsoft.Json.Linq.JToken? Events { get; set; }
+}
+
+public class VoiceGateProfileRequest : BaseRequest
+{
+    [JsonProperty("profile")]
+    public VoiceGateProfileId? Profile { get; set; }
+}
+
+public class VoiceGateProfileId
+{
+    [JsonProperty("id")]
+    public string Id { get; set; } = string.Empty;
+}
+
 public class UdpBaseRequest
 {
     [JsonProperty("command")]

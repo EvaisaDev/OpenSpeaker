@@ -17,8 +17,33 @@ public class UsersViewModel : BaseViewModel
         set { SetField(ref _hideNotPresent, value); Refresh(); }
     }
 
+    private List<UserRecord> _allUsers = new();
+    private List<UserRecord> _allUsersUnfiltered = new();
+    public IReadOnlyList<UserRecord> AllUsers => _allUsersUnfiltered;
+    private List<string> _allAliasNames = new();
     public ObservableCollection<UserRecord> Users { get; } = new();
     public ObservableCollection<string> AliasNames { get; } = new();
+
+    private List<string> _filteredAliasNames = new();
+    public List<string> FilteredAliasNames
+    {
+        get => _filteredAliasNames;
+        private set { _filteredAliasNames = value; OnPropertyChanged(); }
+    }
+
+    private string _aliasFilter = string.Empty;
+    public string AliasFilter
+    {
+        get => _aliasFilter;
+        set { SetField(ref _aliasFilter, value); ApplyAliasFilter(); }
+    }
+
+    private string _userFilter = string.Empty;
+    public string UserFilter
+    {
+        get => _userFilter;
+        set { SetField(ref _userFilter, value); ApplyFilter(); }
+    }
 
     private UserRecord? _selectedUser;
     public UserRecord? SelectedUser
@@ -46,18 +71,40 @@ public class UsersViewModel : BaseViewModel
         AliasNames.Add("<None>");
         foreach (var a in _aliasRepo.GetAllSorted())
             AliasNames.Add(a.Name);
+        _allAliasNames = AliasNames.ToList();
+        ApplyAliasFilter();
+    }
+
+    private void ApplyAliasFilter()
+    {
+        FilteredAliasNames = string.IsNullOrEmpty(_aliasFilter)
+            ? _allAliasNames
+            : _allAliasNames.Where(n => n.Contains(_aliasFilter, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     public void Refresh()
     {
         var cutoff = DateTime.Now - PresenceWindow;
-        var all = _repo.GetAll().OrderBy(u => u.Username).ToList();
+        _allUsersUnfiltered = _repo.GetAll().OrderBy(u => u.Username).ToList();
+        _allUsers = _allUsersUnfiltered;
+        if (_hideNotPresent)
+            _allUsers = _allUsers.Where(u => u.LastActive >= cutoff).ToList();
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        var selectedId = _selectedUser?.TwitchId;
+        var filtered = string.IsNullOrEmpty(_userFilter)
+            ? _allUsers
+            : _allUsers.Where(u =>
+                (u.Username ?? "").Contains(_userFilter, StringComparison.OrdinalIgnoreCase) ||
+                (u.Nickname ?? "").Contains(_userFilter, StringComparison.OrdinalIgnoreCase));
         Users.Clear();
-        foreach (var u in all)
-        {
-            if (_hideNotPresent && u.LastActive < cutoff) continue;
+        foreach (var u in filtered)
             Users.Add(u);
-        }
+        if (selectedId != null)
+            SelectedUser = Users.FirstOrDefault(u => u.TwitchId == selectedId);
     }
 
     public void OnChatMessage(string twitchId)

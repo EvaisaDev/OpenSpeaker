@@ -143,6 +143,14 @@ public class EventsViewModel : BaseViewModel
         if (cfg != null) _repo.Upsert(cfg);
     }
 
+    public void Refresh()
+    {
+        _settings = _settingsRepo.GetSettings();
+        OnPropertyChanged(nameof(GlobalEventsEnabled));
+        OnPropertyChanged(nameof(GlobalVoiceAlias));
+        LoadEvent();
+    }
+
     private void LoadEvent()
     {
         if (_selectedEventType == null) return;

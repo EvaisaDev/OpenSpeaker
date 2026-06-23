@@ -3,7 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Voice Alias" Height="420" Width="480"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        Background="{DynamicResource Bg1}"
+        Foreground="{DynamicResource TextPrimary}">
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -34,7 +36,12 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableVoices}" SelectedValuePath="Id" DisplayMemberPath="Name" SelectedValue="{Binding VoiceId}"/>
+            <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableVoices}" SelectedValuePath="Id" DisplayMemberPath="Name" SelectedValue="{Binding VoiceId}"
+                      ScrollViewer.CanContentScroll="True" MaxDropDownHeight="300">
+                <ComboBox.ItemsPanel>
+                    <ItemsPanelTemplate><VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling"/></ItemsPanelTemplate>
+                </ComboBox.ItemsPanel>
+            </ComboBox>
             <Button Grid.Column="1" Content="Load" Command="{Binding LoadVoicesCommand}" Width="50" Margin="4,0,0,0"/>
         </Grid>
 

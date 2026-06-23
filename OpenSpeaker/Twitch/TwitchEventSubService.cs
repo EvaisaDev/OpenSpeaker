@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenSpeaker.Data;
-using OpenSpeaker.Infrastructure.Logging;
+using OpenSpeaker.ThingsIDKWhereToPut.Logging;
 using OpenSpeaker.Users;
 using OpenSpeaker.Twitch.TwitchEventArgs;
 using TwitchLib.Api;
@@ -19,6 +19,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
     private EventSubWebsocketClient? _wsClient;
     private TwitchAPI? _api;
     private bool _connected = false;
+    private bool _hasConnectedOnce = false;
 
     public bool IsConnected => _connected;
     public bool IsChatConnected => _connected;
@@ -48,6 +49,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
 
     public async Task ConnectAsync()
     {
+        _logger?.Info($"TWITCH :: ConnectAsync called. HasValidAccount={_auth.HasValidAccount()} BroadcasterId={BroadcasterId}");
         if (!_auth.HasValidAccount()) return;
 
         _wsClient = new EventSubWebsocketClient(NullLoggerFactory.Instance);
@@ -72,6 +74,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
     public async Task DisconnectAsync()
     {
         _connected = false;
+        _hasConnectedOnce = false;
         if (_wsClient != null)
         {
             await _wsClient.DisconnectAsync();
@@ -101,38 +104,49 @@ public class TwitchEventSubService : ITwitchService, IDisposable
     {
         _connected = true;
         var broadcasterId = BroadcasterId;
-        if (string.IsNullOrEmpty(broadcasterId)) return;
+        _logger?.Info($"TWITCH :: WebSocket connected. IsRequestedReconnect={e.IsRequestedReconnect} BroadcasterId={broadcasterId} SessionId={_wsClient?.SessionId}");
+        if (string.IsNullOrEmpty(broadcasterId)) { _logger?.Warn("TWITCH :: BroadcasterId is empty, aborting subscription"); return; }
 
         if (!e.IsRequestedReconnect)
         {
-            await _emoteCache.RefreshAsync(broadcasterId);
             _api = new TwitchAPI();
             _api.Settings.ClientId = _auth.GetClientId() ?? string.Empty;
             _api.Settings.AccessToken = _auth.GetAccessToken() ?? string.Empty;
+            _logger?.Info($"TWITCH :: Subscribing to events with ClientId={_auth.GetClientId()} TokenLength={_auth.GetAccessToken()?.Length ?? 0}");
 
             await SubscribeToEvents(_api, broadcasterId, _wsClient!.SessionId);
 
-            _logger?.Info("TWITCH :: Twitch Account Connected");
-
-            var login = _auth.GetLogin() ?? broadcasterId;
-            var displayName = _auth.GetDisplayName() ?? login;
-
-            try
+            if (!_hasConnectedOnce)
             {
-                var modsResponse = await _api.Helix.Moderation.GetModeratorsAsync(broadcasterId);
-                _logger?.Info($"TWITCH :: Found {modsResponse.Data.Length} moderators for the channel {login}");
-            }
-            catch { }
+                _hasConnectedOnce = true;
+                await _emoteCache.RefreshAsync(broadcasterId);
 
-            try
+                _logger?.Info("TWITCH :: Twitch Account Connected");
+
+                var login = _auth.GetLogin() ?? broadcasterId;
+                var displayName = _auth.GetDisplayName() ?? login;
+
+                try
+                {
+                    var modsResponse = await _api.Helix.Moderation.GetModeratorsAsync(broadcasterId);
+                    _logger?.Info($"TWITCH :: Found {modsResponse.Data.Length} moderators for the channel {login}");
+                }
+                catch { }
+
+                try
+                {
+                    var subsResponse = await _api.Helix.Subscriptions.GetBroadcasterSubscriptionsAsync(broadcasterId);
+                    _logger?.Info($"TWITCH :: {displayName} has {subsResponse.Total} subscriptions.");
+                }
+                catch { }
+
+                _logger?.Info("TWITCH :: Twitch PubSub Connected");
+                _logger?.Info("TWITCH :: Twitch Chat Client Connected");
+            }
+            else
             {
-                var subsResponse = await _api.Helix.Subscriptions.GetBroadcasterSubscriptionsAsync(broadcasterId);
-                _logger?.Info($"TWITCH :: {displayName} has {subsResponse.Total} subscriptions.");
+                _logger?.Info("TWITCH :: Reconnected");
             }
-            catch { }
-
-            _logger?.Info("TWITCH :: Twitch PubSub Connected");
-            _logger?.Info("TWITCH :: Twitch Chat Client Connected");
         }
     }
 
@@ -140,27 +154,37 @@ public class TwitchEventSubService : ITwitchService, IDisposable
     {
         var conditions = new Dictionary<string, string> { ["broadcaster_user_id"] = broadcasterId };
 
+        await Subscribe(api, "channel.chat.message", "1", new Dictionary<string, string> { ["broadcaster_user_id"] = broadcasterId, ["user_id"] = broadcasterId }, sessionId);
+        await Subscribe(api, "channel.follow", "2", new Dictionary<string, string> { ["broadcaster_user_id"] = broadcasterId, ["moderator_user_id"] = broadcasterId }, sessionId);
+        await Subscribe(api, "channel.subscribe", "1", conditions, sessionId);
+        await Subscribe(api, "channel.subscription.message", "1", conditions, sessionId);
+        await Subscribe(api, "channel.subscription.gift", "1", conditions, sessionId);
+        await Subscribe(api, "channel.cheer", "1", conditions, sessionId);
+        await Subscribe(api, "channel.raid", "1", new Dictionary<string, string> { ["to_broadcaster_user_id"] = broadcasterId }, sessionId);
+        await Subscribe(api, "channel.channel_points_custom_reward_redemption.add", "1", conditions, sessionId);
+        await Subscribe(api, "channel.hype_train.progress", "1", conditions, sessionId);
+        await Subscribe(api, "channel.goal.progress", "1", conditions, sessionId);
+        await Subscribe(api, "channel.chat.message_delete", "1", new Dictionary<string, string> { ["broadcaster_user_id"] = broadcasterId, ["user_id"] = broadcasterId }, sessionId);
+        await Subscribe(api, "channel.ban", "1", conditions, sessionId);
+    }
+
+    private async Task Subscribe(TwitchAPI api, string type, string version, Dictionary<string, string> conditions, string sessionId)
+    {
         try
         {
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.chat.message", "1", new Dictionary<string, string> { ["broadcaster_user_id"] = broadcasterId, ["user_id"] = broadcasterId }, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.follow", "2", new Dictionary<string, string> { ["broadcaster_user_id"] = broadcasterId, ["moderator_user_id"] = broadcasterId }, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.subscribe", "1", conditions, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.subscription.message", "1", conditions, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.subscription.gift", "1", conditions, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.cheer", "1", conditions, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.raid", "1", new Dictionary<string, string> { ["to_broadcaster_user_id"] = broadcasterId }, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.channel_points_custom_reward_redemption.add", "1", conditions, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.hype_train.progress", "1", conditions, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.goal.progress", "1", conditions, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.chat.message_delete", "1", new Dictionary<string, string> { ["broadcaster_user_id"] = broadcasterId, ["user_id"] = broadcasterId }, EventSubTransportMethod.Websocket, sessionId);
-            await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.ban", "1", conditions, EventSubTransportMethod.Websocket, sessionId);
+            await api.Helix.EventSub.CreateEventSubSubscriptionAsync(type, version, conditions, EventSubTransportMethod.Websocket, sessionId);
+            _logger?.Info($"TWITCH :: Subscribed to {type} v{version}");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger?.Warn($"TWITCH :: EventSub subscription failed for {type}: {ex.Message}");
+        }
     }
 
     private async Task OnWebsocketDisconnected(object? sender, WebsocketDisconnectedArgs e)
     {
         _connected = false;
+        _logger?.Warn("TWITCH :: WebSocket disconnected, reconnecting in 5s...");
         await Task.Delay(5000);
         if (_wsClient != null)
         {
@@ -172,7 +196,17 @@ public class TwitchEventSubService : ITwitchService, IDisposable
     private async Task OnChatMessage(object? sender, ChannelChatMessageArgs e)
     {
         var msg = e.Payload.Event;
+        _logger?.Info($"TWITCH :: Raw chat message from {msg.ChatterUserLogin}: {msg.Message.Text}");
         var roles = _permissionChecker.DetermineRoles(msg.IsBroadcaster, msg.IsModerator, msg.IsSubscriber, msg.IsVip);
+
+        var messageEmotes = msg.Message.Fragments?
+            .Where(f => f.Type == "emote")
+            .Select(f => f.Text)
+            .ToList() ?? [];
+        var messageCheermotes = msg.Message.Fragments?
+            .Where(f => f.Type == "cheermote")
+            .Select(f => f.Text)
+            .ToList() ?? [];
 
         ChatMessage?.Invoke(this, new ChatMessageEventArgs
         {
@@ -184,7 +218,9 @@ public class TwitchEventSubService : ITwitchService, IDisposable
             Bits = msg.Cheer?.Bits ?? 0,
             Roles = roles,
             IsSubscriber = msg.IsSubscriber,
-            IsHighlight = msg.MessageType == "channel_points_highlighted"
+            IsHighlight = msg.MessageType == "channel_points_highlighted",
+            MessageEmotes = messageEmotes,
+            MessageCheermotes = messageCheermotes,
         });
         await Task.CompletedTask;
     }

@@ -1,6 +1,7 @@
 using OpenSpeaker.Data;
 using OpenSpeaker.Models;
 using OpenSpeaker.Queue;
+using OpenSpeaker.ThingsIDKWhereToPut.Logging;
 using OpenSpeaker.Twitch;
 using OpenSpeaker.Users;
 namespace OpenSpeaker.Services;
@@ -14,6 +15,7 @@ public class ChatService
     private readonly UserService _userService;
     private readonly SettingsRepository _settingsRepo;
     private readonly ITtsQueue _queue;
+    private readonly IAppLogger? _logger;
 
     public ChatService(
         ITwitchService twitch,
@@ -22,7 +24,8 @@ public class ChatService
         Chat.SayEverythingHandler sayEverything,
         UserService userService,
         SettingsRepository settingsRepo,
-        ITtsQueue queue)
+        ITtsQueue queue,
+        IAppLogger? logger = null)
     {
         _twitch = twitch;
         _builtIn = builtIn;
@@ -31,6 +34,7 @@ public class ChatService
         _userService = userService;
         _settingsRepo = settingsRepo;
         _queue = queue;
+        _logger = logger;
 
         _twitch.ChatMessage += OnChatMessage;
         _twitch.MessageDeleted += OnMessageDeleted;
@@ -39,14 +43,16 @@ public class ChatService
 
     private async void OnChatMessage(object? sender, Twitch.TwitchEventArgs.ChatMessageEventArgs e)
     {
+        _logger?.Info($"CHAT :: Message from {e.Username}: {e.Message}");
         _ = _userService.TouchLastActiveAsync(e.UserId, e.Username);
-        if (await _builtIn.HandleAsync(e.UserId, e.Username, e.Roles, e.Message)) return;
-        if (await _custom.HandleAsync(e.UserId, e.Username, e.Roles, e.Message)) return;
+        if (await _builtIn.HandleAsync(e.UserId, e.Username, e.Roles, e.Message)) { _logger?.Info("CHAT :: Handled as built-in command"); return; }
+        if (await _custom.HandleAsync(e.UserId, e.Username, e.Roles, e.Message)) { _logger?.Info("CHAT :: Handled as custom command"); return; }
 
         var settings = _settingsRepo.GetSettings();
+        _logger?.Info($"CHAT :: Mode={settings.Mode} Enabled={settings.Enabled}");
         if (settings.Mode == TtsModes.Everything)
         {
-            await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, e.Message, e.Roles, isHighlight: e.IsHighlight, isSubscriber: e.IsSubscriber);
+            await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, e.Message, e.Roles, isHighlight: e.IsHighlight, isSubscriber: e.IsSubscriber, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
         }
         else if (settings.Mode == TtsModes.Command)
         {
@@ -56,7 +62,7 @@ public class ChatService
                 {
                     var text = e.Message.Substring(cmd.Length).Trim();
                     if (!string.IsNullOrEmpty(text))
-                        await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, text, e.Roles, isCommand: true);
+                        await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, text, e.Roles, isCommand: true, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
                     break;
                 }
             }

@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using LiteDB;
 using OpenSpeaker.Data;
 using OpenSpeaker.Models;
+using OpenSpeaker.Services;
 using OpenSpeaker.TTS;
 namespace OpenSpeaker.ViewModels;
 
@@ -9,6 +11,7 @@ public class IgnoredVoicesViewModel : BaseViewModel
 {
     private readonly DatabaseContext _db;
     private readonly TtsEngineRegistry _registry;
+    private readonly VoicePool _voicePool;
 
     public ObservableCollection<string> AvailableVoices { get; } = new();
     public ObservableCollection<string> IgnoredVoices { get; } = new();
@@ -32,11 +35,15 @@ public class IgnoredVoicesViewModel : BaseViewModel
     public IgnoreProfile? SelectedProfile
     {
         get => _selectedProfile;
-        set { SetField(ref _selectedProfile, value); LoadProfile(); }
+        set { SetField(ref _selectedProfile, value); ActivateProfile(value); LoadProfile(); }
     }
 
     private string _newProfileName = string.Empty;
-    public string NewProfileName { get => _newProfileName; set => SetField(ref _newProfileName, value); }
+    public string NewProfileName
+    {
+        get => _newProfileName;
+        set { SetField(ref _newProfileName, value); CommandManager.InvalidateRequerySuggested(); }
+    }
 
     public RelayCommand IgnoreVoiceCommand { get; }
     public RelayCommand UnignoreVoiceCommand { get; }
@@ -48,10 +55,11 @@ public class IgnoredVoicesViewModel : BaseViewModel
     private readonly List<string> _allVoices = new();
     private readonly List<string> _allLocales = new();
 
-    public IgnoredVoicesViewModel(DatabaseContext db, TtsEngineRegistry registry)
+    public IgnoredVoicesViewModel(DatabaseContext db, TtsEngineRegistry registry, VoicePool voicePool)
     {
         _db = db;
         _registry = registry;
+        _voicePool = voicePool;
 
         IgnoreVoiceCommand = new RelayCommand(IgnoreVoice, () => SelectedAvailableVoice != null);
         UnignoreVoiceCommand = new RelayCommand(UnignoreVoice, () => SelectedIgnoredVoice != null);
@@ -66,24 +74,13 @@ public class IgnoredVoicesViewModel : BaseViewModel
 
     private async Task LoadAllVoicesAsync()
     {
-        foreach (var engineId in _registry.GetEnabledEngineIds())
+        var all = await _voicePool.GetAllAsync();
+        foreach (var (engineId, voice) in all)
         {
-            var engine = _registry.GetEngine(engineId);
-            if (engine == null) continue;
-            try
-            {
-                var voices = await engine.GetVoicesAsync();
-                foreach (var v in voices)
-                {
-                    var key = $"{engineId}::{v.Id}";
-                    _allVoices.Add(key);
-                    if (!string.IsNullOrEmpty(v.Locale) && !_allLocales.Contains(v.Locale))
-                        _allLocales.Add(v.Locale);
-                }
-            }
-            catch { }
+            _allVoices.Add($"{engineId}::{voice.Id}");
+            if (!string.IsNullOrEmpty(voice.Locale) && !_allLocales.Contains(voice.Locale))
+                _allLocales.Add(voice.Locale);
         }
-
         RefreshLists();
     }
 
@@ -109,9 +106,26 @@ public class IgnoredVoicesViewModel : BaseViewModel
             IgnoredLocales.Add(l);
     }
 
+    private void ActivateProfile(IgnoreProfile? profile)
+    {
+        foreach (var p in _db.IgnoreProfiles.FindAll())
+        {
+            var wasActive = p.IsActive;
+            p.IsActive = profile != null && p.Id == profile.Id;
+            if (p.IsActive != wasActive)
+                _db.IgnoreProfiles.Update(p);
+        }
+    }
+
     private void LoadProfile()
     {
         RefreshLists();
+    }
+
+    public void Refresh()
+    {
+        RefreshProfiles();
+        SelectedProfile = Profiles.FirstOrDefault(p => p.IsActive) ?? Profiles.FirstOrDefault();
     }
 
     private void RefreshProfiles()

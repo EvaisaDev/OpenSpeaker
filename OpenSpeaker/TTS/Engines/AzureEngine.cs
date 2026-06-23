@@ -8,8 +8,8 @@ public class AzureEngine : ITtsEngine
 {
     private static readonly IReadOnlyList<EngineParameterDef> Schema = new[]
     {
-        EngineParameterDef.Slider("pitch", "Pitch (Hz)", -50, 50, 1, 0),
-        EngineParameterDef.Slider("rate", "Rate (%)", -50, 200, 5, 0)
+        EngineParameterDef.Slider("pitch", "Pitch (st)", -6, 6, 1, 0),
+        EngineParameterDef.Slider("rate", "Rate (%)", -50, 100, 5, 0)
     };
 
     private string _subscriptionKey = string.Empty;
@@ -35,10 +35,13 @@ public class AzureEngine : ITtsEngine
         var rate = parameters.Int("rate", 0);
         var config = SpeechConfig.FromSubscription(_subscriptionKey, _region);
         config.SpeechSynthesisVoiceName = voiceId;
+        config.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Raw16Khz16BitMonoPcm);
 
-        var pitchStr = pitch >= 0 ? $"+{pitch}Hz" : $"{pitch}Hz";
+        var parts = voiceId.Split('-');
+        var locale = parts.Length >= 2 ? $"{parts[0]}-{parts[1]}" : "en-US";
+        var pitchStr = pitch >= 0 ? $"+{pitch}st" : $"{pitch}st";
         var rateStr = rate >= 0 ? $"+{rate}%" : $"{rate}%";
-        var ssml = $"<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>" +
+        var ssml = $"<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='{locale}'>" +
                    $"<voice name='{voiceId}'><prosody pitch='{pitchStr}' rate='{rateStr}'>" +
                    $"{System.Security.SecurityElement.Escape(text)}</prosody></voice></speak>";
 
@@ -70,7 +73,7 @@ public class AzureEngine : ITtsEngine
             return result.Voices.Select(v => new VoiceInfo
             {
                 Id = v.ShortName,
-                Name = v.LocalName,
+                Name = $"{v.LocalName} ({v.Locale})",
                 Locale = v.Locale,
                 Gender = v.Gender.ToString()
             }).ToList();

@@ -10,7 +10,7 @@ public partial class TwitchAuthWindow : Window
     private HttpListener? _listener;
     private const string ClientId = "o5xlrf6yir2hda9wste7lz92mu9i5w";
     private const string RedirectUri = "http://localhost:7681/callback";
-    private const string Scopes = "channel:read:subscriptions channel:read:redemptions bits:read moderator:read:followers chat:read";
+    private const string Scopes = "channel:read:subscriptions channel:read:redemptions bits:read moderator:read:followers user:read:chat";
 
     private static readonly string CallbackHtml = """
         <!DOCTYPE html><html><head><title>OpenSpeaker Auth</title></head>

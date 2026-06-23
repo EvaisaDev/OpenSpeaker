@@ -3,13 +3,14 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using OpenSpeaker.Core;
 using OpenSpeaker.ViewModels;
 namespace OpenSpeaker;
 
 public partial class MainWindow : Window
 {
-    private readonly AppBootstrapper _boot;
+    private AppBootstrapper _boot;
     private NotifyIcon? _trayIcon;
 
     public MainWindow(AppBootstrapper boot, MainWindowViewModel viewModel)
@@ -24,6 +25,13 @@ public partial class MainWindow : Window
 
         if (settings.MinimizeToTray)
             SetupTrayIcon();
+
+        viewModel.VoiceAliases.VoicesLoaded += (_, _) =>
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+            {
+                AliasVoiceComboBox.IsDropDownOpen = true;
+                Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => AliasVoiceComboBox.IsDropDownOpen = false);
+            });
     }
 
     private void SetupTrayIcon()
@@ -67,6 +75,28 @@ public partial class MainWindow : Window
         }
     }
 
+    internal void SetBootstrapper(AppBootstrapper boot) => _boot = boot;
+
+    private void ProfileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.AddedItems.Count == 0) return;
+        var selected = (string)e.AddedItems[0];
+        var box = (System.Windows.Controls.ComboBox)sender;
+        if (DataContext is not MainWindowViewModel vm) return;
+
+        if (selected == ViewModels.ProfileViewModel.CreateSentinel)
+        {
+            box.SelectedItem = vm.Profile.SelectedProfile;
+            var dialog = new Views.Dialogs.CreateProfileDialog { Owner = this };
+            if (dialog.ShowDialog() != true) return;
+            vm.Profile.CreateProfile(dialog.ProfileName);
+        }
+        else
+        {
+            vm.Profile.SelectedProfile = selected;
+        }
+    }
+
     private void AliasVoicesDataGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         var grid = (DataGrid)sender;
@@ -84,6 +114,26 @@ public partial class MainWindow : Window
                 }
                 return;
             }
+            el = VisualTreeHelper.GetParent(el);
+        }
+        grid.UnselectAll();
+    }
+
+    private void FiltersDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var vm = (MainWindowViewModel)DataContext;
+        vm.Replacement.OnSelectionChanged(((DataGrid)sender).SelectedItems);
+    }
+
+    private void FiltersDataGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var grid = (DataGrid)sender;
+        var hit = VisualTreeHelper.HitTest(grid, e.GetPosition(grid));
+        if (hit == null) { grid.UnselectAll(); return; }
+        DependencyObject? el = hit.VisualHit;
+        while (el != null && el != grid)
+        {
+            if (el is DataGridRow) return;
             el = VisualTreeHelper.GetParent(el);
         }
         grid.UnselectAll();
@@ -128,5 +178,6 @@ public partial class MainWindow : Window
 
         _trayIcon?.Dispose();
         _ = _boot.StopAsync();
+        _boot.Dispose();
     }
 }

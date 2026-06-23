@@ -62,18 +62,26 @@ public class BuiltInCommandHandler : IChatCommandHandler
         {
             case "pause" when isMod:
                 _queue.Pause();
+                if (!settings.SilenceCommandOutput)
+                    await _twitch.SendChatMessageAsync("TTS paused.");
                 return true;
 
             case "resume" when isMod:
                 _queue.Resume();
+                if (!settings.SilenceCommandOutput)
+                    await _twitch.SendChatMessageAsync("TTS resumed.");
                 return true;
 
             case "clear" when isMod:
                 _queue.Clear();
+                if (!settings.SilenceCommandOutput)
+                    await _twitch.SendChatMessageAsync("TTS queue cleared.");
                 return true;
 
             case "stop" when isMod:
                 _queue.Stop();
+                if (!settings.SilenceCommandOutput)
+                    await _twitch.SendChatMessageAsync("TTS stopped.");
                 return true;
 
             case "mode" when isMod && parts.Length > 1:

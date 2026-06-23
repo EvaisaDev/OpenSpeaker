@@ -2,7 +2,7 @@ using System.IO;
 using System.Net.Http;
 using NAudio.Wave;
 using Newtonsoft.Json.Linq;
-using OpenSpeaker.Infrastructure.Http;
+using OpenSpeaker.ThingsIDKWhereToPut.Http;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.TTS.Engines;
 

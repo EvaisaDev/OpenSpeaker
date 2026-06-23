@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using OpenSpeaker.Data;
+using OpenSpeaker.Extensions;
+using OpenSpeaker.ThingsIDKWhereToPut.Logging;
 using OpenSpeaker.Models;
 using OpenSpeaker.Services;
 using OpenSpeaker.TTS;
@@ -21,6 +23,8 @@ public class SpeechEnginesViewModel : BaseViewModel
     private readonly DatabaseContext _db;
     private readonly TtsEngineRegistry _registry;
     private readonly VoicePool _voicePool;
+    private readonly ExtensionManager _extensions;
+    private readonly IAppLogger? _logger;
 
     public ObservableCollection<SpeechEngineItem> Engines { get; } = new();
 
@@ -31,24 +35,21 @@ public class SpeechEnginesViewModel : BaseViewModel
         set { SetField(ref _selectedEngine, value); if (value != null) _ = LoadVoicesAsync(value); }
     }
 
-    public RelayCommand ShowAddDialogCommand { get; }
+    public AsyncRelayCommand ShowAddDialogCommand { get; }
     public RelayCommand RemoveCommand { get; }
+    public RelayCommand ReloadCommand { get; }
 
-    private static readonly string[] _availableToAdd =
-    [
-        EngineIds.Azure, EngineIds.AmazonPolly, EngineIds.GoogleCloud,
-        EngineIds.ElevenLabs, EngineIds.TtsMonster, EngineIds.IbmWatson,
-        EngineIds.Acapela, EngineIds.CereProc, EngineIds.UberDuck, EngineIds.TikTok
-    ];
-
-    public SpeechEnginesViewModel(DatabaseContext db, TtsEngineRegistry registry, VoicePool voicePool)
+    public SpeechEnginesViewModel(DatabaseContext db, TtsEngineRegistry registry, VoicePool voicePool, ExtensionManager extensions, IAppLogger? logger = null)
     {
         _db = db;
         _registry = registry;
         _voicePool = voicePool;
+        _extensions = extensions;
+        _logger = logger;
 
-        ShowAddDialogCommand = new RelayCommand(ShowAddDialog);
+        ShowAddDialogCommand = new AsyncRelayCommand(ShowAddDialog);
         RemoveCommand = new RelayCommand(RemoveEngine, () => SelectedEngine != null);
+        ReloadCommand = new RelayCommand(ReloadEngines);
 
         Refresh();
     }
@@ -64,11 +65,11 @@ public class SpeechEnginesViewModel : BaseViewModel
 
         foreach (var cfg in enabled.Where(c => c.EngineId != EngineIds.Sapi5))
         {
-            var item = new SpeechEngineItem
-            {
-                EngineId = cfg.EngineId,
-                DisplayName = EngineConfigViewModel.GetDisplayName(cfg.EngineId)
-            };
+            var displayName = cfg.EngineId.StartsWith("ext:", StringComparison.Ordinal)
+                ? _extensions.GetDisplayName(cfg.EngineId)
+                : EngineConfigViewModel.GetDisplayName(cfg.EngineId);
+
+            var item = new SpeechEngineItem { EngineId = cfg.EngineId, DisplayName = displayName };
             Engines.Add(item);
             _ = LoadVoicesAsync(item);
         }
@@ -88,25 +89,61 @@ public class SpeechEnginesViewModel : BaseViewModel
         var engine = _registry.GetEngine(item.EngineId);
         if (engine == null) return;
 
+        IReadOnlyList<VoiceInfo> voices;
         try
         {
-            var voices = await engine.GetVoicesAsync();
-            Application.Current?.Dispatcher.Invoke(() =>
-            {
-                item.Voices.Clear();
-                foreach (var v in voices)
-                    item.Voices.Add($"{item.DisplayName} - {v.Name}");
-                item.RefreshVoiceCount();
-            });
+            voices = await engine.GetVoicesAsync().ConfigureAwait(false);
         }
-        catch { }
+        catch
+        {
+            if (item.EngineId != EngineIds.Sapi5 && !item.EngineId.StartsWith("ext:", StringComparison.Ordinal))
+                MarkEngineFailed(item);
+            return;
+        }
+
+        if (voices.Count == 0 && item.EngineId != EngineIds.Sapi5 && !item.EngineId.StartsWith("ext:", StringComparison.Ordinal))
+        {
+            MarkEngineFailed(item);
+            return;
+        }
+
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            item.Voices.Clear();
+            foreach (var v in voices)
+                item.Voices.Add($"{item.DisplayName} - {v.Name}");
+            item.RefreshVoiceCount();
+        });
     }
 
-    private void ShowAddDialog()
+    private void MarkEngineFailed(SpeechEngineItem item)
     {
+        var cfg = _db.EngineConfigs.FindOne(c => c.EngineId == item.EngineId);
+        if (cfg != null)
+        {
+            cfg.Enabled = false;
+            _db.EngineConfigs.Upsert(cfg);
+        }
+        _voicePool.Invalidate();
+        Application.Current?.Dispatcher.BeginInvoke(() => Engines.Remove(item));
+    }
+
+    private async Task ShowAddDialog()
+    {
+        var alreadyAdded = Engines.Select(e => e.EngineId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var options = TtsEngineFactory.BuiltIn
+            .Where(d => d.Id != EngineIds.Sapi5 && !alreadyAdded.Contains(d.Id))
+            .Select(d => new EngineOption(d.Id, d.DisplayName))
+            .Concat(_extensions.SpeechEngines
+                .Where(e => !alreadyAdded.Contains(e.EngineId))
+                .Select(e => new EngineOption(e.EngineId, e.DisplayName)))
+            .ToList();
+
+        if (options.Count == 0) return;
+
         EngineConfigViewModel? vm = null;
         Window? dialog = null;
-        vm = new EngineConfigViewModel(_availableToAdd, () => dialog?.Close());
+        vm = new EngineConfigViewModel(options, () => dialog?.Close(), _extensions);
         dialog = new EngineConfigWindow(vm) { Owner = Application.Current.MainWindow };
         dialog.ShowDialog();
 
@@ -127,6 +164,43 @@ public class SpeechEnginesViewModel : BaseViewModel
             _db.EngineConfigs.Insert(new EngineConfig { EngineId = engineId, Enabled = true, ConfigJson = configJson });
         }
 
+        _registry.Reload();
+
+        var engine = _registry.GetEngine(engineId);
+        if (engine != null)
+        {
+            IReadOnlyList<VoiceInfo> voices;
+            try { voices = await engine.GetVoicesAsync(); }
+            catch (Exception ex)
+            {
+                RevertEngineConfig(engineId);
+                MessageBox.Show($"Failed to connect: {ex.Message}", "Authentication Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (voices.Count == 0)
+            {
+                RevertEngineConfig(engineId);
+                MessageBox.Show("The engine returned no voices — check your credentials.", "Authentication Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+        }
+
+        _voicePool.Invalidate();
+        Refresh();
+    }
+
+    private void RevertEngineConfig(string engineId)
+    {
+        var cfg = _db.EngineConfigs.FindOne(c => c.EngineId == engineId);
+        if (cfg == null) return;
+        cfg.Enabled = false;
+        _db.EngineConfigs.Upsert(cfg);
+        _registry.Reload();
+    }
+
+    private void ReloadEngines()
+    {
         _registry.Reload();
         _voicePool.Invalidate();
         Refresh();

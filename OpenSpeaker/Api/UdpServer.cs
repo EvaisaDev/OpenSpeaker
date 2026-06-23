@@ -4,7 +4,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenSpeaker.Core;
-using OpenSpeaker.Infrastructure.Logging;
+using OpenSpeaker.ThingsIDKWhereToPut.Logging;
 namespace OpenSpeaker.Api;
 
 public class UdpServer : IDisposable
@@ -35,7 +35,7 @@ public class UdpServer : IDisposable
             _listenTask = Task.Run(ListenLoop);
             _logger.Info($"UDP server started on port {Constants.UdpPort}");
         }
-        catch (SocketException ex)
+        catch (Exception ex)
         {
             _logger.Warn($"UDP server could not bind to port {Constants.UdpPort}: {ex.Message}. UDP commands will be unavailable.");
         }

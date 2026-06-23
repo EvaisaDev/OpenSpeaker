@@ -1,5 +1,5 @@
 using NAudio.Wave;
-using OpenSpeaker.Infrastructure.Logging;
+using OpenSpeaker.ThingsIDKWhereToPut.Logging;
 namespace OpenSpeaker.Audio;
 public class AudioDeviceEnumerator
 {

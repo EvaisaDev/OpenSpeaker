@@ -3,7 +3,7 @@ using System.Net.Http;
 using NAudio.Wave;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OpenSpeaker.Infrastructure.Http;
+using OpenSpeaker.ThingsIDKWhereToPut.Http;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.TTS.Engines;
 
@@ -96,7 +96,12 @@ public class ElevenLabsEngine : ITtsEngine
         try
         {
             var response = await _http.SendAsync(request);
-            if (!response.IsSuccessStatusCode) return AudioData.Empty;
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"[ElevenLabs] Synthesis failed {(int)response.StatusCode}: {err}");
+                throw new Exception($"ElevenLabs synthesis failed ({(int)response.StatusCode}): {err}");
+            }
 
             var mp3Bytes = await response.Content.ReadAsByteArrayAsync();
             using var ms = new MemoryStream(mp3Bytes);
@@ -106,9 +111,10 @@ public class ElevenLabsEngine : ITtsEngine
             await pcmStream.CopyToAsync(pcmMs);
             return new AudioData { Samples = pcmMs.ToArray(), Format = pcmStream.WaveFormat };
         }
-        catch
+        catch (Exception ex)
         {
-            return AudioData.Empty;
+            System.Diagnostics.Debug.WriteLine($"[ElevenLabs] SynthesizeAsync exception: {ex.Message}");
+            throw;
         }
     }
 

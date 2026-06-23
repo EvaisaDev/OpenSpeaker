@@ -8,36 +8,54 @@ public class RegexReplacer
     {
         foreach (var r in replacements.Where(x => x.Enabled).OrderBy(x => x.Order))
         {
-            if (string.IsNullOrEmpty(r.Pattern)) continue;
-            var mode = string.IsNullOrEmpty(r.Mode) ? "Replace" : r.Mode;
+            message = ApplySingle(message, r);
+            if (string.IsNullOrEmpty(message)) return string.Empty;
+        }
+        return message;
+    }
 
-            if (mode == "Skip")
+    public string ApplySingle(string message, RegexReplacement r)
+    {
+        if (string.IsNullOrEmpty(r.Pattern)) return message;
+        var mode = string.IsNullOrEmpty(r.Mode) ? "Replace" : r.Mode;
+
+        if (mode == "Skip")
+        {
+            bool skip;
+            if (r.IsRegex)
             {
-                bool skip;
-                if (r.IsRegex)
-                {
-                    try { skip = Regex.IsMatch(message, r.Pattern, RegexOptions.None, TimeSpan.FromSeconds(1)); }
-                    catch { continue; }
-                }
-                else
-                {
-                    skip = message.Contains(r.Pattern, StringComparison.OrdinalIgnoreCase);
-                }
-                if (skip) return string.Empty;
+                try { skip = Regex.IsMatch(message, r.Pattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1)); }
+                catch { return message; }
+            }
+            else if (r.WholeWord)
+            {
+                var wbPattern = $@"\b{Regex.Escape(r.Pattern)}\b";
+                try { skip = Regex.IsMatch(message, wbPattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1)); }
+                catch { return message; }
             }
             else
             {
-                if (r.IsRegex)
-                {
-                    try { message = Regex.Replace(message, r.Pattern, r.Replacement, RegexOptions.None, TimeSpan.FromSeconds(1)); }
-                    catch { }
-                }
-                else
-                {
-                    message = message.Replace(r.Pattern, r.Replacement, StringComparison.OrdinalIgnoreCase);
-                }
+                skip = message.Contains(r.Pattern, StringComparison.OrdinalIgnoreCase);
+            }
+            return skip ? string.Empty : message;
+        }
+        else
+        {
+            if (r.IsRegex)
+            {
+                try { return Regex.Replace(message, r.Pattern, r.Replacement, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1)); }
+                catch { return message; }
+            }
+            else if (r.WholeWord)
+            {
+                var wbPattern = $@"\b{Regex.Escape(r.Pattern)}\b";
+                try { return Regex.Replace(message, wbPattern, r.Replacement, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1)); }
+                catch { return message; }
+            }
+            else
+            {
+                return message.Replace(r.Pattern, r.Replacement, StringComparison.OrdinalIgnoreCase);
             }
         }
-        return message;
     }
 }

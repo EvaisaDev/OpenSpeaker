@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows;
-using OpenSpeaker.Infrastructure.Logging;
+using OpenSpeaker.ThingsIDKWhereToPut.Logging;
 namespace OpenSpeaker.ViewModels;
 
 public class EventLogEntry

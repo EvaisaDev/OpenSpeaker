@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using OpenSpeaker.Data;
+using OpenSpeaker.ThingsIDKWhereToPut.Logging;
 namespace OpenSpeaker.Text;
 
 public class MessageSanitizer
@@ -11,19 +12,22 @@ public class MessageSanitizer
     private readonly RegexReplacer _regexReplacer;
     private readonly SettingsRepository _settingsRepo;
     private readonly DatabaseContext _db;
+    private readonly IAppLogger? _logger;
 
     public MessageSanitizer(
         EmoteStripper emoteStripper,
         PrefixChecker prefixChecker,
         RegexReplacer regexReplacer,
         SettingsRepository settingsRepo,
-        DatabaseContext db)
+        DatabaseContext db,
+        IAppLogger? logger = null)
     {
         _emoteStripper = emoteStripper;
         _prefixChecker = prefixChecker;
         _regexReplacer = regexReplacer;
         _settingsRepo = settingsRepo;
         _db = db;
+        _logger = logger;
     }
 
     public bool IsIgnoredPrefix(string message)
@@ -32,11 +36,12 @@ public class MessageSanitizer
         return _prefixChecker.StartsWithIgnoredPrefix(message, settings.IgnoredPrefixes);
     }
 
-    public string Sanitize(string message, bool applyFilters = true)
+    public string Sanitize(string message, bool applyFilters = true, IReadOnlyList<string>? messageEmotes = null, IReadOnlyList<string>? messageCheermotes = null)
     {
         var settings = _settingsRepo.GetSettings();
+        _logger?.Info($"SANITIZE :: Input='{message}'");
 
-        message = _emoteStripper.Strip(
+        var afterEmote = _emoteStripper.Strip(
             message,
             settings.StripTwitchEmotes,
             settings.StripBttvEmotes,
@@ -45,23 +50,52 @@ public class MessageSanitizer
             settings.StripCheermotes,
             settings.StripTwemoji,
             settings.AllowFirstEmote,
-            settings.AllowedEmotes.Count > 0 ? settings.AllowedEmotes : null);
+            settings.AllowedEmotes.Count > 0 ? settings.AllowedEmotes : null,
+            messageEmotes,
+            messageCheermotes);
+        if (afterEmote != message) _logger?.Info($"SANITIZE :: AfterEmoteStrip='{afterEmote}'");
+        message = afterEmote;
 
         if (settings.UrlFilterMode == "Block" && UrlRegex.IsMatch(message))
+        {
+            _logger?.Info("SANITIZE :: Dropped — URL block");
             return string.Empty;
+        }
         if (settings.UrlFilterMode == "Strip")
-            message = UrlRegex.Replace(message, string.Empty);
+        {
+            var afterUrl = UrlRegex.Replace(message, string.Empty);
+            if (afterUrl != message) _logger?.Info($"SANITIZE :: AfterUrlStrip='{afterUrl}'");
+            message = afterUrl;
+        }
 
         if (applyFilters)
         {
-            var filters = _db.RegexReplacements.FindAll();
-            message = _regexReplacer.Replace(message, filters);
+            var filters = _db.RegexReplacements.FindAll().ToList();
+            foreach (var f in filters.Where(x => x.Enabled).OrderBy(x => x.Order))
+            {
+                var before = message;
+                message = _regexReplacer.ApplySingle(message, f);
+                if (message != before)
+                    _logger?.Info($"SANITIZE :: Replacement '{f.Pattern}' → '{f.Replacement}' changed message to '{message}'");
+                if (string.IsNullOrEmpty(message))
+                {
+                    _logger?.Info($"SANITIZE :: Dropped — replacement '{f.Pattern}' emptied message");
+                    return string.Empty;
+                }
+            }
         }
 
         if (settings.MaxWords > 0)
-            message = TruncateWords(message, settings.MaxWords, settings.WordLimitSymbolsAsSpaces);
+        {
+            var afterWords = TruncateWords(message, settings.MaxWords, settings.WordLimitSymbolsAsSpaces);
+            if (afterWords != message) _logger?.Info($"SANITIZE :: AfterWordLimit({settings.MaxWords})='{afterWords}'");
+            message = afterWords;
+        }
         if (settings.MaxChars > 0 && message.Length > settings.MaxChars)
+        {
+            _logger?.Info($"SANITIZE :: AfterCharLimit({settings.MaxChars})");
             message = message[..settings.MaxChars];
+        }
 
         return message.Trim();
     }

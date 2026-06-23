@@ -7,6 +7,33 @@ public class SbTextToSpeech
     [JsonPropertyName("engineConfig")] public Dictionary<string, System.Text.Json.JsonElement> EngineConfig { get; set; } = new();
 }
 
+public class SbCustomCommand
+{
+    [JsonPropertyName("command")] public string Command { get; set; } = string.Empty;
+    [JsonPropertyName("voice")]   public string Voice   { get; set; } = string.Empty;
+}
+
+public class SbCustomCommands
+{
+    [JsonPropertyName("commands")]    public List<SbCustomCommand> Commands    { get; set; } = new();
+    [JsonPropertyName("permissions")] public int                   Permissions { get; set; } = 31;
+}
+
+public class SbReplacement
+{
+    [JsonPropertyName("enabled")] public bool Enabled { get; set; }
+    [JsonPropertyName("replace")] public string Pattern { get; set; } = string.Empty;
+    [JsonPropertyName("with")] public string With { get; set; } = string.Empty;
+}
+
+public class SbIgnoredVoicesProfile
+{
+    [JsonPropertyName("id")] public string Id { get; set; } = string.Empty;
+    [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+    [JsonPropertyName("voices")] public List<string> Voices { get; set; } = new();
+    [JsonPropertyName("locales")] public List<string> Locales { get; set; } = new();
+}
+
 public class SbSettings
 {
     [JsonPropertyName("speakingEnabled")] public bool SpeakingEnabled { get; set; }
@@ -45,6 +72,14 @@ public class SbSettings
     [JsonPropertyName("websockets")] public SbWebSocketSettings Websockets { get; set; } = new();
     [JsonPropertyName("instanceName")] public string InstanceName { get; set; } = string.Empty;
     [JsonPropertyName("textToSpeech")] public SbTextToSpeech TextToSpeech { get; set; } = new();
+    [JsonPropertyName("customCommands")] public SbCustomCommands CustomCommands { get; set; } = new();
+    [JsonPropertyName("replacements")] public List<SbReplacement> Replacements { get; set; } = new();
+    [JsonPropertyName("badWords")] public List<string> BadWords { get; set; } = new();
+    [JsonPropertyName("badWordFilter")] public int BadWordFilter { get; set; }
+    [JsonPropertyName("ignoredVoicesProfiles")] public List<SbIgnoredVoicesProfile> IgnoredVoicesProfiles { get; set; } = new();
+    [JsonPropertyName("ignoredVoicesProfile")] public string IgnoredVoicesProfile { get; set; } = string.Empty;
+    [JsonPropertyName("defaultVoice")] public string DefaultVoice { get; set; } = string.Empty;
+    [JsonPropertyName("highlightVoice")] public string HighlightVoice { get; set; } = string.Empty;
 }
 
 public class SbEventsSettings
@@ -145,4 +180,6 @@ public class SbVoice
 {
     [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
     [JsonPropertyName("volume")] public double Volume { get; set; } = 1.0;
+    [JsonPropertyName("pitch")] public double Pitch { get; set; } = 0.0;
+    [JsonPropertyName("rate")] public double Rate { get; set; } = 0.0;
 }

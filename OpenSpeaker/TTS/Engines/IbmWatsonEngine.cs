@@ -5,7 +5,7 @@ using System.Text;
 using NAudio.Wave;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OpenSpeaker.Infrastructure.Http;
+using OpenSpeaker.ThingsIDKWhereToPut.Http;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.TTS.Engines;
 
@@ -23,8 +23,20 @@ public class IbmWatsonEngine : ITtsEngine
     public void Configure(string configJson)
     {
         var obj = JObject.Parse(configJson);
-        _apiKey = obj["apiKey"]?.Value<string>() ?? string.Empty;
-        _serviceUrl = obj["serviceUrl"]?.Value<string>() ?? string.Empty;
+        var envPath = obj["envFilePath"]?.Value<string>() ?? string.Empty;
+        if (!string.IsNullOrEmpty(envPath) && File.Exists(envPath))
+        {
+            var env = File.ReadAllLines(envPath)
+                .Where(l => l.Contains('=') && !l.TrimStart().StartsWith('#'))
+                .Select(l => l.Split('=', 2))
+                .ToDictionary(p => p[0].Trim(), p => p[1].Trim());
+            env.TryGetValue("TEXT_TO_SPEECH_APIKEY", out _apiKey!);
+            if (string.IsNullOrEmpty(_apiKey))
+                env.TryGetValue("TEXT_TO_SPEECH_IAM_APIKEY", out _apiKey!);
+            env.TryGetValue("TEXT_TO_SPEECH_URL", out _serviceUrl!);
+            _apiKey     ??= string.Empty;
+            _serviceUrl ??= string.Empty;
+        }
     }
 
     public async Task<AudioData> SynthesizeAsync(string text, string voiceId, SynthParams parameters)
@@ -34,25 +46,20 @@ public class IbmWatsonEngine : ITtsEngine
         var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"apikey:{_apiKey}"));
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_serviceUrl}/v1/synthesize?voice={Uri.EscapeDataString(voiceId)}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-        request.Headers.Add("Accept", "audio/wav");
+        request.Headers.Add("Accept", "audio/mp3");
         request.Content = new StringContent(JsonConvert.SerializeObject(new { text }), Encoding.UTF8, "application/json");
 
-        try
-        {
-            var response = await _http.SendAsync(request);
-            if (!response.IsSuccessStatusCode) return AudioData.Empty;
+        var response = await _http.SendAsync(request);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new Exception($"IBM Watson synthesize failed ({(int)response.StatusCode}): {Encoding.UTF8.GetString(bytes)}");
 
-            var bytes = await response.Content.ReadAsByteArrayAsync();
-            using var ms = new MemoryStream(bytes);
-            using var reader = new WaveFileReader(ms);
-            using var pcmMs = new MemoryStream();
-            await reader.CopyToAsync(pcmMs);
-            return new AudioData { Samples = pcmMs.ToArray(), Format = reader.WaveFormat };
-        }
-        catch
-        {
-            return AudioData.Empty;
-        }
+        using var ms = new MemoryStream(bytes);
+        using var reader = new Mp3FileReader(ms);
+        using var pcm = WaveFormatConversionStream.CreatePcmStream(reader);
+        using var pcmMs = new MemoryStream();
+        await pcm.CopyToAsync(pcmMs);
+        return new AudioData { Samples = pcmMs.ToArray(), Format = pcm.WaveFormat };
     }
 
     public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()

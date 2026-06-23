@@ -3,6 +3,7 @@ using OpenSpeaker.Audio;
 using OpenSpeaker.Data;
 using OpenSpeaker.Localization;
 using OpenSpeaker.Models;
+using OpenSpeaker.Themes;
 namespace OpenSpeaker.ViewModels;
 
 public class GeneralSettingsViewModel : BaseViewModel
@@ -14,47 +15,55 @@ public class GeneralSettingsViewModel : BaseViewModel
     public ObservableCollection<AudioDeviceInfo> OutputDevices { get; } = new();
 
     public string InstanceId => _settings.InstanceId;
-    public string InstanceName { get => _settings.InstanceName; set { _settings.InstanceName = value; OnPropertyChanged(); } }
-    public bool Enabled { get => _settings.Enabled; set { _settings.Enabled = value; OnPropertyChanged(); } }
-    public string AudioOutputDeviceId { get => _settings.AudioOutputDeviceId; set { _settings.AudioOutputDeviceId = value; OnPropertyChanged(); } }
-    public int ApplicationVolume { get => _settings.ApplicationVolume; set { _settings.ApplicationVolume = value; OnPropertyChanged(); } }
-    public bool SaveTts { get => _settings.SaveTts; set { _settings.SaveTts = value; OnPropertyChanged(); } }
-    public string SaveTtsFolder { get => _settings.SaveTtsFolder; set { _settings.SaveTtsFolder = value; OnPropertyChanged(); } }
-    public string DefaultVoiceAlias { get => _settings.DefaultVoiceAlias; set { _settings.DefaultVoiceAlias = value; OnPropertyChanged(); } }
-    public string HighlightVoiceAlias { get => _settings.HighlightVoiceAlias; set { _settings.HighlightVoiceAlias = value; OnPropertyChanged(); } }
-    public bool UseHighlightVoice { get => _settings.UseHighlightVoice; set { _settings.UseHighlightVoice = value; OnPropertyChanged(); } }
-    public bool MinimizeToTray { get => _settings.MinimizeToTray; set { _settings.MinimizeToTray = value; OnPropertyChanged(); } }
-    public bool ConfirmationOnClose { get => _settings.ConfirmationOnClose; set { _settings.ConfirmationOnClose = value; OnPropertyChanged(); } }
-    public string LogLevel { get => _settings.LogLevel; set { _settings.LogLevel = value; OnPropertyChanged(); } }
+    public string InstanceName { get => _settings.InstanceName; set { _settings.InstanceName = value; OnPropertyChanged(); Save(); } }
+    public bool Enabled { get => _settings.Enabled; set { _settings.Enabled = value; OnPropertyChanged(); Save(); } }
+    public string AudioOutputDeviceId { get => _settings.AudioOutputDeviceId; set { _settings.AudioOutputDeviceId = value; OnPropertyChanged(); Save(); } }
+    public int ApplicationVolume { get => _settings.ApplicationVolume; set { _settings.ApplicationVolume = value; OnPropertyChanged(); Save(); } }
+    public bool SaveTts { get => _settings.SaveTts; set { _settings.SaveTts = value; OnPropertyChanged(); Save(); } }
+    public string SaveTtsFolder { get => _settings.SaveTtsFolder; set { _settings.SaveTtsFolder = value; OnPropertyChanged(); Save(); } }
+    public string DefaultVoiceAlias { get => _settings.DefaultVoiceAlias; set { _settings.DefaultVoiceAlias = value; OnPropertyChanged(); Save(); } }
+    public string HighlightVoiceAlias { get => _settings.HighlightVoiceAlias; set { _settings.HighlightVoiceAlias = value; OnPropertyChanged(); Save(); } }
+    public bool UseHighlightVoice { get => _settings.UseHighlightVoice; set { _settings.UseHighlightVoice = value; OnPropertyChanged(); Save(); } }
+    public bool MinimizeToTray { get => _settings.MinimizeToTray; set { _settings.MinimizeToTray = value; OnPropertyChanged(); Save(); } }
+    public bool ConfirmationOnClose { get => _settings.ConfirmationOnClose; set { _settings.ConfirmationOnClose = value; OnPropertyChanged(); Save(); } }
+    public string LogLevel { get => _settings.LogLevel; set { _settings.LogLevel = value; OnPropertyChanged(); Save(); } }
 
     public IEnumerable<string> LogLevels { get; } = new[] { "Debug", "Info", "Warn", "Error" };
     public IEnumerable<string> AvailableLanguages => LocalizationService.AvailableLanguages;
+    public IEnumerable<string> AvailableThemes => ThemeService.AvailableThemes;
 
     public string Language
     {
         get => _settings.Language;
-        set { _settings.Language = value; OnPropertyChanged(); LocalizationService.Load(value); }
+        set { _settings.Language = value; OnPropertyChanged(); LocalizationService.Load(value); Save(); }
+    }
+
+    public string Theme
+    {
+        get => _settings.Theme;
+        set { _settings.Theme = value; OnPropertyChanged(); ThemeService.Apply(value); Save(); }
     }
 
     public bool ShowTooltips
     {
         get => _settings.ShowTooltips;
-        set { _settings.ShowTooltips = value; OnPropertyChanged(); UiController.Instance.ShowTooltips = value; }
+        set { _settings.ShowTooltips = value; OnPropertyChanged(); UiController.Instance.ShowTooltips = value; Save(); }
     }
 
     public bool DisableAudioOutput
     {
         get => _settings.DisableAudioOutput;
-        set { _settings.DisableAudioOutput = value; OnPropertyChanged(); }
+        set { _settings.DisableAudioOutput = value; OnPropertyChanged(); Save(); }
     }
 
-    public bool SimultaneousMode
+    public string QueueMode
     {
-        get => _settings.SimultaneousMode;
-        set { _settings.SimultaneousMode = value; OnPropertyChanged(); }
+        get => _settings.QueueMode;
+        set { _settings.QueueMode = value; OnPropertyChanged(); Save(); }
     }
 
-    public RelayCommand SaveCommand { get; }
+    public IEnumerable<string> QueueModes => Models.QueueModes.All;
+
     public RelayCommand BrowseFolderCommand { get; }
     public RelayCommand RefreshDevicesCommand { get; }
     public RelayCommand ResetInstanceIdCommand { get; }
@@ -73,16 +82,18 @@ public class GeneralSettingsViewModel : BaseViewModel
         }
         _settings.AudioOutputDeviceId ??= string.Empty;
 
-        SaveCommand = new RelayCommand(Save);
         BrowseFolderCommand = new RelayCommand(BrowseFolder);
         RefreshDevicesCommand = new RelayCommand(RefreshDevices);
         ResetInstanceIdCommand = new RelayCommand(ResetInstanceId);
     }
 
-    private void Save()
+    public void Refresh()
     {
-        _settingsRepo.SaveSettings(_settings);
+        _settings = _settingsRepo.GetSettings();
+        OnPropertyChanged(string.Empty);
     }
+
+    private void Save() => _settingsRepo.SaveSettings(_settings);
 
     private void BrowseFolder()
     {

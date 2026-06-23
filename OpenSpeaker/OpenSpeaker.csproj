@@ -21,11 +21,34 @@
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.40.0" />
     <PackageReference Include="AWSSDK.Polly" Version="3.7.400" />
     <PackageReference Include="Google.Cloud.TextToSpeech.V1" Version="3.8.0" />
+    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="10.0.9" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
     <PackageReference Include="TwitchLib.Api" Version="3.10.1" />
     <PackageReference Include="TwitchLib.EventSub.Websockets" Version="0.8.0" />
     <PackageReference Include="Serilog" Version="4.1.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="LuaCSharp" Version="0.5.5" />
   </ItemGroup>
+
+  <Target Name="CopyMoveAfterFiles" AfterTargets="Build">
+    <ItemGroup>
+      <MoveAfterFiles Include="$(MSBuildProjectDirectory)\move-after\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(MoveAfterFiles)" DestinationFiles="@(MoveAfterFiles->'$(OutputPath)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyMoveAfterFilesOnPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <MoveAfterFiles Include="$(MSBuildProjectDirectory)\move-after\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(MoveAfterFiles)" DestinationFiles="@(MoveAfterFiles->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyNativeDllsOnPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <AzureNativeDlls Include="$(NuGetPackageRoot)microsoft.cognitiveservices.speech\1.40.0\runtimes\win-x64\native\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(AzureNativeDlls)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

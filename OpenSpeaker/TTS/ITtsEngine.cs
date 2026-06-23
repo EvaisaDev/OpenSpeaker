@@ -17,4 +17,6 @@ public class VoiceInfo
     public string Locale { get; init; } = string.Empty;
     public string Gender { get; init; } = string.Empty;
     public string EngineId { get; init; } = string.Empty;
+    public string DisplayName { get; init; } = string.Empty;
+    public override string ToString() => !string.IsNullOrEmpty(DisplayName) ? DisplayName : Name;
 }

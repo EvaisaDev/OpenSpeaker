@@ -1,5 +1,5 @@
 using System.Net.Http;
-namespace OpenSpeaker.Infrastructure.Http;
+namespace OpenSpeaker.ThingsIDKWhereToPut.Http;
 public static class HttpClientFactory
 {
     private static readonly Dictionary<string, HttpClient> _clients = new();

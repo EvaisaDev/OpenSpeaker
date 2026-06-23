@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
-namespace OpenSpeaker.Infrastructure.Extensions;
+namespace OpenSpeaker.ThingsIDKWhereToPut.Extensions;
 public static class StringExtensions
 {
     public static string TruncateTo(this string s, int maxLength) =>

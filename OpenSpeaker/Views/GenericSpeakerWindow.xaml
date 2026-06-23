@@ -12,17 +12,22 @@
             <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Voice" Style="{StaticResource MutedText}" VerticalAlignment="Center" Width="42"/>
-                    <ComboBox ItemsSource="{Binding AliasNames}" SelectedItem="{Binding SelectedAlias}" Width="380"/>
+                    <ComboBox x:Name="VoiceComboBox"
+                              ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}"
+                              Tag="{Binding VoiceFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              Width="380"
+                              ScrollViewer.CanContentScroll="True"
+                              MaxDropDownHeight="300">
+                        <ComboBox.ItemsPanel>
+                            <ItemsPanelTemplate><VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling"/></ItemsPanelTemplate>
+                        </ComboBox.ItemsPanel>
+                    </ComboBox>
                 </StackPanel>
 
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Default" Command="{Binding DefaultCommand}"
+                <DockPanel Margin="0,0,0,6">
+                    <Button DockPanel.Dock="Right" Content="Reset" Command="{Binding ResetVolumeCommand}"
                             Padding="10,5" Margin="8,0,0,0"/>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Pitch" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox Text="{Binding Pitch, UpdateSourceTrigger=PropertyChanged}" Width="48" Margin="0,0,14,0"/>
-                        <TextBlock Text="Rate" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged}" Width="48" Margin="0,0,14,0"/>
                         <TextBlock Text="Volume" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <Slider Minimum="0" Maximum="100" Value="{Binding Volume}" Width="180" VerticalAlignment="Center"/>
                         <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Width="40">
@@ -31,6 +36,35 @@
                         </TextBlock>
                     </StackPanel>
                 </DockPanel>
+
+                <ItemsControl ItemsSource="{Binding ParamRows}" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Def.Label}" Style="{StaticResource MutedText}"
+                                           VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                            Visibility="{Binding IsSlider, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Slider Value="{Binding SliderValue, Mode=TwoWay}"
+                                            Minimum="{Binding Def.Min}" Maximum="{Binding Def.Max}"
+                                            SmallChange="{Binding Def.Step}" LargeChange="{Binding Def.Step}"
+                                            TickFrequency="{Binding Def.Step}" IsSnapToTickEnabled="True"
+                                            Width="70" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding DisplayValue}" VerticalAlignment="Center"
+                                               Margin="4,0,0,0" Width="32" FontFamily="Consolas" FontSize="11"/>
+                                </StackPanel>
+                                <ComboBox ItemsSource="{Binding Def.Options}" SelectedItem="{Binding Value}"
+                                          Width="150" VerticalAlignment="Center"
+                                          Visibility="{Binding IsComboBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
         </GroupBox>
 

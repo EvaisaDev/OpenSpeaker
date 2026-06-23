@@ -1,0 +1,103 @@
+Extensions go in the extensions/ folder next to the exe, one subfolder per extension with a main.lua inside.
+--------------------------
+  extensions/
+    my-engine/
+      main.lua
+--------------------------
+Every extension needs an Extension() function, OpenSpeaker calls it on load to get metadata
+--------------------------
+function Extension()
+	return {
+		id          = "my-engine",
+		name        = "My Engine",
+		description = "does stuff",
+	}
+end
+--------------------------
+To register a speech engine (shows up in Speech Engines > Add)
+auth fields only support type "string" for now.
+--------------------------
+RegisterSpeechEngine({
+	id   = "my-engine",
+	name = "My Engine",
+	auth = {
+		{ key = "api_key",    label = "API Key",    type = "string" },
+		{ key = "api_secret", label = "API Secret", type = "string" },
+	}
+})
+--------------------------
+To add a settings panel under the Extensions tab use RegisterSettings()
+types: text, number, checkbox, dropdown (dropdown requires options)
+--------------------------
+RegisterSettings({
+	{ key = "quality", label = "Quality", type = "dropdown", options = {"standard", "premium"}, default = "standard" },
+	{ key = "speed",   label = "Speed",   type = "number",   default = 1.0 },
+	{ key = "on",      label = "On",      type = "checkbox", default = true },
+	{ key = "prefix",  label = "Prefix",  type = "text",     default = "" },
+})
+--------------------------
+If you were using another engine as a workaround in old SpeakerBot, RegisterMigrationHook() tells
+the importer to remap that engine's voices and config to yours during import.
+remap_voices remaps voice history and alias voices. remap_config translates the engine credentials,
+with fields mapping your field names to the SpeakerBot source field names.
+--------------------------
+RegisterMigrationHook({
+	remap_voices = { uberduck = "ext:my-engine" },
+	remap_config = {
+		uberduck = {
+			engine_id = "ext:my-engine",
+			fields = { api_key = "clientId", api_secret = "secretKey" }
+		}
+	}
+})
+--------------------------
+If you registered a speech engine you need to define this function to fill out the voice list.
+voice fields: id (required), name (required), locale (optional), gender (optional)
+--------------------------
+function GetVoices(engine_id)
+	-- return an array of voice tables, or {} if auth is missing/wrong
+	return {
+		{ id = "v1", name = "Alice", locale = "en-US", gender = "Female" },
+	}
+end
+--------------------------
+This callback will be called by OpenSpeaker when it needs to generate speech.
+--------------------------
+function GenerateSpeech(engine_id, voice_id, text, alias)
+	-- return one of:
+	--   "https://..."                          url, openspeaker fetches it
+	--   { url = "https://...", format = "mp3"} url with explicit format
+	--   { format = "mp3", data = "<base64>" }  raw audio bytes as base64
+	--   nil                                    failed, skip this request
+end
+--------------------------
+Optionally define OnMessage to intercept chat messages before they get spoken
+user fields: id, username, display_name, nickname, is_subscriber, is_mod, is_vip,
+			is_broadcaster, is_regular, is_ignored, is_forced
+--------------------------
+  function OnMessage(user, message)
+      -- return a modified string, "" or nil to block entirely, or message to pass through
+      return message
+  end
+--------------------------
+Other stuff
+--------------------------
+GetAuth(engine_id)      returns table of auth values the user entered
+GetSetting(key)         returns a single setting value
+GetSettings()           returns all settings as a table
+log(msg)                writes to the debug log
+
+http.get(url, headers?)                          -> { ok, status, body }
+http.post(url, body, contentType?, headers?)     -> { ok, status, body }
+http.get_bytes(url, headers?)                    -> { ok, status, data }  data is base64
+http.post_bytes(url, body, contentType?, headers?) -> { ok, status, data }  data is base64
+
+contentType defaults to "application/json" if omitted
+headers is a plain table like { ["Authorization"] = "Bearer xyz" }
+
+json.parse(str)      parses json string into lua value
+json.stringify(val)  serializes lua value to json string
+
+base64.encode(str)   utf8 string -> base64
+base64.decode(str)   base64 -> utf8 string
+--------------------------

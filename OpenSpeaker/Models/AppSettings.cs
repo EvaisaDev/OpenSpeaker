@@ -55,6 +55,7 @@ public class AppSettings
     public string GlobalEventVoiceAlias { get; set; } = string.Empty;
 
     public WebSocketServerSettings WebSocketServer { get; set; } = new();
+    public UdpServerSettings UdpServer { get; set; } = new();
     public double WindowLeft { get; set; } = 100;
     public double WindowTop { get; set; } = 100;
     public double WindowWidth { get; set; } = 900;
@@ -71,9 +72,11 @@ public class AppSettings
     public bool ConfirmationOnClose { get; set; } = false;
 
     public string Language { get; set; } = "English";
+    public string Theme { get; set; } = "Dark";
     public bool ShowTooltips { get; set; } = true;
     public bool DisableAudioOutput { get; set; } = false;
     public bool SimultaneousMode { get; set; } = false;
+    public string QueueMode { get; set; } = QueueModes.Sequential;
 
     public List<string> AllowedEmotes { get; set; } = new();
 }

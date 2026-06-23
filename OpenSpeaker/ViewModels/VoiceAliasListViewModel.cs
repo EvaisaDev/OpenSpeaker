@@ -1,12 +1,14 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text.Json;
 using System.Windows;
 using OpenSpeaker.Audio;
 using OpenSpeaker.Data;
-using OpenSpeaker.Infrastructure.Logging;
+using OpenSpeaker.ThingsIDKWhereToPut.Logging;
 using OpenSpeaker.Models;
+using OpenSpeaker.Services;
 using OpenSpeaker.TTS;
 namespace OpenSpeaker.ViewModels;
 
@@ -20,19 +22,47 @@ public class VoiceAliasListViewModel : BaseViewModel
 {
     private readonly VoiceAliasRepository _repo;
     private readonly TtsEngineRegistry _engineRegistry;
+    private readonly VoicePool _voicePool;
     private readonly AudioDeviceEnumerator _deviceEnumerator;
     private readonly UserRepository _userRepo;
+    private readonly Func<IReadOnlyList<UserRecord>> _getAllUsers;
     private readonly IAppLogger? _logger;
 
     public static readonly VoiceInfo RandomVoiceSentinel = new() { Id = string.Empty, Name = "Random Voice" };
+    public event EventHandler? VoicesLoaded;
+
+    private List<VoiceInfo> _allSpeakVoices = new();
+    private List<VoiceAlias> _allAliases = new();
+
+    private string _aliasFilter = string.Empty;
+    public string AliasFilter
+    {
+        get => _aliasFilter;
+        set { SetField(ref _aliasFilter, value); ApplyAliasFilter(); }
+    }
+
+    private string _voiceFilter = "";
+    public string VoiceFilter
+    {
+        get => _voiceFilter;
+        set
+        {
+            SetField(ref _voiceFilter, value);
+            SpeakVoices = new ObservableCollection<VoiceInfo>(
+                string.IsNullOrEmpty(value) ? _allSpeakVoices
+                : _allSpeakVoices.Where(v => string.IsNullOrEmpty(v.Id) || v.DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
 
     public ObservableCollection<VoiceAlias> Aliases { get; } = new();
     public ObservableCollection<AudioDeviceInfo> OutputDevices { get; } = new();
-    public ObservableCollection<VoiceInfo> AvailableVoices { get; } = new();
+    private ObservableCollection<VoiceInfo> _availableVoices = new();
+    public ObservableCollection<VoiceInfo> AvailableVoices { get => _availableVoices; private set { _availableVoices = value; OnPropertyChanged(); } }
+    private ObservableCollection<VoiceInfo> _speakVoices = new();
+    public ObservableCollection<VoiceInfo> SpeakVoices { get => _speakVoices; private set { _speakVoices = value; OnPropertyChanged(); } }
     public ObservableCollection<EngineOption> AvailableEngines { get; } = new();
     public ObservableCollection<AliasUserNode> InUseTree { get; } = new();
     public ObservableCollection<string> InUseUsers { get; } = new();
-    public ObservableCollection<VoiceInfo> SpeakVoices { get; } = new();
     public ObservableCollection<VoiceInfo> AliasVoices { get; } = new();
     public ObservableCollection<AliasParamRow> ParamRows { get; } = new();
 
@@ -40,7 +70,7 @@ public class VoiceAliasListViewModel : BaseViewModel
     public VoiceAlias? SelectedAlias
     {
         get => _selectedAlias;
-        set { SetField(ref _selectedAlias, value); OnPropertyChanged(nameof(HasSelected)); LoadAliasDetail(); }
+        set { SetField(ref _selectedAlias, value); OnPropertyChanged(nameof(HasSelected)); VoiceFilter = ""; LoadAliasDetail(); }
     }
 
     public bool HasSelected => _selectedAlias != null;
@@ -89,6 +119,8 @@ public class VoiceAliasListViewModel : BaseViewModel
         set
         {
             if (!SetField(ref _testSpeakVoice, value)) return;
+            if (value != null && !string.IsNullOrEmpty(_voiceFilter))
+                VoiceFilter = "";
             if (value != null && value != RandomVoiceSentinel)
             {
                 if (value.EngineId is { Length: > 0 } eid)
@@ -102,6 +134,25 @@ public class VoiceAliasListViewModel : BaseViewModel
                 {
                     _selectedVoice = inList;
                     OnPropertyChanged(nameof(SelectedVoice));
+                }
+                if (_selectedAlias != null && _selectedVoice != null)
+                {
+                    var idx = AliasVoices.IndexOf(_selectedVoice);
+                    if (idx >= 0)
+                    {
+                        var replacedId = _selectedVoice.Id;
+                        AliasVoices[idx] = value;
+                        var idxInPool = _selectedAlias.VoiceIds.IndexOf(replacedId);
+                        if (idxInPool >= 0) _selectedAlias.VoiceIds[idxInPool] = value.Id;
+                        if (_selectedAlias.VoiceId == replacedId)
+                        {
+                            _selectedAlias.VoiceId = value.Id;
+                            _selectedAlias.EngineId = _detailEngineId;
+                        }
+                        _selectedVoice = value;
+                        OnPropertyChanged(nameof(SelectedVoice));
+                        _repo.Upsert(_selectedAlias);
+                    }
                 }
             }
         }
@@ -122,7 +173,36 @@ public class VoiceAliasListViewModel : BaseViewModel
                 OnPropertyChanged(nameof(DetailEngineId));
             }
             RebuildParamRows();
+            if (_selectedAlias != null)
+            {
+                _selectedAlias.VoiceId = value.Id;
+                _selectedAlias.EngineId = _detailEngineId;
+                _repo.Upsert(_selectedAlias);
+            }
         }
+    }
+
+    private List<UserRecord> _allDbUsers = new();
+
+    private string _userFilter = string.Empty;
+    public string UserFilter
+    {
+        get => _userFilter;
+        set { SetField(ref _userFilter, value); ApplyUserFilter(); }
+    }
+
+    private List<UserRecord> _filteredUsers = new();
+    public List<UserRecord> FilteredUsers
+    {
+        get => _filteredUsers;
+        private set { _filteredUsers = value; OnPropertyChanged(); }
+    }
+
+    private UserRecord? _selectedUserToAdd;
+    public UserRecord? SelectedUserToAdd
+    {
+        get => _selectedUserToAdd;
+        set { SetField(ref _selectedUserToAdd, value); }
     }
 
     public RelayCommand AddAliasCommand { get; }
@@ -133,13 +213,17 @@ public class VoiceAliasListViewModel : BaseViewModel
     public RelayCommand RemoveVoiceCommand { get; }
     public RelayCommand RemoveAllVoicesCommand { get; }
     public RelayCommand SetDefaultVoiceCommand { get; }
+    public RelayCommand AddUserToAliasCommand { get; }
+    public RelayCommand RemoveUserFromAliasCommand { get; }
     public AsyncRelayCommand TestSpeakCommand { get; }
     public AsyncRelayCommand LoadVoicesCommand { get; }
 
-    public VoiceAliasListViewModel(VoiceAliasRepository repo, TtsEngineRegistry engineRegistry, AudioDeviceEnumerator deviceEnumerator, UserRepository userRepo, IAppLogger? logger = null)
+    public VoiceAliasListViewModel(VoiceAliasRepository repo, TtsEngineRegistry engineRegistry, VoicePool voicePool, AudioDeviceEnumerator deviceEnumerator, UserRepository userRepo, Func<IReadOnlyList<UserRecord>> getAllUsers, IAppLogger? logger = null)
     {
         _repo = repo;
         _engineRegistry = engineRegistry;
+        _getAllUsers = getAllUsers;
+        _voicePool = voicePool;
         _deviceEnumerator = deviceEnumerator;
         _userRepo = userRepo;
         _logger = logger;
@@ -152,6 +236,8 @@ public class VoiceAliasListViewModel : BaseViewModel
         RemoveVoiceCommand = new RelayCommand(RemoveVoice, () => SelectedAlias != null && _selectedVoice != null);
         RemoveAllVoicesCommand = new RelayCommand(RemoveAllVoices, () => SelectedAlias != null && AliasVoices.Count > 0);
         SetDefaultVoiceCommand = new RelayCommand(SetDefaultVoice, () => SelectedAlias != null && TestSpeakVoice?.Id is { Length: > 0 });
+        AddUserToAliasCommand = new RelayCommand(AddUserToAlias, () => _selectedAlias != null && SelectedUserToAdd != null);
+        RemoveUserFromAliasCommand = new RelayCommand(RemoveUserFromAlias);
         TestSpeakCommand = new AsyncRelayCommand(TestSpeakAsync);
         LoadVoicesCommand = new AsyncRelayCommand(LoadVoicesAsync);
 
@@ -169,8 +255,17 @@ public class VoiceAliasListViewModel : BaseViewModel
 
     public void Refresh()
     {
+        _allAliases = _repo.GetAllSorted().ToList();
+        ApplyAliasFilter();
+    }
+
+    private void ApplyAliasFilter()
+    {
+        var filtered = string.IsNullOrEmpty(_aliasFilter)
+            ? _allAliases
+            : _allAliases.Where(a => (a.Name ?? "").Contains(_aliasFilter, StringComparison.OrdinalIgnoreCase));
         Aliases.Clear();
-        foreach (var a in _repo.GetAllSorted())
+        foreach (var a in filtered)
             Aliases.Add(a);
     }
 
@@ -190,18 +285,50 @@ public class VoiceAliasListViewModel : BaseViewModel
         _detailOutputDeviceId = deviceId;
         OnPropertyChanged(nameof(DetailOutputDeviceId));
         TestVolume = _selectedAlias.Volume;
-        SelectedVoice = AvailableVoices.FirstOrDefault(v => v.Id == _selectedAlias.VoiceId);
+
+        VoiceInfo? FindVoice(string? id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            var byId   = AvailableVoices.FirstOrDefault(v => v.Id == id);
+            if (byId != null) return byId;
+            var byName = AvailableVoices.FirstOrDefault(v => string.Equals(v.Name, id, StringComparison.OrdinalIgnoreCase));
+            if (byName != null) return byName;
+            if (!id.Contains('(')) return null;
+            var stripped = id[..id.LastIndexOf('(')].Trim();
+            return AvailableVoices.FirstOrDefault(v => string.Equals(v.Name, stripped, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var needsSave = false;
+        SelectedVoice = FindVoice(_selectedAlias.VoiceId);
+        if (SelectedVoice != null && SelectedVoice.Id != _selectedAlias.VoiceId)
+        {
+            _selectedAlias.VoiceId = SelectedVoice.Id;
+            needsSave = true;
+        }
 
         AliasVoices.Clear();
-        foreach (var voiceId in _selectedAlias.VoiceIds)
+        var resolvedIds = _selectedAlias.VoiceIds.ToList();
+        for (var i = 0; i < resolvedIds.Count; i++)
         {
-            var voice = AvailableVoices.FirstOrDefault(v => v.Id == voiceId);
-            if (voice != null) AliasVoices.Add(voice);
+            var voice = FindVoice(resolvedIds[i]);
+            if (voice == null) continue;
+            AliasVoices.Add(voice);
+            if (voice.Id != resolvedIds[i])
+            {
+                resolvedIds[i] = voice.Id;
+                needsSave = true;
+            }
+        }
+        if (needsSave)
+        {
+            _selectedAlias.VoiceIds = resolvedIds;
+            _repo.Upsert(_selectedAlias);
         }
 
         InUseTree.Clear();
         InUseUsers.Clear();
-        var users = _userRepo.GetAll().Where(u => u.AliasName == _selectedAlias.Name).ToList();
+        _allDbUsers = _getAllUsers().OrderBy(u => u.Username).ToList();
+        var users = _allDbUsers.Where(u => u.AliasName == _selectedAlias.Name).ToList();
         foreach (var u in users)
             InUseUsers.Add(u.Username);
         if (users.Count > 0)
@@ -209,19 +336,35 @@ public class VoiceAliasListViewModel : BaseViewModel
             var node = new AliasUserNode { Label = "Viewers", Children = users.Select(u => new AliasUserNode { Label = u.Username }).ToList() };
             InUseTree.Add(node);
         }
+        UserFilter = string.Empty;
+        ApplyUserFilter();
 
         RebuildParamRows();
     }
 
     private void RebuildParamRows()
     {
+        foreach (var row in ParamRows)
+            row.PropertyChanged -= OnParamChanged;
+
         var engine = _engineRegistry.GetEngine(_detailEngineId);
         var schema = engine?.GetParameters() ?? Array.Empty<EngineParameterDef>();
         var saved = SynthParams.FromJson(_selectedAlias?.EngineParamsJson);
 
         ParamRows.Clear();
         foreach (var def in schema)
-            ParamRows.Add(new AliasParamRow { Def = def, Value = saved.Str(def.Key, def.Default) });
+        {
+            var row = new AliasParamRow { Def = def, Value = saved.Str(def.Key, def.Default) };
+            row.PropertyChanged += OnParamChanged;
+            ParamRows.Add(row);
+        }
+    }
+
+    private void OnParamChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(AliasParamRow.Value) || _selectedAlias == null) return;
+        _selectedAlias.EngineParamsJson = SerializeParamRows();
+        _repo.Upsert(_selectedAlias);
     }
 
     private static string GetEngineDisplayName(string engineId) => engineId switch
@@ -241,32 +384,32 @@ public class VoiceAliasListViewModel : BaseViewModel
 
     private async Task LoadVoicesAsync()
     {
-        var allVoices = new List<VoiceInfo>();
-        foreach (var engineId in _engineRegistry.GetEnabledEngineIds())
+        var all = await _voicePool.GetAllAsync();
+        var allVoices = all.Select(p =>
         {
-            var engine = _engineRegistry.GetEngine(engineId);
-            if (engine == null) continue;
-            try
-            {
-                var voices = await engine.GetVoicesAsync();
-                allVoices.AddRange(voices.Select(v => new VoiceInfo { Id = v.Id, Name = v.Name, Locale = v.Locale, Gender = v.Gender, EngineId = engineId }));
-                _logger?.Info($"TTS :: Added {GetEngineDisplayName(engineId)} with {voices.Count} voices");
-            }
-            catch { }
+            var locale = p.Voice.Locale ?? string.Empty;
+            var name = p.Voice.Name;
+            if (!string.IsNullOrEmpty(locale) && !name.Contains(locale, StringComparison.OrdinalIgnoreCase))
+                name = $"{name} ({locale})";
+            return new VoiceInfo { Id = p.Voice.Id, Name = name, Locale = locale, Gender = p.Voice.Gender, EngineId = p.EngineId, DisplayName = $"{_engineRegistry.GetDisplayName(p.EngineId)}: {name}" };
+        }).ToList();
+
+        foreach (var grp in all.GroupBy(p => p.EngineId))
+        {
+            var displayName = _engineRegistry.GetDisplayName(grp.Key);
+            if (!grp.Any()) _logger?.Warn($"TTS :: {displayName} loaded 0 voices — check auth/config");
+            else _logger?.Info($"TTS :: Added {displayName} with {grp.Count()} voices");
         }
         _logger?.Info("TTS :: Text To Speech Service initialized!");
+
         Application.Current?.Dispatcher.Invoke(() =>
         {
-            AvailableVoices.Clear();
-            SpeakVoices.Clear();
-            SpeakVoices.Add(RandomVoiceSentinel);
-            foreach (var v in allVoices)
-            {
-                AvailableVoices.Add(v);
-                SpeakVoices.Add(v);
-            }
-            TestSpeakVoice = RandomVoiceSentinel;
+            _allSpeakVoices = allVoices.Prepend(RandomVoiceSentinel).ToList();
+            AvailableVoices = new ObservableCollection<VoiceInfo>(allVoices);
+            SpeakVoices     = new ObservableCollection<VoiceInfo>(_allSpeakVoices);
+            TestSpeakVoice  = RandomVoiceSentinel;
             if (_selectedAlias != null) LoadAliasDetail();
+            VoicesLoaded?.Invoke(this, EventArgs.Empty);
         });
     }
 
@@ -327,6 +470,15 @@ public class VoiceAliasListViewModel : BaseViewModel
         if (!_selectedAlias.VoiceIds.Contains(voiceId))
         {
             _selectedAlias.VoiceIds.Add(voiceId);
+            if (string.IsNullOrEmpty(_selectedAlias.VoiceId))
+            {
+                _selectedAlias.VoiceId = voiceId;
+                if (TestSpeakVoice.EngineId is { Length: > 0 } eid)
+                {
+                    _selectedAlias.EngineId = eid;
+                    DetailEngineId = eid;
+                }
+            }
             _repo.Upsert(_selectedAlias);
             AliasVoices.Add(TestSpeakVoice);
         }
@@ -351,6 +503,39 @@ public class VoiceAliasListViewModel : BaseViewModel
         _repo.Upsert(_selectedAlias);
         AliasVoices.Clear();
         SelectedVoice = null;
+    }
+
+    private void ApplyUserFilter()
+    {
+        if (_selectedAlias == null) return;
+        var assigned = new HashSet<string>(InUseUsers, StringComparer.OrdinalIgnoreCase);
+        FilteredUsers = _allDbUsers
+            .Where(u => !string.IsNullOrEmpty(u.Username))
+            .Where(u => !assigned.Contains(u.Username))
+            .Where(u => string.IsNullOrEmpty(_userFilter) ||
+                        u.Username.Contains(_userFilter, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private void AddUserToAlias()
+    {
+        if (_selectedAlias == null || SelectedUserToAdd == null) return;
+        SelectedUserToAdd.AliasName = _selectedAlias.Name;
+        _userRepo.Upsert(SelectedUserToAdd);
+        InUseUsers.Add(SelectedUserToAdd.Username);
+        SelectedUserToAdd = null;
+        ApplyUserFilter();
+    }
+
+    private void RemoveUserFromAlias(object? param)
+    {
+        if (_selectedAlias == null || param is not string username) return;
+        var user = _allDbUsers.FirstOrDefault(u => u.Username == username);
+        if (user == null) return;
+        user.AliasName = string.Empty;
+        _userRepo.Upsert(user);
+        InUseUsers.Remove(username);
+        ApplyUserFilter();
     }
 
     private void SetDefaultVoice()

@@ -1,0 +1,39 @@
+<Window x:Class="OpenSpeaker.Views.ImportProgressWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Import from Speaker.bot" Width="540" Height="420"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
+        Background="{StaticResource Bg1}" Foreground="{StaticResource TextPrimary}">
+    <DockPanel Margin="16">
+
+        <Button DockPanel.Dock="Bottom" Content="Close"
+                IsEnabled="{Binding IsDone}"
+                HorizontalAlignment="Right" Padding="20,7" Margin="0,12,0,0"
+                Click="CloseButton_Click"/>
+
+        <ProgressBar DockPanel.Dock="Bottom" Height="6" Margin="0,10,0,0"
+                     Minimum="0" Maximum="9" Value="{Binding ProgressValue}"/>
+
+        <TextBlock DockPanel.Dock="Top"
+                   Text="{Binding StatusText}"
+                   FontSize="13" FontWeight="SemiBold"
+                   Margin="0,0,0,10" TextWrapping="Wrap"/>
+
+        <Border BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1">
+            <ScrollViewer x:Name="LogScroll" Background="{StaticResource Bg2}"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding LogLines}" Padding="10,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}"
+                                       FontFamily="Consolas" FontSize="11.5"
+                                       Foreground="{StaticResource TextPrimary}"
+                                       TextWrapping="Wrap" Padding="0,2"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+    </DockPanel>
+</Window>

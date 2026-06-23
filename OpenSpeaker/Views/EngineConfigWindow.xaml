@@ -6,6 +6,9 @@
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource Bg1}"
         Foreground="{StaticResource TextPrimary}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
     <StackPanel Margin="24">
         <TextBlock Text="SELECT ENGINE" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
 
@@ -22,7 +25,8 @@
         <ItemsControl ItemsSource="{Binding Fields}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="0,0,0,10">
+                    <Grid Margin="0,0,0,10"
+                          Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="150"/>
                             <ColumnDefinition Width="*"/>
@@ -35,7 +39,32 @@
 
                         <TextBox Grid.Column="1"
                                  Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
-                                 FontFamily="Consolas"/>
+                                 FontFamily="Consolas">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDropdown}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding Options}"
+                                  SelectedItem="{Binding Value}">
+                            <ComboBox.Style>
+                                <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDropdown}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ComboBox.Style>
+                        </ComboBox>
 
                         <Button Grid.Column="2" Content="Browse" Padding="8,4" Margin="4,0,0,0"
                                 Command="{Binding DataContext.BrowseFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"

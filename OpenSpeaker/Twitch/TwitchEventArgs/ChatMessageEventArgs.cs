@@ -11,4 +11,6 @@ public class ChatMessageEventArgs : EventArgs
     public bool IsSubscriber { get; init; }
     public string Color { get; init; } = string.Empty;
     public bool IsHighlight { get; init; }
+    public IReadOnlyList<string> MessageEmotes { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> MessageCheermotes { get; init; } = Array.Empty<string>();
 }

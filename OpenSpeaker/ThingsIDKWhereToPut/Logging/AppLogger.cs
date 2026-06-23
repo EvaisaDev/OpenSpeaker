@@ -1,7 +1,7 @@
 using System.IO;
 using Serilog;
 using Serilog.Events;
-namespace OpenSpeaker.Infrastructure.Logging;
+namespace OpenSpeaker.ThingsIDKWhereToPut.Logging;
 
 public class AppLogger : IAppLogger
 {

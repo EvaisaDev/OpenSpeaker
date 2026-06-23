@@ -2,48 +2,46 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:OpenSpeaker.ViewModels"
+        xmlns:controls="clr-namespace:OpenSpeaker.Controls"
         Title="OpenSpeaker" Height="750" Width="1280"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource Bg1}"
-        Foreground="{StaticResource TextPrimary}"
+        Background="{DynamicResource Bg1}"
+        Foreground="{DynamicResource TextPrimary}"
         Closing="Window_Closing">
 
     <!-- ══════════════════ MAIN LAYOUT ══════════════════ -->
     <DockPanel>
 
         <!-- ── Top header bar ── -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource Bg0}"
-                BorderBrush="{StaticResource BorderBrush0}" BorderThickness="0,0,0,1" Padding="14,8">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource Bg0}"
+                BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="0,0,0,1" Padding="14,8">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{DynamicResource App.Title}" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}" Margin="0,0,20,0"
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,20,0"
                                VerticalAlignment="Center"/>
-                    <Button Content="{DynamicResource Btn.SilenceTts}" Style="{StaticResource GhostButton}"
-                            Command="{Binding SilenceTtsCommand}" Margin="0,0,6,0"
-                            ToolTip="{DynamicResource Tip.SilenceTts}"/>
-                    <Button Content="{DynamicResource Btn.GenericSpeaker}" Style="{StaticResource GhostButton}"
+                    <Button Content="{DynamicResource Btn.GenericSpeaker}" Style="{DynamicResource GhostButton}"
                             Command="{Binding GenericSpeakCommand}" Margin="0,0,6,0"
                             ToolTip="{DynamicResource Tip.GenericSpeaker}"/>
-                    <Button Content="{DynamicResource Btn.SaveSettings}" Style="{StaticResource AccentButton}"
-                            Command="{Binding SaveAllCommand}"
-                            ToolTip="{DynamicResource Tip.SaveSettings}"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding UpdateNotice}" Foreground="{StaticResource YellowBrush}"
+                    <TextBlock Text="{Binding UpdateNotice}" Foreground="{DynamicResource YellowBrush}"
                                VerticalAlignment="Center" Margin="0,0,16,0"
                                Visibility="{Binding UpdateNotice, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    <CheckBox Content="{DynamicResource Chk.Enabled}" IsChecked="{Binding IsEnabled}"
-                              VerticalAlignment="Center" ToolTip="{DynamicResource Tip.HeaderEnabled}"/>
+                    <ComboBox x:Name="ProfileComboBox" Width="160"
+                              ItemsSource="{Binding Profile.Profiles}"
+                              SelectedItem="{Binding Profile.SelectedProfile, Mode=OneWay}"
+                              SelectionChanged="ProfileComboBox_SelectionChanged"
+                              ToolTip="Switch profile"/>
                 </StackPanel>
             </DockPanel>
         </Border>
 
         <!-- ── Bottom status bar ── -->
-        <Border DockPanel.Dock="Bottom" Background="{StaticResource Bg0}"
-                BorderBrush="{StaticResource BorderBrush0}" BorderThickness="0,1,0,0" Padding="14,6">
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg0}"
+                BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="0,1,0,0" Padding="14,6">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock VerticalAlignment="Center" Margin="0,0,12,0">
@@ -51,20 +49,30 @@
                         <Run Text="{Binding QueueStatus.Count, Mode=OneWay}"/>
                         <Run Text="{DynamicResource Lbl.Items}"/>
                     </TextBlock>
-                    <Border Background="{StaticResource YellowBrush}" CornerRadius="3" Padding="6,2"
+                    <Border Background="{DynamicResource YellowBrush}" CornerRadius="3" Padding="6,2"
                             Visibility="{Binding QueueStatus.IsPaused, Converter={StaticResource BoolToVisibilityConverter}}">
                         <TextBlock Text="{DynamicResource Lbl.Paused}" Foreground="Black" FontSize="11" FontWeight="Bold"/>
                     </Border>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="{DynamicResource Btn.Pause}" Command="{Binding QueueStatus.PauseCommand}"
-                            Margin="0,0,4,0" ToolTip="{DynamicResource Tip.PauseQueue}"/>
-                    <Button Content="{DynamicResource Btn.Resume}" Command="{Binding QueueStatus.ResumeCommand}"
-                            Margin="0,0,4,0" ToolTip="{DynamicResource Tip.ResumeQueue}"/>
+                    <Button Command="{Binding QueueStatus.PauseCommand}" Margin="0,0,4,0"
+                            Content="{DynamicResource Btn.Pause}" ToolTip="{DynamicResource Tip.PauseQueue}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding QueueStatus.IsPaused}" Value="True">
+                                        <Setter Property="Command" Value="{Binding QueueStatus.ResumeCommand}"/>
+                                        <Setter Property="Content" Value="{StaticResource Btn.Resume}"/>
+                                        <Setter Property="ToolTip" Value="{StaticResource Tip.ResumeQueue}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     <Button Content="{DynamicResource Btn.Skip}" Command="{Binding QueueStatus.StopCommand}"
                             Margin="0,0,4,0" ToolTip="{DynamicResource Tip.SkipCurrent}"/>
                     <Button Content="{DynamicResource Btn.ClearQueue}" Command="{Binding QueueStatus.ClearCommand}"
-                            Style="{StaticResource DangerButton}" ToolTip="{DynamicResource Tip.ClearQueue}"/>
+                            Style="{DynamicResource DangerButton}" ToolTip="{DynamicResource Tip.ClearQueue}"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -75,8 +83,8 @@
             <!-- ═══════════════ EVENT LOG ═══════════════ -->
             <TabItem Header="{DynamicResource Tab.EventLog}">
                 <DockPanel Margin="0">
-                    <Border DockPanel.Dock="Top" Padding="12,8" Background="{StaticResource Bg2}"
-                            BorderBrush="{StaticResource BorderBrush0}" BorderThickness="0,0,0,1">
+                    <Border DockPanel.Dock="Top" Padding="12,8" Background="{DynamicResource Bg2}"
+                            BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="0,0,0,1">
                         <DockPanel>
                             <TextBlock Text="{DynamicResource Tab.EventLog}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <Button Content="{DynamicResource Btn.Clear}" HorizontalAlignment="Right"
@@ -86,12 +94,12 @@
                     <ListBox ItemsSource="{Binding EventLog.Entries}"
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              ScrollViewer.CanContentScroll="True"
-                             BorderThickness="0" Background="{StaticResource Bg1}"
+                             BorderThickness="0" Background="{DynamicResource Bg1}"
                              FontFamily="Consolas" FontSize="12">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Timestamp}" Foreground="{StaticResource TextMuted}"
+                                    <TextBlock Text="{Binding Timestamp}" Foreground="{DynamicResource TextMuted}"
                                                Margin="0,0,10,0" FontFamily="Consolas"/>
                                     <TextBlock Text="{Binding Category}" FontWeight="SemiBold" Margin="0,0,6,0"
                                                FontFamily="Consolas">
@@ -99,9 +107,9 @@
                                             <Binding Path="Color"/>
                                         </TextBlock.Foreground>
                                     </TextBlock>
-                                    <TextBlock Text="::" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"
+                                    <TextBlock Text="::" Foreground="{DynamicResource TextMuted}" Margin="0,0,6,0"
                                                FontFamily="Consolas"/>
-                                    <TextBlock Text="{Binding Message}" Foreground="{StaticResource TextSecondary}"
+                                    <TextBlock Text="{Binding Message}" Foreground="{DynamicResource TextSecondary}"
                                                FontFamily="Consolas"/>
                                 </StackPanel>
                             </DataTemplate>
@@ -153,13 +161,17 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <DockPanel Grid.Column="0" Background="{StaticResource Bg2}">
+                    <DockPanel Grid.Column="0" Background="{DynamicResource Bg2}">
                         <Border DockPanel.Dock="Top" Padding="10,8"
-                                BorderBrush="{StaticResource BorderBrush0}" BorderThickness="0,0,0,1">
+                                BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="0,0,0,1">
                             <CheckBox Content="{DynamicResource Chk.HideNotPresent}"
                                       IsChecked="{Binding Users.HideNotPresent}"
                                       ToolTip="{DynamicResource Tip.HideNotPresent}"/>
                         </Border>
+                        <TextBox DockPanel.Dock="Top"
+                                 Margin="8,8,8,4"
+                                 Tag="Search users..."
+                                 Text="{Binding Users.UserFilter, UpdateSourceTrigger=PropertyChanged}"/>
                         <ListBox ItemsSource="{Binding Users.Users}"
                                  SelectedItem="{Binding Users.SelectedUser}"
                                  BorderThickness="0" Background="Transparent" Padding="4">
@@ -171,7 +183,7 @@
                         </ListBox>
                     </DockPanel>
 
-                    <Border Grid.Column="1" Background="{StaticResource BorderBrush0}"/>
+                    <Border Grid.Column="1" Background="{DynamicResource BorderBrush0}"/>
 
                     <ScrollViewer Grid.Column="2" Padding="16">
                         <StackPanel Visibility="{Binding Users.HasSelectedUser, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -195,28 +207,32 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Id}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Id}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                         <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Users.SelectedUser.TwitchId}" IsReadOnly="True"
-                                                 Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"/>
-                                        <TextBlock Grid.Row="0" Grid.Column="3" Text="{DynamicResource Lbl.VoiceAlias}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
-                                        <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding Users.AliasNames}"
+                                                 Background="{DynamicResource Bg3}" Foreground="{DynamicResource TextMuted}"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="3" Text="{DynamicResource Lbl.VoiceAlias}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Row="0" Grid.Column="4"
+                                                  ItemsSource="{Binding Users.FilteredAliasNames}"
                                                   SelectedItem="{Binding Users.SelectedUser.AliasName}"
+                                                  Tag="{Binding Users.AliasFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  ScrollViewer.CanContentScroll="True"
+                                                  MaxDropDownHeight="300"
                                                   ToolTip="{DynamicResource Tip.UserVoiceAlias}"/>
 
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Username}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Username}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                         <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Users.SelectedUser.Username}" IsReadOnly="True"
-                                                 Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"/>
-                                        <TextBlock Grid.Row="2" Grid.Column="3" Text="{DynamicResource Lbl.Nickname}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                 Background="{DynamicResource Bg3}" Foreground="{DynamicResource TextMuted}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="3" Text="{DynamicResource Lbl.Nickname}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                         <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding Users.SelectedUser.Nickname}"
                                                  ToolTip="{DynamicResource Tip.UserNickname}"/>
 
-                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.Role}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.Role}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                         <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Users.SelectedUser.Role}" IsReadOnly="True"
-                                                 Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"/>
-                                        <TextBlock Grid.Row="4" Grid.Column="3" Text="{DynamicResource Lbl.LastActive}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                 Background="{DynamicResource Bg3}" Foreground="{DynamicResource TextMuted}"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="3" Text="{DynamicResource Lbl.LastActive}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                         <TextBox Grid.Row="4" Grid.Column="4"
                                                  Text="{Binding Users.SelectedUser.LastActive, StringFormat='dd/MM/yyyy HH:mm:ss'}"
-                                                 IsReadOnly="True" Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"/>
+                                                 IsReadOnly="True" Background="{DynamicResource Bg3}" Foreground="{DynamicResource TextMuted}"/>
 
                                         <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal">
                                             <CheckBox Content="{DynamicResource Chk.Ignored}" IsChecked="{Binding Users.SelectedUser.IsIgnored}"
@@ -231,7 +247,7 @@
                                     </Grid>
 
                                     <Button Content="{DynamicResource Btn.SaveUser}" Command="{Binding Users.SaveUserCommand}"
-                                            Style="{StaticResource AccentButton}" Margin="0,12,0,0" HorizontalAlignment="Left"
+                                            Style="{DynamicResource AccentButton}" Margin="0,12,0,0" HorizontalAlignment="Left"
                                             ToolTip="{DynamicResource Tip.SaveUser}"/>
                                 </StackPanel>
                             </GroupBox>
@@ -263,22 +279,22 @@
                     <DockPanel Grid.Column="0">
                         <Border DockPanel.Dock="Top" Padding="0,0,0,8">
                             <StackPanel>
-                                <TextBlock Text="{DynamicResource Section.Global}" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock Text="{DynamicResource Section.Global}" Style="{DynamicResource SectionLabel}"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                    <TextBlock Text="{DynamicResource Lbl.VoiceAlias}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0" Width="70"/>
+                                    <TextBlock Text="{DynamicResource Lbl.VoiceAlias}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0" Width="70"/>
                                     <ComboBox ItemsSource="{Binding Events.AliasNames}" SelectedItem="{Binding Events.GlobalVoiceAlias}"
                                               Width="100" ToolTip="{DynamicResource Tip.GlobalVoiceAlias}"/>
                                 </StackPanel>
                                 <CheckBox Content="{DynamicResource Chk.EventsEnabled}" IsChecked="{Binding Events.GlobalEventsEnabled}"
                                           Margin="0,0,0,8" ToolTip="{DynamicResource Tip.EventsGlobalEnabled}"/>
                                 <Separator/>
-                                <TextBlock Text="{DynamicResource Section.PerEvent}" Style="{StaticResource SectionLabel}" Margin="0,8,0,4"/>
+                                <TextBlock Text="{DynamicResource Section.PerEvent}" Style="{DynamicResource SectionLabel}" Margin="0,8,0,4"/>
                             </StackPanel>
                         </Border>
                         <ListBox ItemsSource="{Binding Events.EventTypes}"
                                  SelectedItem="{Binding Events.SelectedEventType}"
                                  DisplayMemberPath="DisplayName" BorderThickness="0"
-                                 Background="{StaticResource Bg2}"/>
+                                 Background="{DynamicResource Bg2}"/>
                     </DockPanel>
 
                     <DockPanel Grid.Column="1" Margin="12,0">
@@ -286,14 +302,14 @@
                             <StackPanel Orientation="Horizontal">
                                 <CheckBox Content="{DynamicResource Chk.Enabled}" IsChecked="{Binding Events.EventEnabled}"
                                           Margin="0,0,16,0" ToolTip="{DynamicResource Tip.EventEnabled}"/>
-                                <TextBlock Text="{DynamicResource Lbl.VoiceAliasSuffix}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="{DynamicResource Lbl.VoiceAliasSuffix}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <ComboBox ItemsSource="{Binding Events.AliasNames}" SelectedItem="{Binding Events.EventVoiceAlias}"
                                           Width="140" ToolTip="{DynamicResource Tip.EventVoiceAlias}"/>
                             </StackPanel>
                         </StackPanel>
 
-                        <Border DockPanel.Dock="Bottom" Background="{StaticResource Bg2}"
-                                BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                        <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg2}"
+                                BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
                                 CornerRadius="5" Padding="10" Margin="0,8,0,0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -308,14 +324,14 @@
                                     <RowDefinition Height="8"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Weight}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Weight}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                 <TextBox Grid.Row="0" Grid.Column="1"
                                          Text="{Binding Events.EditWeight, UpdateSourceTrigger=PropertyChanged}"
                                          ToolTip="{DynamicResource Tip.MessageWeight}"/>
                                 <CheckBox Grid.Row="0" Grid.Column="2" Content="{DynamicResource Chk.Enabled}"
                                           IsChecked="{Binding Events.EditEnabled}" HorizontalAlignment="Right"
                                           ToolTip="{DynamicResource Tip.MessageEnabled}"/>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Message}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Message}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                 <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
                                          Text="{Binding Events.EditTemplate, UpdateSourceTrigger=PropertyChanged}"
                                          ToolTip="{DynamicResource Tip.MessageTemplate}"/>
@@ -323,10 +339,10 @@
                                     <Button Content="{DynamicResource Btn.Add}" Command="{Binding Events.AddMessageCommand}"
                                             Margin="0,0,6,0" ToolTip="{DynamicResource Tip.AddMessage}"/>
                                     <Button Content="{DynamicResource Btn.Delete}" Command="{Binding Events.DeleteMessageCommand}"
-                                            Style="{StaticResource DangerButton}" Margin="0,0,6,0"
+                                            Style="{DynamicResource DangerButton}" Margin="0,0,6,0"
                                             ToolTip="{DynamicResource Tip.DeleteMessage}"/>
                                     <Button Content="{DynamicResource Btn.Save}" Command="{Binding Events.SaveMessageCommand}"
-                                            Style="{StaticResource AccentButton}"
+                                            Style="{DynamicResource AccentButton}"
                                             ToolTip="{DynamicResource Tip.SaveMessage}"/>
                                 </StackPanel>
                             </Grid>
@@ -342,12 +358,12 @@
                         </DataGrid>
                     </DockPanel>
 
-                    <Border Grid.Column="2" Background="{StaticResource Bg2}"
-                            BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                    <Border Grid.Column="2" Background="{DynamicResource Bg2}"
+                            BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
                             CornerRadius="5" Padding="12">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBlock Text="{DynamicResource Section.EventStates}" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                <TextBlock Text="{DynamicResource Section.EventStates}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,10"/>
                                 <CheckBox Content="{DynamicResource Chk.Follows}" IsChecked="{Binding Events.FollowsEnabled}"
                                           Margin="0,0,0,8" ToolTip="{DynamicResource Tip.FollowsEnabled}"/>
                                 <CheckBox Content="{DynamicResource Chk.Subscriptions}" IsChecked="{Binding Events.SubscriptionsEnabled}"
@@ -361,7 +377,7 @@
                                         <ColumnDefinition Width="80"/>
                                         <ColumnDefinition Width="60"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{DynamicResource Lbl.MinViewers}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="0" Text="{DynamicResource Lbl.MinViewers}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                     <TextBox Grid.Column="1" Text="{Binding Events.MinRaidViewers}"
                                              ToolTip="{DynamicResource Tip.MinRaidViewers}"/>
                                 </Grid>
@@ -372,7 +388,7 @@
                                         <ColumnDefinition Width="80"/>
                                         <ColumnDefinition Width="60"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{DynamicResource Lbl.MinBits}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="0" Text="{DynamicResource Lbl.MinBits}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                     <TextBox Grid.Column="1" Text="{Binding Events.MinBits}"
                                              ToolTip="{DynamicResource Tip.MinBits}"/>
                                 </Grid>
@@ -401,9 +417,10 @@
                               SelectedItem="{Binding CustomCommands.SelectedCommand}"
                               PreviewMouseLeftButtonDown="CommandsDataGrid_PreviewMouseLeftButtonDown">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="{StaticResource Col.Command}" Binding="{Binding Trigger}" Width="160"/>
+                            <DataGridTextColumn Header="{StaticResource Col.Command}" Binding="{Binding Trigger}" Width="Auto"/>
                             <DataGridTextColumn Header="{StaticResource Col.VoiceAlias}" Binding="{Binding VoiceAliasName}" Width="*"/>
-                            <DataGridTemplateColumn Header="{StaticResource Col.Enabled}" Width="70">
+                            <DataGridTextColumn Header="{StaticResource Col.Permissions}" Binding="{Binding PermissionsSummary}" Width="Auto" IsReadOnly="True"/>
+                            <DataGridTemplateColumn Header="{StaticResource Col.Enabled}" Width="Auto">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"
@@ -416,8 +433,8 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <Border Grid.Row="1" Background="{StaticResource Bg2}"
-                            BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                    <Border Grid.Row="1" Background="{DynamicResource Bg2}"
+                            BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
                             CornerRadius="5" Padding="12,10" Margin="0,10,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -434,12 +451,12 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Column="0" Text="{DynamicResource Lbl.Command}" Style="{StaticResource MutedText}"
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Lbl.Command}" Style="{DynamicResource MutedText}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox Grid.Column="1" Text="{Binding CustomCommands.NewTrigger, UpdateSourceTrigger=PropertyChanged}"
                                      VerticalAlignment="Center" ToolTip="{DynamicResource Tip.CommandTrigger}"/>
 
-                            <TextBlock Grid.Column="3" Text="{DynamicResource Lbl.VoiceAlias}" Style="{StaticResource MutedText}"
+                            <TextBlock Grid.Column="3" Text="{DynamicResource Lbl.VoiceAlias}" Style="{DynamicResource MutedText}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox Grid.Column="4" ItemsSource="{Binding CustomCommands.AliasNames}"
                                       SelectedItem="{Binding CustomCommands.NewAlias}"
@@ -451,7 +468,7 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
 
-                            <Border Grid.Column="6" Background="{StaticResource BorderBrush0}" Width="1" Margin="0,2"/>
+                            <Border Grid.Column="6" Background="{DynamicResource BorderBrush0}" Width="1" Margin="0,2"/>
 
                             <StackPanel Grid.Column="8" Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Center">
                                 <CheckBox Content="{DynamicResource Chk.Mods}" IsChecked="{Binding CustomCommands.NewAllowModerators}"
@@ -469,7 +486,7 @@
                             <StackPanel Grid.Column="10" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
                                 <Button Content="{Binding CustomCommands.AddSaveLabel}"
                                         Command="{Binding CustomCommands.AddSaveCommand}"
-                                        Style="{StaticResource AccentButton}" Margin="0,0,6,0"
+                                        Style="{DynamicResource AccentButton}" Margin="0,0,6,0"
                                         ToolTip="{DynamicResource Tip.AddSaveCommand}"/>
                                 <Button Content="{DynamicResource Btn.New}" Command="{Binding CustomCommands.NewCommand}"
                                         Margin="0,0,6,0" ToolTip="{DynamicResource Tip.NewCommand}">
@@ -485,7 +502,7 @@
                                     </Button.Style>
                                 </Button>
                                 <Button Content="{DynamicResource Btn.Delete}" Command="{Binding CustomCommands.DeleteCommand}"
-                                        Style="{StaticResource DangerButton}" ToolTip="{DynamicResource Tip.DeleteCommand}"/>
+                                        Style="{DynamicResource DangerButton}" ToolTip="{DynamicResource Tip.DeleteCommand}"/>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -504,7 +521,7 @@
                     <DockPanel Grid.Row="0" Margin="0,0,0,8">
                         <Button DockPanel.Dock="Right" Content="{DynamicResource Btn.RefreshFromTwitch}"
                                 Command="{Binding ChannelRewards.RefreshFromTwitchCommand}"
-                                Style="{StaticResource GhostButton}"
+                                Style="{DynamicResource GhostButton}"
                                 ToolTip="{DynamicResource Tip.RefreshFromTwitch}"/>
                     </DockPanel>
 
@@ -514,13 +531,13 @@
                             <DataGridTextColumn Header="{StaticResource Col.RewardName}" Binding="{Binding Title}" Width="*"/>
                             <DataGridTextColumn Header="{StaticResource Col.Cost}" Binding="{Binding Cost}" Width="80"/>
                             <DataGridTextColumn Header="{StaticResource Col.Ignored}" Binding="{Binding IsIgnored}" Width="70"/>
-                            <DataGridTextColumn Header="{StaticResource Col.SayInput}" Binding="{Binding SayInput}" Width="70"/>
+                            <DataGridTextColumn Header="{StaticResource Col.SayInput}" Binding="{Binding SayInput}" Width="Auto"/>
                             <DataGridTextColumn Header="{StaticResource Col.VoiceAlias}" Binding="{Binding VoiceAliasName}" Width="120"/>
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <Border Grid.Row="2" Background="{StaticResource Bg2}"
-                            BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                    <Border Grid.Row="2" Background="{DynamicResource Bg2}"
+                            BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
                             CornerRadius="5" Padding="12" Margin="0,10,0,0"
                             Visibility="{Binding ChannelRewards.HasSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid>
@@ -531,7 +548,7 @@
                             </Grid.ColumnDefinitions>
 
                             <DockPanel Grid.Column="0">
-                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.RewardMessages}" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.RewardMessages}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,6"/>
                                 <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding ChannelRewards.Messages}"
                                           SelectedItem="{Binding ChannelRewards.SelectedMessage}" Height="100">
                                     <DataGrid.Columns>
@@ -553,43 +570,43 @@
                                         <RowDefinition Height="6"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Weight}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Weight}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ChannelRewards.EditWeight}"
                                              ToolTip="{DynamicResource Tip.MessageWeight}"/>
                                     <CheckBox Grid.Row="0" Grid.Column="2" Content="{DynamicResource Chk.Enabled}"
                                               IsChecked="{Binding ChannelRewards.EditEnabled}" HorizontalAlignment="Right"
                                               ToolTip="{DynamicResource Tip.MessageEnabled}"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Message}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Message}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding ChannelRewards.EditTemplate}"
                                              ToolTip="{DynamicResource Tip.MessageTemplate}"/>
                                     <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
                                         <Button Content="{DynamicResource Btn.Add}" Command="{Binding ChannelRewards.AddMessageCommand}"
                                                 Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddMessage}"/>
                                         <Button Content="{DynamicResource Btn.Delete}" Command="{Binding ChannelRewards.DeleteMessageCommand}"
-                                                Style="{StaticResource DangerButton}" Margin="0,0,4,0"
+                                                Style="{DynamicResource DangerButton}" Margin="0,0,4,0"
                                                 ToolTip="{DynamicResource Tip.DeleteMessage}"/>
                                         <Button Content="{DynamicResource Btn.Save}" Command="{Binding ChannelRewards.SaveMessageCommand}"
-                                                Style="{StaticResource AccentButton}"
+                                                Style="{DynamicResource AccentButton}"
                                                 ToolTip="{DynamicResource Tip.SaveMessage}"/>
                                     </StackPanel>
                                 </Grid>
                             </DockPanel>
 
                             <StackPanel Grid.Column="2">
-                                <TextBlock Text="{DynamicResource Section.Settings}" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                <TextBlock Text="{DynamicResource Section.Settings}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,10"/>
                                 <CheckBox Content="{DynamicResource Chk.Ignored}" IsChecked="{Binding ChannelRewards.SelectedReward.IsIgnored}"
                                           Margin="0,0,0,8" ToolTip="{DynamicResource Tip.RewardIgnored}"/>
                                 <CheckBox Content="{DynamicResource Chk.SayInput}" IsChecked="{Binding ChannelRewards.SelectedReward.SayInput}"
                                           Margin="0,0,0,8" ToolTip="{DynamicResource Tip.RewardSayInput}"/>
-                                <TextBlock Text="{DynamicResource Lbl.VoiceAlias}" Style="{StaticResource MutedText}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{DynamicResource Lbl.VoiceAlias}" Style="{DynamicResource MutedText}" Margin="0,0,0,4"/>
                                 <ComboBox ItemsSource="{Binding ChannelRewards.AliasNames}"
                                           SelectedItem="{Binding ChannelRewards.SelectedReward.VoiceAliasName}"
                                           ToolTip="{DynamicResource Tip.RewardVoiceAlias}"/>
                                 <Button Content="{DynamicResource Btn.SaveReward}" Command="{Binding ChannelRewards.SaveRewardCommand}"
-                                        Style="{StaticResource AccentButton}" Margin="0,12,0,4"
+                                        Style="{DynamicResource AccentButton}" Margin="0,12,0,4"
                                         ToolTip="{DynamicResource Tip.SaveReward}"/>
                                 <Button Content="{DynamicResource Btn.RemoveReward}" Command="{Binding ChannelRewards.RemoveRewardCommand}"
-                                        Style="{StaticResource DangerButton}"
+                                        Style="{DynamicResource DangerButton}"
                                         ToolTip="{DynamicResource Tip.RemoveReward}"/>
                             </StackPanel>
                         </Grid>
@@ -627,14 +644,14 @@
                                                     <RowDefinition Height="8"/>
                                                     <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Id}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Id}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding GeneralSettings.InstanceId, Mode=OneWay}" IsReadOnly="True"
-                                                         Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"
+                                                         Background="{DynamicResource Bg3}" Foreground="{DynamicResource TextMuted}"
                                                          ToolTip="{DynamicResource Tip.InstanceId}"/>
                                                 <Button Grid.Row="0" Grid.Column="2" Content="{DynamicResource Btn.Reset}"
                                                         Command="{Binding GeneralSettings.ResetInstanceIdCommand}" Margin="6,0,0,0"
                                                         ToolTip="{DynamicResource Tip.ResetInstanceId}"/>
-                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Name}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Name}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                                 <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding GeneralSettings.InstanceName}"
                                                          ToolTip="{DynamicResource Tip.InstanceName}"/>
                                             </Grid>
@@ -652,16 +669,21 @@
                                                 <CheckBox Content="{DynamicResource Chk.ConfirmationOnClose}" IsChecked="{Binding GeneralSettings.ConfirmationOnClose}"
                                                           Margin="0,0,0,8" ToolTip="{DynamicResource Tip.ConfirmationOnClose}"/>
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                    <TextBlock Text="{DynamicResource Lbl.LogLevel}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.LogLevel}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                                     <ComboBox ItemsSource="{Binding GeneralSettings.LogLevels}"
                                                               SelectedItem="{Binding GeneralSettings.LogLevel}" Width="120"
                                                               ToolTip="{DynamicResource Tip.LogLevel}"/>
                                                 </StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                    <TextBlock Text="{DynamicResource Lbl.Language}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.Language}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                                     <ComboBox ItemsSource="{Binding GeneralSettings.AvailableLanguages}"
                                                               SelectedItem="{Binding GeneralSettings.Language}" Width="120"
                                                               ToolTip="{DynamicResource Tip.Language}"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="Theme" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <ComboBox ItemsSource="{Binding GeneralSettings.AvailableThemes}"
+                                                              SelectedItem="{Binding GeneralSettings.Theme}" Width="120"/>
                                                 </StackPanel>
                                                 <CheckBox Content="{DynamicResource Chk.ShowTooltips}" IsChecked="{Binding GeneralSettings.ShowTooltips}"
                                                           ToolTip="{DynamicResource Tip.ShowTooltips}"/>
@@ -689,22 +711,20 @@
                                                             Margin="8,0,0,0" ToolTip="{DynamicResource Tip.RefreshDevices}"/>
                                                 </StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                    <TextBlock Text="{DynamicResource Lbl.Volume}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                                    <Slider Minimum="0" Maximum="100"
-                                                            Value="{Binding GeneralSettings.ApplicationVolume}" Width="160"
+                                                    <TextBlock Text="{DynamicResource Lbl.Volume}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <controls:NumericSlider Minimum="0" Maximum="100"
+                                                            Value="{Binding GeneralSettings.ApplicationVolume}"
+                                                            SliderWidth="160" Suffix="%"
                                                             ToolTip="{DynamicResource Tip.Volume}"/>
-                                                    <TextBlock Margin="10,0,0,0" VerticalAlignment="Center">
-                                                        <Run Text="{Binding GeneralSettings.ApplicationVolume}"/>
-                                                        <Run Text="{DynamicResource Lbl.Percent}"/>
-                                                    </TextBlock>
                                                 </StackPanel>
                                                 <CheckBox Content="{DynamicResource Chk.DisableAudioOutput}"
                                                           IsChecked="{Binding GeneralSettings.DisableAudioOutput}"
                                                           Margin="0,0,0,6"
                                                           ToolTip="{DynamicResource Tip.DisableAudioOutput}"/>
-                                                <CheckBox Content="{DynamicResource Chk.SimultaneousMode}"
-                                                          IsChecked="{Binding GeneralSettings.SimultaneousMode}"
-                                                          ToolTip="{DynamicResource Tip.SimultaneousMode}"/>
+                                                <TextBlock Text="{DynamicResource Lbl.QueueMode}" Margin="0,0,0,4"/>
+                                                <ComboBox ItemsSource="{Binding GeneralSettings.QueueModes}"
+                                                          SelectedItem="{Binding GeneralSettings.QueueMode}"
+                                                          ToolTip="{DynamicResource Tip.QueueMode}"/>
                                             </StackPanel>
                                         </GroupBox>
 
@@ -736,14 +756,14 @@
                                                     <RowDefinition Height="8"/>
                                                     <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.DefaultVoiceAlias}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.DefaultVoiceAlias}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding GeneralSettings.DefaultVoiceAlias}"
                                                          ToolTip="{DynamicResource Tip.DefaultVoiceAlias}"/>
                                                 <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
                                                           Content="{DynamicResource Chk.UseHighlightVoice}"
                                                           IsChecked="{Binding GeneralSettings.UseHighlightVoice}"
                                                           ToolTip="{DynamicResource Tip.UseHighlightVoice}"/>
-                                                <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.HighlightVoiceAlias}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.HighlightVoiceAlias}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                                 <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding GeneralSettings.HighlightVoiceAlias}"
                                                          ToolTip="{DynamicResource Tip.HighlightVoiceAlias}"/>
                                             </Grid>
@@ -753,7 +773,7 @@
 
                                 <GroupBox Header="{StaticResource Section.ImportSpeakerBot}" Margin="0,12,0,12">
                                     <StackPanel>
-                                        <TextBlock Text="{DynamicResource Lbl.ImportSpeakerBotDesc}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                        <TextBlock Text="{DynamicResource Lbl.ImportSpeakerBotDesc}" Style="{DynamicResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                             <TextBox Text="{Binding Import.FolderPath}" Width="280" IsReadOnly="True"
                                                      ToolTip="{DynamicResource Tip.ImportFolder}"/>
@@ -762,29 +782,11 @@
                                                     ToolTip="{DynamicResource Tip.BrowseImportFolder}"/>
                                         </StackPanel>
                                         <Button Content="{DynamicResource Btn.ImportNow}" Command="{Binding Import.ImportCommand}"
-                                                Style="{StaticResource AccentButton}" HorizontalAlignment="Left" Margin="0,0,0,8"
+                                                Style="{DynamicResource AccentButton}" HorizontalAlignment="Left" Margin="0,0,0,8"
                                                 ToolTip="{DynamicResource Tip.ImportNow}"/>
-                                        <TextBlock Text="{Binding Import.StatusMessage}" TextWrapping="Wrap"
-                                                   Visibility="{Binding Import.HasStatusMessage, Converter={StaticResource BoolToVisibilityConverter}}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Import.IsError}" Value="True">
-                                                            <Setter Property="Foreground" Value="#EF4444"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Import.IsError}" Value="False">
-                                                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
                                     </StackPanel>
                                 </GroupBox>
 
-                                <Button Content="{DynamicResource Btn.SaveSettings}" Command="{Binding GeneralSettings.SaveCommand}"
-                                        Style="{StaticResource AccentButton}" HorizontalAlignment="Left"
-                                        ToolTip="{DynamicResource Tip.SaveGeneralSettings}"/>
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>
@@ -804,27 +806,27 @@
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                                 <Border Width="48" Height="48" CornerRadius="24"
-                                                        Background="{StaticResource Bg4}" Margin="0,0,12,0"
+                                                        Background="{DynamicResource Bg4}" Margin="0,0,12,0"
                                                         ClipToBounds="True">
                                                     <Grid>
                                                         <TextBlock Text="T" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                   FontSize="18" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                                                                   FontSize="18" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
                                                         <Image Source="{Binding Accounts.TwitchAvatarUrl}" Stretch="UniformToFill"/>
                                                     </Grid>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Accounts.TwitchLogin}" FontSize="15" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding Accounts.TwitchBroadcasterType}" Style="{StaticResource MutedText}"/>
+                                                    <TextBlock Text="{Binding Accounts.TwitchBroadcasterType}" Style="{DynamicResource MutedText}"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Content="{DynamicResource Btn.Login}" Command="{Binding Accounts.TwitchConnectCommand}"
-                                                        Style="{StaticResource AccentButton}" Margin="0,0,8,0"
+                                                        Style="{DynamicResource AccentButton}" Margin="0,0,8,0"
                                                         ToolTip="{DynamicResource Tip.TwitchLogin}"/>
                                                 <Button Content="{DynamicResource Btn.Logout}" Command="{Binding Accounts.TwitchLogoutCommand}"
                                                         Margin="0,0,8,0" ToolTip="{DynamicResource Tip.TwitchLogout}"/>
                                                 <Button Content="{DynamicResource Btn.Forget}" Command="{Binding Accounts.TwitchForgetCommand}"
-                                                        Style="{StaticResource DangerButton}"
+                                                        Style="{DynamicResource DangerButton}"
                                                         ToolTip="{DynamicResource Tip.TwitchForget}"/>
                                             </StackPanel>
                                         </StackPanel>
@@ -841,11 +843,11 @@
                                                 <RowDefinition Height="8"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.ChatClient}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.ChatClient}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <Button Grid.Row="0" Grid.Column="1" Content="{Binding Accounts.ChatClientStatus}"
                                                     Command="{Binding Accounts.ChatClientToggleCommand}" HorizontalAlignment="Left"
                                                     ToolTip="{DynamicResource Tip.ChatClientToggle}"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.EventSub}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.EventSub}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <Button Grid.Row="2" Grid.Column="1" Content="{Binding Accounts.EventSubStatus}"
                                                     Command="{Binding Accounts.EventSubToggleCommand}" HorizontalAlignment="Left"
                                                     ToolTip="{DynamicResource Tip.EventSubToggle}"/>
@@ -883,7 +885,7 @@
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                                 <Button Content="{DynamicResource Btn.Start}" Command="{Binding VoiceGate.StartCommand}"
-                                                        Style="{StaticResource AccentButton}" Margin="0,0,8,0"
+                                                        Style="{DynamicResource AccentButton}" Margin="0,0,8,0"
                                                         ToolTip="{DynamicResource Tip.StartVoiceGate}"/>
                                                 <Button Content="{DynamicResource Btn.Stop}" Command="{Binding VoiceGate.StopCommand}"
                                                         Margin="0,0,16,0" ToolTip="{DynamicResource Tip.StopVoiceGate}"/>
@@ -891,7 +893,7 @@
                                                           VerticalAlignment="Center" ToolTip="{DynamicResource Tip.VoiceGateAutoStart}"/>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{DynamicResource Lbl.Volume}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="{DynamicResource Lbl.Volume}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                 <ProgressBar Value="{Binding VoiceGate.Volume}" Width="200" Maximum="100"/>
                                                 <TextBlock Margin="8,0,0,0" VerticalAlignment="Center">
                                                     <Run Text="{Binding VoiceGate.Volume, StringFormat='0'}"/>
@@ -908,7 +910,7 @@
                                                 <Button Content="{DynamicResource Btn.AddProfile}" Command="{Binding VoiceGate.AddProfileCommand}"
                                                         Margin="0,0,6,0" ToolTip="{DynamicResource Tip.AddVoiceGateProfile}"/>
                                                 <Button Content="{DynamicResource Btn.Delete}" Command="{Binding VoiceGate.DeleteProfileCommand}"
-                                                        Style="{StaticResource DangerButton}"
+                                                        Style="{DynamicResource DangerButton}"
                                                         ToolTip="{DynamicResource Tip.DeleteVoiceGateProfile}"/>
                                             </StackPanel>
                                             <DataGrid ItemsSource="{Binding VoiceGate.Profiles}"
@@ -924,30 +926,30 @@
                                     </GroupBox>
                                 </StackPanel>
 
-                                <Border Grid.Column="2" Background="{StaticResource Bg2}"
-                                        BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                                <Border Grid.Column="2" Background="{DynamicResource Bg2}"
+                                        BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
                                         CornerRadius="5" Padding="12">
                                     <StackPanel>
-                                        <TextBlock Text="{DynamicResource Section.Settings}" Style="{StaticResource SectionLabel}" Margin="0,0,0,12"/>
+                                        <TextBlock Text="{DynamicResource Section.Settings}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,12"/>
                                         <TextBlock>
                                             <Run Text="{DynamicResource Lbl.PauseThreshold}"/>
                                             <Run Text="{Binding VoiceGate.PauseThreshold}"/>
                                             <Run Text="{DynamicResource Lbl.Percent}"/>
                                         </TextBlock>
-                                        <Slider Minimum="0" Maximum="100" Value="{Binding VoiceGate.PauseThreshold}"
-                                                Margin="0,6,0,12" ToolTip="{DynamicResource Tip.PauseThreshold}"/>
+                                        <controls:NumericSlider Minimum="0" Maximum="100" Value="{Binding VoiceGate.PauseThreshold}"
+                                                Suffix="%" Margin="0,6,0,12" ToolTip="{DynamicResource Tip.PauseThreshold}"/>
                                         <TextBlock>
                                             <Run Text="{DynamicResource Lbl.ResumeThreshold}"/>
                                             <Run Text="{Binding VoiceGate.ResumeThreshold}"/>
                                             <Run Text="{DynamicResource Lbl.Percent}"/>
                                         </TextBlock>
-                                        <Slider Minimum="0" Maximum="100" Value="{Binding VoiceGate.ResumeThreshold}"
-                                                Margin="0,6,0,12" ToolTip="{DynamicResource Tip.ResumeThreshold}"/>
-                                        <TextBlock Text="{DynamicResource Lbl.ResumeWaitTimeout}" Style="{StaticResource MutedText}" Margin="0,0,0,4"/>
+                                        <controls:NumericSlider Minimum="0" Maximum="100" Value="{Binding VoiceGate.ResumeThreshold}"
+                                                Suffix="%" Margin="0,6,0,12" ToolTip="{DynamicResource Tip.ResumeThreshold}"/>
+                                        <TextBlock Text="{DynamicResource Lbl.ResumeWaitTimeout}" Style="{DynamicResource MutedText}" Margin="0,0,0,4"/>
                                         <StackPanel Orientation="Horizontal">
                                             <TextBox Text="{Binding VoiceGate.ResumeWaitMs}" Width="80"
                                                      ToolTip="{DynamicResource Tip.ResumeWaitMs}"/>
-                                            <TextBlock Text="{DynamicResource Lbl.Ms}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                            <TextBlock Text="{DynamicResource Lbl.Ms}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="8,0,0,0"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -963,18 +965,20 @@
                             </Grid.ColumnDefinitions>
 
                             <DockPanel Grid.Column="0">
-                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.Engines}" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.Engines}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,4"/>
+                                <UniformGrid DockPanel.Dock="Bottom" Columns="3" Margin="0,8,0,0">
                                     <Button Content="{DynamicResource Btn.Add}" Command="{Binding SpeechEngines.ShowAddDialogCommand}"
-                                            Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddEngine}"/>
+                                            Margin="0,0,2,0" ToolTip="{DynamicResource Tip.AddEngine}"/>
                                     <Button Content="{DynamicResource Btn.Remove}" Command="{Binding SpeechEngines.RemoveCommand}"
-                                            Style="{StaticResource DangerButton}"
+                                            Style="{DynamicResource DangerButton}"
+                                            Margin="0,0,2,0"
                                             ToolTip="{DynamicResource Tip.RemoveEngine}"/>
-                                </StackPanel>
+                                    <Button Content="{DynamicResource Btn.Reload}" Command="{Binding SpeechEngines.ReloadCommand}"/>
+                                </UniformGrid>
                                 <ListBox ItemsSource="{Binding SpeechEngines.Engines}"
                                          SelectedItem="{Binding SpeechEngines.SelectedEngine}"
                                          BorderThickness="0"
-                                         Background="{StaticResource Bg2}">
+                                         Background="{DynamicResource Bg2}">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding DisplayName}"/>
@@ -988,7 +992,7 @@
                                            Text="{Binding SpeechEngines.SelectedEngine.VoiceCount}"
                                            FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <ListBox ItemsSource="{Binding SpeechEngines.SelectedEngine.Voices}"
-                                         BorderThickness="0" Background="{StaticResource Bg2}">
+                                         BorderThickness="0" Background="{DynamicResource Bg2}">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding}" Padding="4,2"/>
@@ -1020,9 +1024,9 @@
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.AvailableVoices}"
-                                           Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                           Style="{DynamicResource SectionLabel}" Margin="0,0,0,4"/>
                                 <TextBlock Grid.Row="0" Grid.Column="2" Text="{DynamicResource Lbl.IgnoredVoicesList}"
-                                           Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                           Style="{DynamicResource SectionLabel}" Margin="0,0,0,4"/>
 
                                 <ListBox Grid.Row="1" Grid.Column="0"
                                          ItemsSource="{Binding IgnoredVoices.AvailableVoices}"
@@ -1057,7 +1061,7 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Text="{DynamicResource Lbl.AvailableLocales}" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock Grid.Row="0" Text="{DynamicResource Lbl.AvailableLocales}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,4"/>
                                 <ListBox Grid.Row="1" ItemsSource="{Binding IgnoredVoices.AvailableLocales}"
                                          SelectedItem="{Binding IgnoredVoices.SelectedAvailableLocale}">
                                     <ListBox.ItemTemplate>
@@ -1079,9 +1083,9 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
 
-                                <Border Grid.Row="4" Background="{StaticResource Bg3}" CornerRadius="4" Padding="8,6" Margin="0,8,0,0">
+                                <Border Grid.Row="4" Background="{DynamicResource Bg3}" CornerRadius="4" Padding="8,6" Margin="0,8,0,0">
                                     <StackPanel>
-                                        <TextBlock Text="{DynamicResource Section.Profiles}" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="{DynamicResource Section.Profiles}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,6"/>
                                         <ComboBox ItemsSource="{Binding IgnoredVoices.Profiles}"
                                                   SelectedItem="{Binding IgnoredVoices.SelectedProfile}"
                                                   Margin="0,0,0,6">
@@ -1096,7 +1100,7 @@
                                             <Button Content="{DynamicResource Btn.New}" Command="{Binding IgnoredVoices.NewProfileCommand}"
                                                     Margin="0,0,4,0" ToolTip="{DynamicResource Tip.NewVoiceProfile}"/>
                                             <Button Content="{DynamicResource Btn.Delete}" Command="{Binding IgnoredVoices.DeleteProfileCommand}"
-                                                    Style="{StaticResource DangerButton}"
+                                                    Style="{DynamicResource DangerButton}"
                                                     ToolTip="{DynamicResource Tip.DeleteVoiceProfile}"/>
                                         </StackPanel>
                                     </StackPanel>
@@ -1119,7 +1123,7 @@
                                     <GroupBox Header="{StaticResource Section.SpeakingMode}" Margin="0,0,0,12">
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                <TextBlock Text="{DynamicResource Lbl.Mode}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="{DynamicResource Lbl.Mode}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                 <ComboBox ItemsSource="{Binding SpeakingOptions.AvailableModes}"
                                                           SelectedItem="{Binding SpeakingOptions.Mode}" Width="120"
                                                           ToolTip="{DynamicResource Tip.SpeakingMode}"/>
@@ -1127,7 +1131,7 @@
                                             <CheckBox Content="{DynamicResource Chk.SayUsername}" IsChecked="{Binding SpeakingOptions.SayUsername}"
                                                       Margin="0,0,0,6" ToolTip="{DynamicResource Tip.SayUsername}"/>
                                             <StackPanel Orientation="Horizontal" Margin="20,0,0,8">
-                                                <TextBlock Text="{DynamicResource Lbl.Postfix}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="{DynamicResource Lbl.Postfix}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                 <TextBox Text="{Binding SpeakingOptions.SayUsernamePrefix}" Width="80"
                                                          ToolTip="{DynamicResource Tip.UsernamePostfix}"/>
                                             </StackPanel>
@@ -1164,13 +1168,13 @@
                                                 <RowDefinition Height="8"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Cooldown}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Cooldown}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
                                                 <TextBox Text="{Binding SpeakingOptions.CooldownSeconds}" Width="60"
                                                          ToolTip="{DynamicResource Tip.CooldownSeconds}"/>
-                                                <TextBlock Text="{DynamicResource Lbl.SecondsPerUser}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                <TextBlock Text="{DynamicResource Lbl.SecondsPerUser}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="8,0,0,0"/>
                                             </StackPanel>
-                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.MaxWords}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.MaxWords}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
                                                 <TextBox Text="{Binding SpeakingOptions.MaxWords}" Width="60"
                                                          ToolTip="{DynamicResource Tip.MaxWords}"/>
@@ -1178,17 +1182,17 @@
                                                           VerticalAlignment="Center" Margin="12,0,0,0"
                                                           ToolTip="{DynamicResource Tip.TreatSymbolsAsSpaces}"/>
                                             </StackPanel>
-                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.MaxChars}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.MaxChars}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
                                                 <TextBox Text="{Binding SpeakingOptions.MaxChars}" Width="60"
                                                          ToolTip="{DynamicResource Tip.MaxChars}"/>
                                             </StackPanel>
-                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.UrlFilter}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.UrlFilter}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <ComboBox Grid.Row="6" Grid.Column="1"
                                                       ItemsSource="{Binding SpeakingOptions.UrlFilterModes}"
                                                       SelectedItem="{Binding SpeakingOptions.UrlFilterMode}"
                                                       ToolTip="{DynamicResource Tip.UrlFilterMode}"/>
-                                            <TextBlock Grid.Row="8" Grid.Column="0" Text="{DynamicResource Lbl.NotAllowedText}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="8" Grid.Column="0" Text="{DynamicResource Lbl.NotAllowedText}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding SpeakingOptions.NotAllowedText}"
                                                      ToolTip="{DynamicResource Tip.NotAllowedText}"/>
                                         </Grid>
@@ -1198,7 +1202,8 @@
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
@@ -1206,19 +1211,19 @@
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{DynamicResource Col.Stop}" Style="{StaticResource MutedText}" Margin="0,0,0,4"/>
-                                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{DynamicResource Col.Skip}" Style="{StaticResource MutedText}" Margin="8,0,0,4"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Lbl.MessageDeleted}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,0,6"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{DynamicResource Col.Stop}" Style="{DynamicResource MutedText}" Margin="0,0,0,4"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{DynamicResource Col.Skip}" Style="{DynamicResource MutedText}" Margin="8,0,0,4"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Lbl.MessageDeleted}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,0,6"/>
                                             <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding SpeakingOptions.StopOnMessageDeleted}"
                                                       Margin="0,0,0,6" ToolTip="{DynamicResource Tip.StopOnMsgDeleted}"/>
                                             <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding SpeakingOptions.SkipOnMessageDeleted}"
                                                       Margin="8,0,0,6" ToolTip="{DynamicResource Tip.SkipOnMsgDeleted}"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.UserTimedOut}" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,0,6"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.UserTimedOut}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,0,6"/>
                                             <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding SpeakingOptions.StopOnUserTimedOut}"
                                                       Margin="0,0,0,6" ToolTip="{DynamicResource Tip.StopOnTimedOut}"/>
                                             <CheckBox Grid.Row="2" Grid.Column="2" IsChecked="{Binding SpeakingOptions.SkipOnUserTimedOut}"
                                                       Margin="8,0,0,6" ToolTip="{DynamicResource Tip.SkipOnTimedOut}"/>
-                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{DynamicResource Lbl.UserBanned}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{DynamicResource Lbl.UserBanned}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding SpeakingOptions.StopOnUserBanned}"
                                                       ToolTip="{DynamicResource Tip.StopOnBanned}"/>
                                             <CheckBox Grid.Row="3" Grid.Column="2" IsChecked="{Binding SpeakingOptions.SkipOnUserBanned}"
@@ -1264,10 +1269,12 @@
                                                       Margin="0,0,0,6" ToolTip="{DynamicResource Tip.IgnoreCheermotes}"/>
                                             <CheckBox Content="{DynamicResource Chk.AllowFirstEmote}" IsChecked="{Binding SpeakingOptions.AllowFirstEmote}"
                                                       Margin="0,0,0,8" ToolTip="{DynamicResource Tip.AllowFirstEmote}"/>
-                                            <TextBlock Text="{DynamicResource Section.AllowedEmotes}" Style="{StaticResource SectionLabel}" Margin="0,4,0,4"/>
+                                            <Button Content="Refresh Emotes" Command="{Binding SpeakingOptions.RefreshEmotesCommand}"
+                                                    HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                                            <TextBlock Text="{DynamicResource Section.AllowedEmotes}" Style="{DynamicResource SectionLabel}" Margin="0,4,0,4"/>
                                             <ListBox ItemsSource="{Binding SpeakingOptions.AllowedEmotes}"
                                                      SelectedItem="{Binding SpeakingOptions.SelectedAllowedEmote}"
-                                                     Height="80" BorderThickness="0" Background="{StaticResource Bg3}">
+                                                     Height="80" BorderThickness="0" Background="{DynamicResource Bg3}">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate><TextBlock Text="{Binding}" FontSize="12"/></DataTemplate>
                                                 </ListBox.ItemTemplate>
@@ -1277,7 +1284,7 @@
                                                 <Button Content="{DynamicResource Btn.Add}" Command="{Binding SpeakingOptions.AddEmoteCommand}"
                                                         Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddAllowedEmote}"/>
                                                 <Button Content="{DynamicResource Btn.Del}" Command="{Binding SpeakingOptions.DeleteEmoteCommand}"
-                                                        Style="{StaticResource DangerButton}"
+                                                        Style="{DynamicResource DangerButton}"
                                                         ToolTip="{DynamicResource Tip.DelAllowedEmote}"/>
                                             </StackPanel>
                                         </StackPanel>
@@ -1287,7 +1294,7 @@
                                         <StackPanel>
                                             <ListBox ItemsSource="{Binding SpeakingOptions.TtsCommands}"
                                                      SelectedItem="{Binding SpeakingOptions.SelectedTtsCommand}"
-                                                     Height="80" BorderThickness="0" Background="{StaticResource Bg3}">
+                                                     Height="80" BorderThickness="0" Background="{DynamicResource Bg3}">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate><TextBlock Text="{Binding}" FontSize="12"/></DataTemplate>
                                                 </ListBox.ItemTemplate>
@@ -1297,7 +1304,7 @@
                                                 <Button Content="{DynamicResource Btn.Add}" Command="{Binding SpeakingOptions.AddTtsCommandCommand}"
                                                         Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddTtsCommand}"/>
                                                 <Button Content="{DynamicResource Btn.Del}" Command="{Binding SpeakingOptions.DeleteTtsCommandCommand}"
-                                                        Style="{StaticResource DangerButton}"
+                                                        Style="{DynamicResource DangerButton}"
                                                         ToolTip="{DynamicResource Tip.DelTtsCommand}"/>
                                             </StackPanel>
                                         </StackPanel>
@@ -1308,7 +1315,7 @@
                                             <CheckBox Content="{DynamicResource Chk.IgnorePrefixedWith}" Margin="0,0,0,6"/>
                                             <ListBox ItemsSource="{Binding SpeakingOptions.IgnoredPrefixes}"
                                                      SelectedItem="{Binding SpeakingOptions.SelectedIgnoredPrefix}"
-                                                     Height="80" BorderThickness="0" Background="{StaticResource Bg3}">
+                                                     Height="80" BorderThickness="0" Background="{DynamicResource Bg3}">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate><TextBlock Text="{Binding}" FontSize="12"/></DataTemplate>
                                                 </ListBox.ItemTemplate>
@@ -1318,7 +1325,7 @@
                                                 <Button Content="{DynamicResource Btn.Add}" Command="{Binding SpeakingOptions.AddIgnoredPrefixCommand}"
                                                         Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddIgnoredPrefix}"/>
                                                 <Button Content="{DynamicResource Btn.Del}" Command="{Binding SpeakingOptions.DeleteIgnoredPrefixCommand}"
-                                                        Style="{StaticResource DangerButton}"
+                                                        Style="{DynamicResource DangerButton}"
                                                         ToolTip="{DynamicResource Tip.DelIgnoredPrefix}"/>
                                             </StackPanel>
                                         </StackPanel>
@@ -1331,10 +1338,11 @@
                     <!-- ─── Filters ─── -->
                     <TabItem Header="{DynamicResource Tab.Filters}">
                         <DockPanel Margin="12">
-                            <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.Filters}" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                            <Button DockPanel.Dock="Top" Content="Import wordlist..." Command="{Binding Replacement.ImportWordlistCommand}"
+                                    HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
-                            <Border DockPanel.Dock="Bottom" Background="{StaticResource Bg2}"
-                                    BorderBrush="{StaticResource BorderBrush0}" BorderThickness="1"
+                            <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg2}"
+                                    BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
                                     CornerRadius="5" Padding="10" Margin="0,8,0,0">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -1355,56 +1363,102 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Mode}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Mode}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                     <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Replacement.AvailableModes}"
                                               SelectedItem="{Binding Replacement.EditMode}"
                                               ToolTip="{DynamicResource Tip.FilterMode}"/>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Match}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Replacement.EditPattern}"
-                                             ToolTip="{DynamicResource Tip.FilterMatch}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Match}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Replacement.EditPattern}" ToolTip="{DynamicResource Tip.FilterMatch}">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Replacement.EditPatternMixed}" Value="True">
+                                                        <Setter Property="Tag" Value="[multiple selected]"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
 
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.With}" Style="{StaticResource MutedText}" VerticalAlignment="Center"
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.With}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"
                                                Visibility="{Binding Replacement.IsReplaceMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Replacement.EditReplacement}"
-                                             Visibility="{Binding Replacement.IsReplaceMode, Converter={StaticResource BoolToVisibilityConverter}}"
-                                             ToolTip="{DynamicResource Tip.FilterWith}"/>
+                                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Replacement.EditReplacement}" ToolTip="{DynamicResource Tip.FilterWith}"
+                                             Visibility="{Binding Replacement.IsReplaceMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Replacement.EditReplacementMixed}" Value="True">
+                                                        <Setter Property="Tag" Value="[multiple selected]"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
 
                                     <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
                                         <CheckBox Content="{DynamicResource Chk.Enabled}" IsChecked="{Binding Replacement.EditEnabled}"
-                                                  Margin="0,0,12,0" ToolTip="{DynamicResource Tip.FilterEnabled}"/>
+                                                  IsThreeState="True" Margin="0,0,12,0" ToolTip="{DynamicResource Tip.FilterEnabled}"/>
                                         <CheckBox Content="{DynamicResource Chk.Regex}" IsChecked="{Binding Replacement.EditIsRegex}"
-                                                  ToolTip="{DynamicResource Tip.FilterRegex}"/>
+                                                  IsThreeState="True" Margin="0,0,12,0" ToolTip="{DynamicResource Tip.FilterRegex}"/>
+                                        <CheckBox Content="Whole word" IsChecked="{Binding Replacement.EditWholeWord}"
+                                                  IsThreeState="True"
+                                                  Visibility="{Binding Replacement.WholeWordVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
                                         <Button Content="{DynamicResource Btn.Add}" Command="{Binding Replacement.AddReplacementCommand}"
                                                 Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddFilter}"/>
                                         <Button Content="{DynamicResource Btn.Delete}" Command="{Binding Replacement.DeleteReplacementCommand}"
-                                                Style="{StaticResource DangerButton}" Margin="0,0,4,0"
+                                                Style="{DynamicResource DangerButton}" Margin="0,0,4,0"
                                                 ToolTip="{DynamicResource Tip.DeleteFilter}"/>
                                         <Button Content="{DynamicResource Btn.Save}" Command="{Binding Replacement.SaveReplacementCommand}"
-                                                Style="{StaticResource AccentButton}"
+                                                Style="{DynamicResource AccentButton}"
                                                 ToolTip="{DynamicResource Tip.SaveFilter}"/>
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="10" Grid.Column="0" Text="{DynamicResource Lbl.Sample}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="10" Grid.Column="0" Text="{DynamicResource Lbl.Sample}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                     <StackPanel Grid.Row="10" Grid.Column="1">
                                         <TextBox Text="{Binding Replacement.SampleInput, UpdateSourceTrigger=PropertyChanged}"
                                                  Margin="0,0,0,4" ToolTip="{DynamicResource Tip.FilterSampleInput}"/>
                                         <TextBox Text="{Binding Replacement.SampleOutput, Mode=OneWay}" IsReadOnly="True"
-                                                 Background="{StaticResource Bg3}" Foreground="{StaticResource TextMuted}"
+                                                 Background="{DynamicResource Bg3}" Foreground="{DynamicResource TextMuted}"
                                                  ToolTip="{DynamicResource Tip.FilterSampleOutput}"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
 
                             <DataGrid ItemsSource="{Binding Replacement.Replacements}"
-                                      SelectedItem="{Binding Replacement.SelectedReplacement}">
+                                      SelectedItem="{Binding Replacement.SelectedReplacement}"
+                                      SelectionMode="Extended"
+                                      SelectionChanged="FiltersDataGrid_SelectionChanged"
+                                      PreviewMouseLeftButtonDown="FiltersDataGrid_PreviewMouseLeftButtonDown">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="{StaticResource Col.Mode}" Binding="{Binding Mode}" Width="60"/>
-                                    <DataGridCheckBoxColumn Header="{StaticResource Col.Regex}" Binding="{Binding IsRegex}" Width="50"/>
-                                    <DataGridCheckBoxColumn Header="{StaticResource Col.On}" Binding="{Binding Enabled}" Width="40"/>
+                                    <DataGridTextColumn Header="{StaticResource Col.Mode}" Binding="{Binding Mode}" Width="Auto"/>
+                                    <DataGridCheckBoxColumn Header="{StaticResource Col.Regex}" Binding="{Binding IsRegex}" Width="Auto">
+                                        <DataGridCheckBoxColumn.ElementStyle>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
+                                        </DataGridCheckBoxColumn.ElementStyle>
+                                        <DataGridCheckBoxColumn.EditingElementStyle>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
+                                        </DataGridCheckBoxColumn.EditingElementStyle>
+                                    </DataGridCheckBoxColumn>
+                                    <DataGridCheckBoxColumn Header="Word" Binding="{Binding WholeWord}" Width="Auto">
+                                        <DataGridCheckBoxColumn.ElementStyle>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
+                                        </DataGridCheckBoxColumn.ElementStyle>
+                                        <DataGridCheckBoxColumn.EditingElementStyle>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
+                                        </DataGridCheckBoxColumn.EditingElementStyle>
+                                    </DataGridCheckBoxColumn>
+                                    <DataGridCheckBoxColumn Header="{StaticResource Col.On}" Binding="{Binding Enabled}" Width="Auto">
+                                        <DataGridCheckBoxColumn.ElementStyle>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
+                                        </DataGridCheckBoxColumn.ElementStyle>
+                                        <DataGridCheckBoxColumn.EditingElementStyle>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
+                                        </DataGridCheckBoxColumn.EditingElementStyle>
+                                    </DataGridCheckBoxColumn>
                                     <DataGridTextColumn Header="{StaticResource Col.Pattern}" Binding="{Binding Pattern}" Width="*"/>
                                     <DataGridTextColumn Header="{StaticResource Col.ReplaceWith}" Binding="{Binding Replacement}" Width="*"/>
                                 </DataGrid.Columns>
@@ -1418,27 +1472,69 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="180"/>
                                 <ColumnDefinition Width="1"/>
-                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="220"/>
                                 <ColumnDefinition Width="1"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <DataGrid Grid.Column="0" VerticalAlignment="Stretch"
-                                      ItemsSource="{Binding VoiceAliases.Aliases}"
-                                      SelectedItem="{Binding VoiceAliases.SelectedAlias}"
-                                      AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
-                                      IsReadOnly="True" SelectionMode="Single" BorderThickness="0">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="{StaticResource Col.Name}" Binding="{Binding Name}" Width="*"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
+                            <Grid Grid.Column="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBox Grid.Row="0"
+                                         Margin="8,8,8,4"
+                                         Tag="Search aliases..."
+                                         Text="{Binding VoiceAliases.AliasFilter, UpdateSourceTrigger=PropertyChanged}"/>
+                                <ListBox Grid.Row="1"
+                                         ItemsSource="{Binding VoiceAliases.Aliases}"
+                                         SelectedItem="{Binding VoiceAliases.SelectedAlias}"
+                                         BorderThickness="0" Background="Transparent" Padding="4">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" Padding="4,2"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
 
-                            <Border Grid.Column="1" Background="{StaticResource BorderBrush0}"/>
+                            <Border Grid.Column="1" Background="{DynamicResource BorderBrush0}"/>
 
                             <DockPanel Grid.Column="2" VerticalAlignment="Stretch">
-                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Lbl.InUse}" Margin="6,6,6,2" FontSize="12"/>
+                                <StackPanel DockPanel.Dock="Top" Margin="4,4,4,2">
+                                    <ComboBox ItemsSource="{Binding VoiceAliases.FilteredUsers}"
+                                              SelectedItem="{Binding VoiceAliases.SelectedUserToAdd}"
+                                              Tag="{Binding VoiceAliases.UserFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              ScrollViewer.CanContentScroll="True"
+                                              MaxDropDownHeight="250"
+                                              DisplayMemberPath="Username">
+                                        <ComboBox.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VirtualizingStackPanel/>
+                                            </ItemsPanelTemplate>
+                                        </ComboBox.ItemsPanel>
+                                    </ComboBox>
+                                    <Button Content="{DynamicResource Btn.Add}"
+                                            Command="{Binding VoiceAliases.AddUserToAliasCommand}"
+                                            Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                                <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderBrush0}" Margin="4,4,4,0"/>
                                 <ListBox ItemsSource="{Binding VoiceAliases.InUseUsers}"
                                          BorderThickness="0" Background="Transparent">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Tag" Value="{Binding DataContext.VoiceAliases.RemoveUserFromAliasCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"/>
+                                            <Setter Property="ContextMenu">
+                                                <Setter.Value>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Remove from alias"
+                                                                  Command="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                    </ContextMenu>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding}"/>
@@ -1447,7 +1543,7 @@
                                 </ListBox>
                             </DockPanel>
 
-                            <Border Grid.Column="3" Background="{StaticResource BorderBrush0}"/>
+                            <Border Grid.Column="3" Background="{DynamicResource BorderBrush0}"/>
 
                             <DockPanel Grid.Column="4">
 
@@ -1471,14 +1567,18 @@
                                     <StackPanel DockPanel.Dock="Bottom" Margin="6,4,6,6">
                                         <DockPanel Margin="0,0,0,4">
                                             <TextBlock DockPanel.Dock="Left" Text="{DynamicResource Lbl.Voice}" VerticalAlignment="Center" Width="42"/>
-                                            <ComboBox SelectedItem="{Binding VoiceAliases.TestSpeakVoice}"
+                                            <ComboBox x:Name="AliasVoiceComboBox"
+                                                      SelectedItem="{Binding VoiceAliases.TestSpeakVoice}"
                                                       ItemsSource="{Binding VoiceAliases.SpeakVoices}"
-                                                      ToolTip="{DynamicResource Tip.VoiceAliasTestVoice}">
-                                                <ComboBox.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding Name}"/>
-                                                    </DataTemplate>
-                                                </ComboBox.ItemTemplate>
+                                                      Tag="{Binding VoiceAliases.VoiceFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      ToolTip="{DynamicResource Tip.VoiceAliasTestVoice}"
+                                                      ScrollViewer.CanContentScroll="True"
+                                                      MaxDropDownHeight="300">
+                                                <ComboBox.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling"/>
+                                                    </ItemsPanelTemplate>
+                                                </ComboBox.ItemsPanel>
                                             </ComboBox>
                                         </DockPanel>
                                         <Grid>
@@ -1494,10 +1594,10 @@
 
                                             <DockPanel Grid.Row="0" Grid.Column="0">
                                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
-                                                    <Slider Minimum="0" Maximum="100" Value="{Binding VoiceAliases.TestVolume}"
-                                                            Width="80" VerticalAlignment="Center"
+                                                    <TextBlock Text="{DynamicResource Lbl.Volume}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <controls:NumericSlider Minimum="0" Maximum="100" Value="{Binding VoiceAliases.TestVolume}"
+                                                            SliderWidth="80" Suffix="%"
                                                             ToolTip="{DynamicResource Tip.VoiceAliasVolume}"/>
-                                                    <TextBlock VerticalAlignment="Center" Margin="6,0,0,0"><Run Text="{DynamicResource Lbl.Volume}"/><Run Text=" "/><Run Text="{Binding VoiceAliases.TestVolume}"/><Run Text="{DynamicResource Lbl.Percent}"/></TextBlock>
                                                 </StackPanel>
                                                 <TextBox Text="{Binding VoiceAliases.TestMessage}"
                                                          ToolTip="{DynamicResource Tip.VoiceAliasTestMessage}"/>
@@ -1520,16 +1620,14 @@
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <StackPanel Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding Def.Label}" Style="{StaticResource MutedText}"
+                                                            <TextBlock Text="{Binding Def.Label}" Style="{DynamicResource MutedText}"
                                                                        VerticalAlignment="Center" Margin="0,0,5,0"/>
                                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                                                                         Visibility="{Binding IsSlider, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                                <Slider Value="{Binding SliderValue, Mode=TwoWay}"
+                                                                <controls:NumericSlider Value="{Binding SliderValue, Mode=TwoWay}"
                                                                         Minimum="{Binding Def.Min}" Maximum="{Binding Def.Max}"
                                                                         SmallChange="{Binding Def.Step}" LargeChange="{Binding Def.Step}"
-                                                                        Width="70" VerticalAlignment="Center"/>
-                                                                <TextBlock Text="{Binding DisplayValue}" VerticalAlignment="Center"
-                                                                           Margin="4,0,0,0" Width="32" FontFamily="Consolas" FontSize="11"/>
+                                                                        SliderWidth="70"/>
                                                             </StackPanel>
                                                             <ComboBox ItemsSource="{Binding Def.Options}" SelectedItem="{Binding Value}"
                                                                       Width="150" VerticalAlignment="Center"
@@ -1563,7 +1661,7 @@
                                         <DataGrid ItemsSource="{Binding VoiceAliases.AliasVoices}"
                                                   SelectedItem="{Binding VoiceAliases.SelectedVoice}"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  BorderThickness="1" BorderBrush="{StaticResource BorderBrush0}"
+                                                  BorderThickness="1" BorderBrush="{DynamicResource BorderBrush0}"
                                                   PreviewMouseLeftButtonDown="AliasVoicesDataGrid_PreviewMouseLeftButtonDown">
                                             <DataGrid.ContextMenu>
                                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
@@ -1603,28 +1701,36 @@
                                     <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                                               Content="{DynamicResource Chk.AutoStart}" IsChecked="{Binding WebSocketServer.AutoStart}"
                                               ToolTip="{DynamicResource Tip.WsAutoStart}"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Address}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Address}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding WebSocketServer.Address}"
                                              ToolTip="{DynamicResource Tip.WsAddress}"/>
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.Port}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.Port}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding WebSocketServer.Port}"
                                              ToolTip="{DynamicResource Tip.WsPort}"/>
-                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.Endpoint}" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.Endpoint}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding WebSocketServer.Endpoint}"
                                              ToolTip="{DynamicResource Tip.WsEndpoint}"/>
                                 </Grid>
                             </GroupBox>
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 <Button Content="{DynamicResource Btn.StartServer}" Command="{Binding WebSocketServer.StartCommand}"
-                                        Style="{StaticResource AccentButton}" Margin="0,0,8,0"
+                                        Style="{DynamicResource AccentButton}" Margin="0,0,8,0"
                                         ToolTip="{DynamicResource Tip.StartWsServer}"/>
                                 <Button Content="{DynamicResource Btn.StopServer}" Command="{Binding WebSocketServer.StopCommand}"
                                         Margin="0,0,8,0" ToolTip="{DynamicResource Tip.StopWsServer}"/>
-                                <Button Content="{DynamicResource Btn.Save}" Command="{Binding WebSocketServer.SaveCommand}"
-                                        ToolTip="{DynamicResource Tip.SaveWsSettings}"/>
                             </StackPanel>
-                            <TextBlock Margin="0,16,0,0" Style="{StaticResource MutedText}"
-                                       Text="{DynamicResource Info.UdpServer}"/>
+                            <GroupBox Header="UDP Server" Margin="0,16,0,0">
+                                <StackPanel>
+                                    <CheckBox Content="{DynamicResource Chk.AutoStart}" IsChecked="{Binding UdpServer.AutoStart}" Margin="0,0,0,4"/>
+                                    <TextBlock Style="{DynamicResource MutedText}" Text="Port 6669 (fixed)" Margin="0,0,0,8"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="{DynamicResource Btn.StartServer}" Command="{Binding UdpServer.StartCommand}"
+                                                Style="{DynamicResource AccentButton}" Margin="0,0,8,0"/>
+                                        <Button Content="{DynamicResource Btn.StopServer}" Command="{Binding UdpServer.StopCommand}"
+                                                Margin="0,0,8,0"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </GroupBox>
                         </StackPanel>
                     </TabItem>
 
@@ -1638,18 +1744,18 @@
                             </Grid.ColumnDefinitions>
 
                             <DockPanel Grid.Column="0">
-                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.CustomApiServers}" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Section.CustomApiServers}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,6"/>
                                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
                                     <Button Content="{DynamicResource Btn.Add}" Command="{Binding CustomApis.AddCommand}"
-                                            Style="{StaticResource AccentButton}" Margin="0,0,4,0"
+                                            Style="{DynamicResource AccentButton}" Margin="0,0,4,0"
                                             ToolTip="{DynamicResource Tip.AddCustomApi}"/>
                                     <Button Content="{DynamicResource Btn.Delete}" Command="{Binding CustomApis.DeleteCommand}"
-                                            Style="{StaticResource DangerButton}"
+                                            Style="{DynamicResource DangerButton}"
                                             ToolTip="{DynamicResource Tip.DeleteCustomApi}"/>
                                 </StackPanel>
                                 <ListBox ItemsSource="{Binding CustomApis.Definitions}"
                                          SelectedItem="{Binding CustomApis.Selected}"
-                                         BorderThickness="0" Background="{StaticResource Bg2}">
+                                         BorderThickness="0" Background="{DynamicResource Bg2}">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Margin="2">
@@ -1692,7 +1798,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
-                                            <TextBlock Text="{DynamicResource Section.Name}" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{DynamicResource Section.Name}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,4"/>
                                             <TextBox Text="{Binding CustomApis.Edit.Name, UpdateSourceTrigger=PropertyChanged}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
@@ -1701,10 +1807,10 @@
                                         </StackPanel>
                                     </Grid>
 
-                                    <Border Background="{StaticResource Bg2}" BorderBrush="{StaticResource BorderBrush0}"
+                                    <Border Background="{DynamicResource Bg2}" BorderBrush="{DynamicResource BorderBrush0}"
                                             BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,0,10">
                                         <StackPanel>
-                                            <TextBlock Text="{DynamicResource Section.Synthesis}" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                            <TextBlock Text="{DynamicResource Section.Synthesis}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,10"/>
 
                                             <Grid Margin="0,0,0,8">
                                                 <Grid.ColumnDefinitions>
@@ -1713,13 +1819,13 @@
                                                     <ColumnDefinition Width="90"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="{DynamicResource Lbl.Url}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.Url}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <TextBox Text="{Binding CustomApis.Edit.SynthUrl, UpdateSourceTrigger=PropertyChanged}"
                                                              FontFamily="Consolas" FontSize="12"
                                                              ToolTip="{DynamicResource Tip.SynthUrl}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="{DynamicResource Lbl.Method}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.Method}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <ComboBox ItemsSource="{Binding CustomApis.Edit.Methods}" SelectedItem="{Binding CustomApis.Edit.SynthMethod}"
                                                               ToolTip="{DynamicResource Tip.SynthMethod}">
                                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
@@ -1727,7 +1833,7 @@
                                                 </StackPanel>
                                             </Grid>
 
-                                            <TextBlock Text="{DynamicResource Lbl.BodyTemplate}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                            <TextBlock Text="{DynamicResource Lbl.BodyTemplate}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                             <TextBox Text="{Binding CustomApis.Edit.SynthBodyTemplate, UpdateSourceTrigger=PropertyChanged}"
                                                      FontFamily="Consolas" FontSize="12" AcceptsReturn="True"
                                                      TextWrapping="Wrap" MinHeight="60" Margin="0,0,0,8"
@@ -1742,7 +1848,7 @@
                                                     <ColumnDefinition Width="90"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="{DynamicResource Lbl.ResponseFormat}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.ResponseFormat}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <ComboBox ItemsSource="{Binding CustomApis.Edit.ResponseFormats}" SelectedItem="{Binding CustomApis.Edit.ResponseFormat}"
                                                               ToolTip="{DynamicResource Tip.ResponseFormat}">
                                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
@@ -1750,13 +1856,13 @@
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2"
                                                             Visibility="{Binding CustomApis.Edit.IsJsonResponse, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                    <TextBlock Text="{DynamicResource Lbl.JsonPath}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.JsonPath}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <TextBox Text="{Binding CustomApis.Edit.ResponseAudioPath, UpdateSourceTrigger=PropertyChanged}"
                                                              FontFamily="Consolas" FontSize="12"
                                                              ToolTip="{DynamicResource Tip.JsonAudioPath}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="4">
-                                                    <TextBlock Text="{DynamicResource Lbl.AudioFormat}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.AudioFormat}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <ComboBox ItemsSource="{Binding CustomApis.Edit.AudioFormats}" SelectedItem="{Binding CustomApis.Edit.AudioFormat}"
                                                               ToolTip="{DynamicResource Tip.AudioFormat}">
                                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
@@ -1764,7 +1870,7 @@
                                                 </StackPanel>
                                             </Grid>
 
-                                            <TextBlock Text="{DynamicResource Section.Headers}" Style="{StaticResource SectionLabel}" Margin="0,4,0,6"/>
+                                            <TextBlock Text="{DynamicResource Section.Headers}" Style="{DynamicResource SectionLabel}" Margin="0,4,0,6"/>
                                             <ItemsControl ItemsSource="{Binding CustomApis.Edit.SynthHeaders}" Margin="0,0,0,6">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
@@ -1791,10 +1897,10 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <Border Background="{StaticResource Bg2}" BorderBrush="{StaticResource BorderBrush0}"
+                                    <Border Background="{DynamicResource Bg2}" BorderBrush="{DynamicResource BorderBrush0}"
                                             BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,0,10">
                                         <StackPanel>
-                                            <TextBlock Text="{DynamicResource Section.Voices}" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                                            <TextBlock Text="{DynamicResource Section.Voices}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,10"/>
 
                                             <Grid Margin="0,0,0,8">
                                                 <Grid.ColumnDefinitions>
@@ -1803,13 +1909,13 @@
                                                     <ColumnDefinition Width="90"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="{DynamicResource Lbl.Url}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.Url}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <TextBox Text="{Binding CustomApis.Edit.VoicesUrl, UpdateSourceTrigger=PropertyChanged}"
                                                              FontFamily="Consolas" FontSize="12"
                                                              ToolTip="{DynamicResource Tip.VoicesUrl}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="{DynamicResource Lbl.Method}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.Method}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <ComboBox ItemsSource="{Binding CustomApis.Edit.Methods}" SelectedItem="{Binding CustomApis.Edit.VoicesMethod}"
                                                               ToolTip="{DynamicResource Tip.VoicesMethod}">
                                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
@@ -1826,26 +1932,26 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="{DynamicResource Lbl.ArrayPath}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.ArrayPath}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <TextBox Text="{Binding CustomApis.Edit.VoicesArrayPath, UpdateSourceTrigger=PropertyChanged}"
                                                              FontFamily="Consolas" FontSize="12"
                                                              ToolTip="{DynamicResource Tip.VoicesArrayPath}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="{DynamicResource Lbl.VoiceIdPath}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.VoiceIdPath}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <TextBox Text="{Binding CustomApis.Edit.VoiceIdField, UpdateSourceTrigger=PropertyChanged}"
                                                              FontFamily="Consolas" FontSize="12"
                                                              ToolTip="{DynamicResource Tip.VoiceIdFieldPath}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="4">
-                                                    <TextBlock Text="{DynamicResource Lbl.DisplayNamePath}" Style="{StaticResource MutedText}" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.DisplayNamePath}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
                                                     <TextBox Text="{Binding CustomApis.Edit.VoiceNameField, UpdateSourceTrigger=PropertyChanged}"
                                                              FontFamily="Consolas" FontSize="12"
                                                              ToolTip="{DynamicResource Tip.VoiceNameFieldPath}"/>
                                                 </StackPanel>
                                             </Grid>
 
-                                            <TextBlock Text="{DynamicResource Section.Headers}" Style="{StaticResource SectionLabel}" Margin="0,4,0,6"/>
+                                            <TextBlock Text="{DynamicResource Section.Headers}" Style="{DynamicResource SectionLabel}" Margin="0,4,0,6"/>
                                             <ItemsControl ItemsSource="{Binding CustomApis.Edit.VoicesHeaders}" Margin="0,0,0,6">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
@@ -1873,13 +1979,167 @@
                                     </Border>
 
                                     <Button Content="{DynamicResource Btn.SaveEngine}" HorizontalAlignment="Right" Padding="20,7"
-                                            Style="{StaticResource AccentButton}"
+                                            Style="{DynamicResource AccentButton}"
                                             Command="{Binding CustomApis.SaveCommand}"
                                             Margin="0,0,0,12"
                                             ToolTip="{DynamicResource Tip.SaveCustomApi}"/>
 
                                 </StackPanel>
                             </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- ─── Extensions ─── -->
+                    <TabItem Header="{DynamicResource Tab.Extensions}">
+                        <Grid Margin="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DockPanel Grid.Column="0">
+                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="Reload" Command="{Binding Extensions.ReloadCommand}"
+                                            Style="{DynamicResource AccentButton}" Padding="10,4" Margin="0,0,4,0"/>
+                                    <Button Content="Open Folder" Command="{Binding Extensions.OpenExtensionsFolderCommand}"
+                                            Padding="10,4"/>
+                                </StackPanel>
+                                <ListBox ItemsSource="{Binding Extensions.Items}"
+                                         SelectedItem="{Binding Extensions.Selected}"
+                                         BorderThickness="0" Background="{DynamicResource Bg2}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="2">
+                                                <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Status}" FontSize="11"
+                                                           Foreground="{DynamicResource TextMuted}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+
+                            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Extensions.Selected}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+
+                                    <TextBlock Text="{Binding Extensions.Selected.DisplayName}"
+                                               FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding Extensions.Selected.EngineId}"
+                                               FontFamily="Consolas" FontSize="11"
+                                               Foreground="{DynamicResource TextMuted}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="{Binding Extensions.Selected.Description}"
+                                               Foreground="{DynamicResource TextSecondary}" FontSize="12"
+                                               TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                    <Button Content="Open Extension Folder"
+                                            Command="{Binding Extensions.OpenFolderCommand}"
+                                            HorizontalAlignment="Left" Padding="14,6" Margin="0,0,0,16"/>
+
+                                    <ItemsControl ItemsSource="{Binding Extensions.Selected.InfoCards}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource Bg2}" BorderBrush="{DynamicResource BorderBrush0}"
+                                                        BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,8">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Header}" Style="{DynamicResource SectionLabel}" Margin="0,0,0,6"/>
+                                                        <TextBlock Text="{Binding Body}" TextWrapping="Wrap"
+                                                                   Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Settings section -->
+                                    <Border Background="{DynamicResource Bg2}" BorderBrush="{DynamicResource BorderBrush0}"
+                                            BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,8,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Extensions.HasSettings}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock Text="SETTINGS" Style="{DynamicResource SectionLabel}" Margin="0,0,0,10"/>
+
+                                            <ItemsControl ItemsSource="{Binding Extensions.SettingFields}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,0,0,8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="140"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+
+                                                            <TextBox Grid.Column="1"
+                                                                     Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}">
+                                                                <TextBox.Style>
+                                                                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsTextLike}" Value="False">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBox.Style>
+                                                            </TextBox>
+
+                                                            <CheckBox Grid.Column="1"
+                                                                      IsChecked="{Binding BoolValue}"
+                                                                      VerticalAlignment="Center">
+                                                                <CheckBox.Style>
+                                                                    <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsCheckbox}" Value="False">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </CheckBox.Style>
+                                                            </CheckBox>
+
+                                                            <ComboBox Grid.Column="1"
+                                                                      ItemsSource="{Binding Options}"
+                                                                      SelectedItem="{Binding Value}">
+                                                                <ComboBox.Style>
+                                                                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsDropdown}" Value="False">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </ComboBox.Style>
+                                                            </ComboBox>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <Button Content="Save Settings" Command="{Binding Extensions.SaveSettingsCommand}"
+                                                    Style="{DynamicResource AccentButton}"
+                                                    HorizontalAlignment="Left" Padding="14,6" Margin="0,8,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                </StackPanel>
+                            </ScrollViewer>
+
                         </Grid>
                     </TabItem>
 

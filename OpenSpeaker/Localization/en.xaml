@@ -7,9 +7,8 @@
     <sys:String x:Key="App.Title">OpenSpeaker</sys:String>
 
     <!-- Header bar -->
-    <sys:String x:Key="Btn.SilenceTts">🔇  Silence TTS</sys:String>
-    <sys:String x:Key="Btn.GenericSpeaker">🔊  Generic Speaker</sys:String>
-    <sys:String x:Key="Btn.SaveSettings">💾  Save Settings</sys:String>
+    <sys:String x:Key="Btn.GenericSpeaker">TTS Player</sys:String>
+    <sys:String x:Key="Btn.SaveSettings">Save Settings</sys:String>
     <sys:String x:Key="Chk.Enabled">Enabled</sys:String>
 
     <!-- Status bar -->
@@ -31,6 +30,7 @@
     <sys:String x:Key="Btn.Start">Start</sys:String>
     <sys:String x:Key="Btn.Stop">Stop</sys:String>
     <sys:String x:Key="Btn.Remove">Remove</sys:String>
+    <sys:String x:Key="Btn.Reload">Reload</sys:String>
     <sys:String x:Key="Btn.Del">Del</sys:String>
     <sys:String x:Key="Btn.Reset">Reset</sys:String>
     <sys:String x:Key="Btn.Browse">…</sys:String>
@@ -55,6 +55,7 @@
     <sys:String x:Key="Tab.VoiceAliases">Voice Aliases</sys:String>
     <sys:String x:Key="Tab.WebSocket">WebSocket</sys:String>
     <sys:String x:Key="Tab.CustomApis">Custom APIs</sys:String>
+    <sys:String x:Key="Tab.Extensions">Extensions</sys:String>
 
     <!-- Section labels -->
     <sys:String x:Key="Section.Queue">QUEUE</sys:String>
@@ -106,6 +107,7 @@
     <sys:String x:Key="Col.Ignored">Ignored</sys:String>
     <sys:String x:Key="Col.SayInput">Say Input</sys:String>
     <sys:String x:Key="Col.Command">Command</sys:String>
+    <sys:String x:Key="Col.Permissions">Permissions</sys:String>
     <sys:String x:Key="Col.Name">Name</sys:String>
     <sys:String x:Key="Col.Device">Device</sys:String>
     <sys:String x:Key="Col.Threshold">Threshold</sys:String>
@@ -114,7 +116,7 @@
     <sys:String x:Key="Col.Skip">Skip</sys:String>
     <sys:String x:Key="Col.Mode">Mode</sys:String>
     <sys:String x:Key="Col.Regex">Regex</sys:String>
-    <sys:String x:Key="Col.On">On</sys:String>
+    <sys:String x:Key="Col.On">Enabled</sys:String>
     <sys:String x:Key="Col.Pattern">Pattern</sys:String>
     <sys:String x:Key="Col.ReplaceWith">Replace With</sys:String>
 
@@ -208,7 +210,7 @@
     <sys:String x:Key="Chk.ChannelPoints">Channel Points</sys:String>
     <sys:String x:Key="Chk.SayUsername">Say Username</sys:String>
     <sys:String x:Key="Chk.StickyRandomVoice">Sticky Random Voice</sys:String>
-    <sys:String x:Key="Chk.SimultaneousMode">Simultaneous Mode</sys:String>
+    <sys:String x:Key="Lbl.QueueMode">Queue Mode</sys:String>
     <sys:String x:Key="Chk.OnlySayUsernameIfDifferent">Only say username if different</sys:String>
     <sys:String x:Key="Chk.ReplaceNameWithNickname">Replace %name% with nickname</sys:String>
     <sys:String x:Key="Chk.TreatSymbolsAsSpaces">Treat symbols as spaces</sys:String>
@@ -374,7 +376,7 @@
     <sys:String x:Key="Tip.SayUsername">Prepend the speaker's username before their message when reading aloud.</sys:String>
     <sys:String x:Key="Tip.UsernamePostfix">The word inserted between the username and message (e.g. "said").</sys:String>
     <sys:String x:Key="Tip.StickyRandomVoice">Assign each user a random voice that persists across sessions.</sys:String>
-    <sys:String x:Key="Tip.SimultaneousMode">When enabled, all incoming TTS requests are processed and played at the same time with no queue delay. Audio from multiple users overlaps simultaneously.</sys:String>
+    <sys:String x:Key="Tip.QueueMode">Sequential: messages play one at a time in order. Simultaneous: all messages play at the same time with no queue delay. Pre-generated: synthesis runs ahead of time for queued messages, but playback stays in order.</sys:String>
     <sys:String x:Key="Tip.UseHighlightVoice2">Use a specific voice alias for highlighted (channel point) messages.</sys:String>
     <sys:String x:Key="Tip.HighlightVoiceAliasInput">Voice alias name to use for highlighted messages.</sys:String>
     <sys:String x:Key="Tip.OnlySayUsernameIfDifferent">Only announce the username if it differs from the previous speaker.</sys:String>

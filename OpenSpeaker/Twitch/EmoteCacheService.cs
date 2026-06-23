@@ -1,6 +1,6 @@
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
-using OpenSpeaker.Infrastructure.Logging;
+using OpenSpeaker.ThingsIDKWhereToPut.Logging;
 using OpenSpeaker.Text;
 namespace OpenSpeaker.Twitch;
 

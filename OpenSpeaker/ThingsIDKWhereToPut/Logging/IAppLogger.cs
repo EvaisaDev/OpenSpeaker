@@ -1,4 +1,4 @@
-namespace OpenSpeaker.Infrastructure.Logging;
+namespace OpenSpeaker.ThingsIDKWhereToPut.Logging;
 public interface IAppLogger
 {
     void Debug(string message);

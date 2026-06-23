@@ -17,6 +17,7 @@ public class UserRecord
     public DateTime LastActive { get; set; } = DateTime.MinValue;
     public string Role { get; set; } = "Viewer";
     public List<PastVoiceEntry> PastVoices { get; set; } = new();
+    public override string ToString() => Username;
 }
 
 public class PastVoiceEntry

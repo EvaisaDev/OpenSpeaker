@@ -35,6 +35,11 @@ public class DatabaseContext : IDisposable
     public ILiteCollection<TwitchAccountInfo> TwitchAccounts => _db.GetCollection<TwitchAccountInfo>("twitchaccounts");
     public ILiteCollection<ChannelReward> ChannelRewards => _db.GetCollection<ChannelReward>("channelrewards");
     public ILiteCollection<CustomApiDefinition> CustomApis => _db.GetCollection<CustomApiDefinition>("customapis");
+    public ILiteCollection<ExtensionConfig> ExtensionConfigs => _db.GetCollection<ExtensionConfig>("extensionconfigs");
+    public ILiteCollection<ExtensionSettings> ExtensionSettings => _db.GetCollection<ExtensionSettings>("extensionsettings");
+
+    public ILiteCollection<BsonDocument> RawCollection(string name) => _db.GetCollection<BsonDocument>(name);
+    public void DropCollection(string name) => _db.DropCollection(name);
 
     public void Dispose() => _db.Dispose();
 }

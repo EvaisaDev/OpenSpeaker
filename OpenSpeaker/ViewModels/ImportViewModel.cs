@@ -1,32 +1,27 @@
+using System.Windows;
+using OpenSpeaker.Extensions;
 using OpenSpeaker.Import;
+using OpenSpeaker.Views;
 namespace OpenSpeaker.ViewModels;
 
 public class ImportViewModel : BaseViewModel
 {
     private readonly SpeakerBotImporter _importer;
+    private readonly ExtensionManager _extensions;
+    public Action? OnComplete { get; set; }
 
     private string _folderPath = string.Empty;
     public string FolderPath { get => _folderPath; set => SetField(ref _folderPath, value); }
 
-    private string _statusMessage = string.Empty;
-    public string StatusMessage
-    {
-        get => _statusMessage;
-        set { SetField(ref _statusMessage, value); OnPropertyChanged(nameof(HasStatusMessage)); }
-    }
-    public bool HasStatusMessage => !string.IsNullOrEmpty(_statusMessage);
-
-    private bool _isError;
-    public bool IsError { get => _isError; set => SetField(ref _isError, value); }
-
     public RelayCommand BrowseFolderCommand { get; }
-    public RelayCommand ImportCommand { get; }
+    public AsyncRelayCommand ImportCommand { get; }
 
-    public ImportViewModel(SpeakerBotImporter importer)
+    public ImportViewModel(SpeakerBotImporter importer, ExtensionManager extensions)
     {
         _importer = importer;
+        _extensions = extensions;
         BrowseFolderCommand = new RelayCommand(BrowseFolder);
-        ImportCommand = new RelayCommand(RunImport, () => !string.IsNullOrWhiteSpace(FolderPath));
+        ImportCommand = new AsyncRelayCommand(RunImport, () => !string.IsNullOrWhiteSpace(FolderPath));
     }
 
     private void BrowseFolder()
@@ -39,29 +34,30 @@ public class ImportViewModel : BaseViewModel
             FolderPath = dialog.SelectedPath;
     }
 
-    private void RunImport()
+    private async Task RunImport()
     {
-        StatusMessage = string.Empty;
-        IsError = false;
+        var vm = new ImportProgressViewModel();
+        var window = new ImportProgressWindow { DataContext = vm, Owner = Application.Current.MainWindow };
+
+        var stageProgress = new Progress<string>(vm.AdvanceStage);
+        var detailProgress = new Progress<string>(vm.AddDetail);
+        window.Show();
+
         try
         {
-            var result = _importer.Import(FolderPath);
+            var migration = _extensions.CollectMigrationData();
+            var result = await Task.Run(() => _importer.Import(FolderPath, stageProgress, detailProgress, migration));
+
+            foreach (var w in result.Warnings)
+                vm.AddWarning(w);
 
             var authStr = result.AuthImported ? "yes" : "no";
-            var lines = new List<string>
-            {
-                "Import complete — restart to apply all changes.",
-                $"  Users: {result.UsersImported}  |  Aliases: {result.AliasesImported}  |  Events: {result.EventsImported}  |  Rewards: {result.RewardsImported}  |  Engines: {result.EnginesImported}  |  Auth: {authStr}",
-            };
-            if (result.Warnings.Count > 0)
-                lines.AddRange(result.Warnings.Select(w => $"  Warning: {w}"));
-
-            StatusMessage = string.Join(Environment.NewLine, lines);
+            vm.SetComplete($"Users: {result.UsersImported}  |  Aliases: {result.AliasesImported}  |  Events: {result.EventsImported}  |  Rewards: {result.RewardsImported}  |  Engines: {result.EnginesImported}  |  Auth: {authStr}");
+            OnComplete?.Invoke();
         }
         catch (Exception ex)
         {
-            IsError = true;
-            StatusMessage = $"Import failed: {ex.Message}";
+            vm.SetError(ex.Message);
         }
     }
 }

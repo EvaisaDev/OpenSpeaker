@@ -43,7 +43,15 @@ public class VoiceGateViewModel : BaseViewModel, IDisposable
     public VoiceGateProfile? SelectedProfile { get => _selectedProfile; set => SetField(ref _selectedProfile, value); }
 
     private string _newProfileName = string.Empty;
-    public string NewProfileName { get => _newProfileName; set => SetField(ref _newProfileName, value); }
+    public string NewProfileName
+    {
+        get => _newProfileName;
+        set
+        {
+            if (SetField(ref _newProfileName, value))
+                System.Windows.Application.Current?.Dispatcher.InvokeAsync(System.Windows.Input.CommandManager.InvalidateRequerySuggested);
+        }
+    }
 
     public RelayCommand StartCommand { get; }
     public RelayCommand StopCommand { get; }
@@ -95,6 +103,7 @@ public class VoiceGateViewModel : BaseViewModel, IDisposable
         {
             DeviceId = _selectedDevice.Id,
             ThresholdDb = -(100 - _pauseThreshold),
+            ResumeThresholdDb = -(100 - _resumeThreshold),
             TimeoutMs = _resumeWaitMs,
             Name = "_active"
         };
@@ -116,6 +125,7 @@ public class VoiceGateViewModel : BaseViewModel, IDisposable
             Name = NewProfileName,
             DeviceId = _selectedDevice.Id,
             ThresholdDb = -(100 - _pauseThreshold),
+            ResumeThresholdDb = -(100 - _resumeThreshold),
             TimeoutMs = _resumeWaitMs,
             Enabled = true
         };

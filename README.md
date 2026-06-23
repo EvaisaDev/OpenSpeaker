@@ -23,3 +23,5 @@ Supports the following engines out of the box:
 - Resemble AI
 - Cartesia
 - LMNT
+
+To migrate from speakerbot just go into the general settings and scroll to the bottom!

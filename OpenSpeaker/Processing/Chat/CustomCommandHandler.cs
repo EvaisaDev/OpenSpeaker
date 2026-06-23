@@ -6,16 +6,16 @@ namespace OpenSpeaker.Chat;
 
 public class CustomCommandHandler : IChatCommandHandler
 {
-    private readonly DatabaseContext _db;
+    private readonly CustomCommandRepository _repo;
     private readonly PermissionChecker _permissionChecker;
     private readonly ITtsQueue _queue;
 
     public CustomCommandHandler(
-        DatabaseContext db,
+        CustomCommandRepository repo,
         PermissionChecker permissionChecker,
         ITtsQueue queue)
     {
-        _db = db;
+        _repo = repo;
         _permissionChecker = permissionChecker;
         _queue = queue;
     }
@@ -24,7 +24,7 @@ public class CustomCommandHandler : IChatCommandHandler
     {
         return await Task.Run(() =>
         {
-            var commands = _db.CustomCommands.FindAll().Where(c => c.Enabled);
+            var commands = _repo.GetAll().Where(c => c.Enabled);
             foreach (var cmd in commands)
             {
                 if (!rawMessage.StartsWith(cmd.Trigger, StringComparison.OrdinalIgnoreCase))
@@ -41,8 +41,7 @@ public class CustomCommandHandler : IChatCommandHandler
                 {
                     Text = text,
                     VoiceAliasName = cmd.VoiceAliasName,
-                    UserId = twitchId,
-                    ApplyBadWordFilter = true
+                    UserId = twitchId
                 });
 
                 return true;

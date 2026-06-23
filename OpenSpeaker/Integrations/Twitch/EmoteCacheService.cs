@@ -28,6 +28,16 @@ public class EmoteCacheService
         );
     }
 
+    private async Task<JToken?> GetJsonAsync(string url, string? token = null, string? clientId = null)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, url);
+        if (!string.IsNullOrEmpty(token)) req.Headers.Add("Authorization", $"Bearer {token}");
+        if (!string.IsNullOrEmpty(clientId)) req.Headers.Add("Client-Id", clientId);
+        var resp = await _http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return null;
+        return JToken.Parse(await resp.Content.ReadAsStringAsync());
+    }
+
     private async Task FetchTwitchEmotesAsync(string broadcasterId)
     {
         try
@@ -38,32 +48,16 @@ public class EmoteCacheService
 
             var emotes = new List<string>();
 
-            var globalReq = new HttpRequestMessage(HttpMethod.Get, "https://api.twitch.tv/helix/chat/emotes/global");
-            globalReq.Headers.Add("Authorization", $"Bearer {token}");
-            globalReq.Headers.Add("Client-Id", clientId);
-            var globalResp = await _http.SendAsync(globalReq);
-            if (globalResp.IsSuccessStatusCode)
-            {
-                var json = await globalResp.Content.ReadAsStringAsync();
-                var obj = JObject.Parse(json);
-                emotes.AddRange(obj["data"]?.Select(e => e["name"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
-            }
+            if (await GetJsonAsync("https://api.twitch.tv/helix/chat/emotes/global", token, clientId) is JObject globalObj)
+                emotes.AddRange(globalObj["data"]?.Select(e => e["name"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
 
-            var channelReq = new HttpRequestMessage(HttpMethod.Get, $"https://api.twitch.tv/helix/chat/emotes?broadcaster_id={broadcasterId}");
-            channelReq.Headers.Add("Authorization", $"Bearer {token}");
-            channelReq.Headers.Add("Client-Id", clientId);
-            var channelResp = await _http.SendAsync(channelReq);
-            if (channelResp.IsSuccessStatusCode)
-            {
-                var json = await channelResp.Content.ReadAsStringAsync();
-                var obj = JObject.Parse(json);
-                emotes.AddRange(obj["data"]?.Select(e => e["name"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
-            }
+            if (await GetJsonAsync($"https://api.twitch.tv/helix/chat/emotes?broadcaster_id={broadcasterId}", token, clientId) is JObject channelObj)
+                emotes.AddRange(channelObj["data"]?.Select(e => e["name"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
 
             _emoteStripper.SetTwitchEmotes(emotes);
             _logger?.Info($"TWITCH :: Loaded {emotes.Count} Twitch emotes");
         }
-        catch { }
+        catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to load Twitch emotes: {ex.Message}"); }
     }
 
     private async Task FetchBttvEmotesAsync(string broadcasterId)
@@ -72,19 +66,11 @@ public class EmoteCacheService
         {
             var emotes = new List<string>();
 
-            var globalResp = await _http.GetAsync("https://api.betterttv.net/3/cached/emotes/global");
-            if (globalResp.IsSuccessStatusCode)
-            {
-                var json = await globalResp.Content.ReadAsStringAsync();
-                var arr = JArray.Parse(json);
-                emotes.AddRange(arr.Select(e => e["code"]?.ToString() ?? "").Where(s => s.Length > 0));
-            }
+            if (await GetJsonAsync("https://api.betterttv.net/3/cached/emotes/global") is JArray globalArr)
+                emotes.AddRange(globalArr.Select(e => e["code"]?.ToString() ?? "").Where(s => s.Length > 0));
 
-            var channelResp = await _http.GetAsync($"https://api.betterttv.net/3/cached/users/twitch/{broadcasterId}");
-            if (channelResp.IsSuccessStatusCode)
+            if (await GetJsonAsync($"https://api.betterttv.net/3/cached/users/twitch/{broadcasterId}") is JObject obj)
             {
-                var json = await channelResp.Content.ReadAsStringAsync();
-                var obj = JObject.Parse(json);
                 emotes.AddRange(obj["channelEmotes"]?.Select(e => e["code"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
                 emotes.AddRange(obj["sharedEmotes"]?.Select(e => e["code"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
             }
@@ -92,7 +78,7 @@ public class EmoteCacheService
             _emoteStripper.SetBttvEmotes(emotes);
             _logger?.Info($"TWITCH :: Loaded {emotes.Count} BTTV emotes");
         }
-        catch { }
+        catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to load BTTV emotes: {ex.Message}"); }
     }
 
     private async Task FetchFfzEmotesAsync(string broadcasterId)
@@ -101,13 +87,10 @@ public class EmoteCacheService
         {
             var emotes = new List<string>();
 
-            var globalResp = await _http.GetAsync("https://api.frankerfacez.com/v1/set/global");
-            if (globalResp.IsSuccessStatusCode)
+            if (await GetJsonAsync("https://api.frankerfacez.com/v1/set/global") is JObject globalObj)
             {
-                var json = await globalResp.Content.ReadAsStringAsync();
-                var obj = JObject.Parse(json);
-                var defaultSets = obj["default_sets"]?.Select(s => s.ToString()).ToHashSet() ?? new HashSet<string>();
-                if (obj["sets"] is JObject sets)
+                var defaultSets = globalObj["default_sets"]?.Select(s => s.ToString()).ToHashSet() ?? new HashSet<string>();
+                if (globalObj["sets"] is JObject sets)
                     foreach (var set in sets.Properties())
                     {
                         if (!defaultSets.Contains(set.Name)) continue;
@@ -116,12 +99,9 @@ public class EmoteCacheService
                     }
             }
 
-            var channelResp = await _http.GetAsync($"https://api.frankerfacez.com/v1/room/id/{broadcasterId}");
-            if (channelResp.IsSuccessStatusCode)
+            if (await GetJsonAsync($"https://api.frankerfacez.com/v1/room/id/{broadcasterId}") is JObject channelObj)
             {
-                var json = await channelResp.Content.ReadAsStringAsync();
-                var obj = JObject.Parse(json);
-                if (obj["sets"] is JObject sets)
+                if (channelObj["sets"] is JObject sets)
                     foreach (var set in sets.Properties())
                         if (set.Value["emoticons"] is JArray emoticons)
                             emotes.AddRange(emoticons.Select(e => e["name"]?.ToString() ?? "").Where(s => s.Length > 0));
@@ -130,7 +110,7 @@ public class EmoteCacheService
             _emoteStripper.SetFfzEmotes(emotes);
             _logger?.Info($"TWITCH :: Loaded {emotes.Count} FFZ emotes");
         }
-        catch { }
+        catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to load FFZ emotes: {ex.Message}"); }
     }
 
     private async Task FetchSevenTvEmotesAsync(string broadcasterId)
@@ -139,25 +119,15 @@ public class EmoteCacheService
         {
             var emotes = new List<string>();
 
-            var globalResp = await _http.GetAsync("https://7tv.io/v3/emote-sets/global");
-            if (globalResp.IsSuccessStatusCode)
-            {
-                var json = await globalResp.Content.ReadAsStringAsync();
-                var obj = JObject.Parse(json);
-                emotes.AddRange(obj["emotes"]?.Select(e => e["name"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
-            }
+            if (await GetJsonAsync("https://7tv.io/v3/emote-sets/global") is JObject globalObj)
+                emotes.AddRange(globalObj["emotes"]?.Select(e => e["name"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
 
-            var channelResp = await _http.GetAsync($"https://7tv.io/v3/users/twitch/{broadcasterId}");
-            if (channelResp.IsSuccessStatusCode)
-            {
-                var json = await channelResp.Content.ReadAsStringAsync();
-                var obj = JObject.Parse(json);
-                emotes.AddRange(obj["emote_set"]?["emotes"]?.Select(e => e["name"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
-            }
+            if (await GetJsonAsync($"https://7tv.io/v3/users/twitch/{broadcasterId}") is JObject channelObj)
+                emotes.AddRange(channelObj["emote_set"]?["emotes"]?.Select(e => e["name"]?.ToString() ?? "").Where(s => s.Length > 0) ?? Enumerable.Empty<string>());
 
             _emoteStripper.SetSevenTvEmotes(emotes);
             _logger?.Info($"TWITCH :: Loaded {emotes.Count} 7TV emotes");
         }
-        catch { }
+        catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to load 7TV emotes: {ex.Message}"); }
     }
 }

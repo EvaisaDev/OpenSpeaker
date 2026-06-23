@@ -10,7 +10,7 @@ namespace OpenSpeaker.ViewModels;
 
 public class ReplacementViewModel : BaseViewModel
 {
-    private readonly DatabaseContext _db;
+    private readonly RegexReplacementRepository _regexRepo;
 
     public ObservableCollection<RegexReplacement> Replacements { get; } = new();
 
@@ -76,9 +76,12 @@ public class ReplacementViewModel : BaseViewModel
     public RelayCommand SaveReplacementCommand { get; }
     public RelayCommand ImportWordlistCommand { get; }
 
-    public ReplacementViewModel(DatabaseContext db, SettingsRepository settingsRepo)
+    private readonly IDialogService _dialogs;
+
+    public ReplacementViewModel(RegexReplacementRepository regexRepo, SettingsRepository settingsRepo, IDialogService? dialogs = null)
     {
-        _db = db;
+        _regexRepo = regexRepo;
+        _dialogs = dialogs ?? new DialogService();
 
         AddReplacementCommand    = new RelayCommand(AddReplacement,    () => !string.IsNullOrWhiteSpace(EditPattern));
         DeleteReplacementCommand = new RelayCommand(DeleteReplacement, () => _selectedItems.Count > 0);
@@ -98,7 +101,7 @@ public class ReplacementViewModel : BaseViewModel
     public void Refresh()
     {
         Replacements.Clear();
-        foreach (var r in _db.RegexReplacements.FindAll().OrderBy(r => r.Order))
+        foreach (var r in _regexRepo.GetAll().OrderBy(r => r.Order))
             Replacements.Add(r);
     }
 
@@ -152,7 +155,7 @@ public class ReplacementViewModel : BaseViewModel
             Enabled     = EditEnabled ?? true,
             Order       = Replacements.Count,
         };
-        _db.RegexReplacements.Insert(r);
+        _regexRepo.Insert(r);
         Replacements.Add(r);
         SelectedReplacement = r;
         _selectedItems = new List<RegexReplacement> { r };
@@ -164,7 +167,7 @@ public class ReplacementViewModel : BaseViewModel
         var toDelete = _selectedItems.ToList();
         foreach (var r in toDelete)
         {
-            _db.RegexReplacements.Delete(r.Id);
+            _regexRepo.Delete(r.Id);
             Replacements.Remove(r);
         }
         _selectedItems.Clear();
@@ -187,27 +190,23 @@ public class ReplacementViewModel : BaseViewModel
             if (EditIsRegex.HasValue) r.IsRegex = EditIsRegex.Value;
             if (EditWholeWord.HasValue) r.WholeWord = EditWholeWord.Value;
             if (EditEnabled.HasValue) r.Enabled = EditEnabled.Value;
-            _db.RegexReplacements.Upsert(r);
+            _regexRepo.Upsert(r);
         }
     }
 
     private void ImportWordlist()
     {
-        var dialog = new OpenFileDialog
-        {
-            Title  = "Import Word List",
-            Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
-        };
-        if (dialog.ShowDialog() != DialogResult.OK) return;
+        var path = _dialogs.PickFile("Text files (*.txt)|*.txt|All files (*.*)|*.*", "Import Word List");
+        if (path == null) return;
 
-        var lines     = File.ReadAllLines(dialog.FileName)
+        var lines     = File.ReadAllLines(path)
             .Select(l => l.Trim())
             .Where(l => !string.IsNullOrEmpty(l))
             .ToList();
-        var nextOrder = _db.RegexReplacements.Count();
+        var nextOrder = _regexRepo.Count();
         foreach (var word in lines)
         {
-            _db.RegexReplacements.Insert(new RegexReplacement
+            _regexRepo.Insert(new RegexReplacement
             {
                 Pattern     = word,
                 Replacement = string.Empty,

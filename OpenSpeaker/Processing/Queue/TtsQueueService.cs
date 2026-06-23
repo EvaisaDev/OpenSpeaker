@@ -10,18 +10,13 @@ namespace OpenSpeaker.Queue;
 public class TtsQueueService : ITtsQueue, IDisposable
 {
     private readonly BlockingCollection<TtsQueueItem> _queue = new();
-    private readonly TtsEngineRegistry _engineRegistry;
-    private readonly IAudioPlayer _audioPlayer;
+    private readonly TtsSynthesizer _synthesizer;
+    private readonly PlaybackCoordinator _playback;
     private readonly Func<IAudioPlayer> _playerFactory;
-    private readonly WavFileSaver _wavSaver;
     private readonly SettingsRepository _settingsRepo;
-    private readonly VoiceAliasRepository _aliasRepo;
-    private readonly UserService _userService;
     private readonly CancellationTokenSource _cts = new();
     private bool _paused = false;
     private readonly object _pauseLock = new();
-    private (string VoiceId, string EngineId) _lastUsedVoice;
-    private string _currentUserId = string.Empty;
     private readonly IAppLogger? _logger;
     private Task _pregenTail = Task.CompletedTask;
 
@@ -30,25 +25,19 @@ public class TtsQueueService : ITtsQueue, IDisposable
 
     public bool IsPaused => _paused;
     public int Count => _queue.Count;
-    public (string VoiceId, string EngineId) LastUsedVoice => _lastUsedVoice;
+    public (string VoiceId, string EngineId) LastUsedVoice => _synthesizer.LastUsedVoice;
 
     public TtsQueueService(
-        TtsEngineRegistry engineRegistry,
-        IAudioPlayer audioPlayer,
+        TtsSynthesizer synthesizer,
+        PlaybackCoordinator playback,
         Func<IAudioPlayer> playerFactory,
-        WavFileSaver wavSaver,
         SettingsRepository settingsRepo,
-        VoiceAliasRepository aliasRepo,
-        UserService userService,
         IAppLogger? logger = null)
     {
-        _engineRegistry = engineRegistry;
-        _audioPlayer = audioPlayer;
+        _synthesizer = synthesizer;
+        _playback = playback;
         _playerFactory = playerFactory;
-        _wavSaver = wavSaver;
         _settingsRepo = settingsRepo;
-        _aliasRepo = aliasRepo;
-        _userService = userService;
         _logger = logger;
 
         Task.Run(ProcessLoop);
@@ -76,10 +65,17 @@ public class TtsQueueService : ITtsQueue, IDisposable
                     var prevTail = _pregenTail;
                     _pregenTail = Task.Run(async () =>
                     {
-                        await prevTail;
-                        var result = await synthTask;
-                        if (result != null)
-                            await PlaySynthesisResultAsync(result, null);
+                        try { await prevTail; } catch { }
+                        try
+                        {
+                            var result = await synthTask;
+                            if (result != null)
+                                await PlaySynthesisResultAsync(result, null);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.Error($"PreGenerated playback failed: {ex.Message}");
+                        }
                     });
                     break;
 
@@ -90,79 +86,16 @@ public class TtsQueueService : ITtsQueue, IDisposable
         }
     }
 
-    private record SynthesisResult(
-        TtsQueueItem Item,
-        AudioData Audio,
-        string DeviceId,
-        string? SavedPath);
-
     private async Task<SynthesisResult?> SynthesizeItemAsync(TtsQueueItem item)
     {
-        var settings = _settingsRepo.GetSettings();
+        var result = await _synthesizer.SynthesizeAsync(
+            item,
+            () => ItemStarted?.Invoke(this, new QueueItemEventArgs { Item = item }));
 
-        ITtsEngine engine;
-        string voiceId;
-        SynthParams synthParams;
-        string deviceId;
-        string aliasName;
-
-        if (!string.IsNullOrEmpty(item.StickyVoiceEngineId))
-        {
-            engine     = _engineRegistry.GetEngine(item.StickyVoiceEngineId) ?? _engineRegistry.GetDefaultEngine();
-            voiceId    = item.StickyVoiceId;
-            synthParams = SynthParams.Empty;
-            deviceId   = settings.AudioOutputDeviceId;
-            aliasName  = item.VoiceAliasName;
-        }
-        else
-        {
-            var alias  = _aliasRepo.GetByName(item.VoiceAliasName)
-                ?? _aliasRepo.GetByName(settings.DefaultVoiceAlias)
-                ?? new VoiceAlias();
-            engine     = _engineRegistry.GetEngine(alias.EngineId) ?? _engineRegistry.GetDefaultEngine();
-            voiceId    = alias.VoiceId;
-            synthParams = SynthParams.FromJson(alias.EngineParamsJson);
-            deviceId   = !string.IsNullOrEmpty(alias.OutputDeviceId) ? alias.OutputDeviceId : settings.AudioOutputDeviceId;
-            aliasName  = !string.IsNullOrEmpty(alias.Name) ? alias.Name : item.VoiceAliasName;
-        }
-
-        _lastUsedVoice = (voiceId, engine.EngineId);
-        _currentUserId = item.UserId;
-        if (!string.IsNullOrEmpty(item.UserId) && !string.IsNullOrEmpty(voiceId))
-            _ = _userService.AddPastVoiceAsync(item.UserId, voiceId, engine.EngineId);
-
-        _logger?.Info($"QUEUE :: Processing '{item.Text}' engine={engine.EngineId} voiceId='{voiceId}' device='{deviceId}'");
-        ItemStarted?.Invoke(this, new QueueItemEventArgs { Item = item });
-
-        try
-        {
-            var audio = await engine.SynthesizeAsync(item.Text, voiceId, synthParams);
-            _logger?.Info($"QUEUE :: Synthesis done. IsEmpty={audio.IsEmpty}");
-            if (audio.IsEmpty)
-            {
-                ItemCompleted?.Invoke(this, new QueueItemEventArgs { Item = item });
-                return null;
-            }
-
-            string? savedPath = null;
-            if (settings.SaveTts && !string.IsNullOrEmpty(settings.SaveTtsFolder))
-            {
-                var paramValues = engine.GetParameters()
-                    .Select(p => synthParams.Str(p.Key, p.Default))
-                    .ToList();
-                savedPath = _wavSaver.Save(audio, settings.SaveTtsFolder,
-                    paramValues, aliasName,
-                    string.IsNullOrEmpty(item.Username) ? null : item.Username);
-            }
-
-            return new SynthesisResult(item, audio, deviceId, savedPath);
-        }
-        catch (Exception ex)
-        {
-            _logger?.Error($"TTS synthesis failed for engine {engine.EngineId}: {ex.Message}");
+        if (result == null)
             ItemCompleted?.Invoke(this, new QueueItemEventArgs { Item = item });
-            return null;
-        }
+
+        return result;
     }
 
     private async Task PlaySynthesisResultAsync(SynthesisResult result, IAudioPlayer? playerOverride)
@@ -172,7 +105,12 @@ public class TtsQueueService : ITtsQueue, IDisposable
         {
             _logger?.Info($"QUEUE :: IsSilent={result.Item.IsSilent} DisableAudioOutput={settings.DisableAudioOutput}");
             if (!result.Item.IsSilent && !settings.DisableAudioOutput)
-                await (playerOverride ?? _audioPlayer).PlayAsync(result.Audio, result.DeviceId, settings.ApplicationVolume);
+            {
+                while (_paused && !_cts.IsCancellationRequested)
+                    await Task.Delay(100);
+                if (!_cts.IsCancellationRequested)
+                    await _playback.PlayAsync(result.Item, result.Audio, result.DeviceId, settings.ApplicationVolume, playerOverride);
+            }
 
             ItemCompleted?.Invoke(this, new QueueItemEventArgs
             {
@@ -208,11 +146,8 @@ public class TtsQueueService : ITtsQueue, IDisposable
     {
         while (_queue.TryTake(out _)) { }
     }
-    public void Stop() => _audioPlayer.Stop();
-    public void StopUser(string userId)
-    {
-        if (_currentUserId == userId) _audioPlayer.Stop();
-    }
+    public void Stop() => _playback.Stop();
+    public void StopUser(string userId) => _playback.StopUser(userId);
     public void SkipUser(string userId)
     {
         var kept = new List<TtsQueueItem>();

@@ -47,13 +47,8 @@ public class EmoteStripper
             if (!isEmote && stripBttv && _bttvEmotes.Contains(word)) isEmote = true;
             if (!isEmote && stripFfz && _ffzEmotes.Contains(word)) isEmote = true;
             if (!isEmote && stripSevenTv && _sevenTvEmotes.Contains(word)) isEmote = true;
-            if (!isEmote && stripCheermotes)
-            {
-                if (messageCheermoteSet != null)
-                    isEmote = messageCheermoteSet.Contains(word);
-                else
-                    isEmote = CheermotePattern.IsMatch(word);
-            }
+            if (!isEmote && stripCheermotes && messageCheermoteSet != null)
+                isEmote = messageCheermoteSet.Contains(word);
 
             if (isEmote && allowFirst && !foundFirst)
             {

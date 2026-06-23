@@ -90,14 +90,17 @@ public class TwitchEventSubService : ITwitchService, IDisposable
         if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(broadcasterId)) return;
         try
         {
-            using var http = new System.Net.Http.HttpClient();
-            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-            http.DefaultRequestHeaders.Add("Client-Id", clientId);
+            var http = OpenSpeaker.Infrastructure.Http.HttpClientFactory.GetClient("twitch-helix");
             var body = System.Text.Json.JsonSerializer.Serialize(new { broadcaster_id = broadcasterId, sender_id = broadcasterId, message });
-            await http.PostAsync("https://api.twitch.tv/helix/chat/messages",
-                new System.Net.Http.StringContent(body, System.Text.Encoding.UTF8, "application/json"));
+            var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, "https://api.twitch.tv/helix/chat/messages")
+            {
+                Content = new System.Net.Http.StringContent(body, System.Text.Encoding.UTF8, "application/json")
+            };
+            req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            req.Headers.Add("Client-Id", clientId);
+            await http.SendAsync(req);
         }
-        catch { }
+        catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to send chat message: {ex.Message}"); }
     }
 
     private async Task OnWebsocketConnected(object? sender, WebsocketConnectedArgs e)
@@ -131,14 +134,14 @@ public class TwitchEventSubService : ITwitchService, IDisposable
                     var modsResponse = await _api.Helix.Moderation.GetModeratorsAsync(broadcasterId);
                     _logger?.Info($"TWITCH :: Found {modsResponse.Data.Length} moderators for the channel {login}");
                 }
-                catch { }
+                catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to fetch moderators: {ex.Message}"); }
 
                 try
                 {
                     var subsResponse = await _api.Helix.Subscriptions.GetBroadcasterSubscriptionsAsync(broadcasterId);
                     _logger?.Info($"TWITCH :: {displayName} has {subsResponse.Total} subscriptions.");
                 }
-                catch { }
+                catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to fetch subscriptions: {ex.Message}"); }
 
                 _logger?.Info("TWITCH :: Twitch PubSub Connected");
                 _logger?.Info("TWITCH :: Twitch Chat Client Connected");

@@ -93,29 +93,15 @@ public class ElevenLabsEngine : ITtsEngine
         request.Headers.Add("xi-api-key", _apiKey);
         request.Headers.Add("Accept", "audio/mpeg");
 
-        try
+        var response = await _http.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
         {
-            var response = await _http.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                var err = await response.Content.ReadAsStringAsync();
-                System.Diagnostics.Debug.WriteLine($"[ElevenLabs] Synthesis failed {(int)response.StatusCode}: {err}");
-                throw new Exception($"ElevenLabs synthesis failed ({(int)response.StatusCode}): {err}");
-            }
+            var err = await response.Content.ReadAsStringAsync();
+            throw new Exception($"ElevenLabs synthesis failed ({(int)response.StatusCode}): {err}");
+        }
 
-            var mp3Bytes = await response.Content.ReadAsByteArrayAsync();
-            using var ms = new MemoryStream(mp3Bytes);
-            using var reader = new Mp3FileReader(ms);
-            using var pcmStream = WaveFormatConversionStream.CreatePcmStream(reader);
-            using var pcmMs = new MemoryStream();
-            await pcmStream.CopyToAsync(pcmMs);
-            return new AudioData { Samples = pcmMs.ToArray(), Format = pcmStream.WaveFormat };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[ElevenLabs] SynthesizeAsync exception: {ex.Message}");
-            throw;
-        }
+        var mp3Bytes = await response.Content.ReadAsByteArrayAsync();
+        return await AudioDecoder.DecodeAsync(mp3Bytes);
     }
 
     public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()

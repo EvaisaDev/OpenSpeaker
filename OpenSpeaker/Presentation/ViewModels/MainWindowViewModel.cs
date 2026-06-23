@@ -4,7 +4,7 @@ using OpenSpeaker.Import;
 using OpenSpeaker.Views;
 namespace OpenSpeaker.ViewModels;
 
-public class MainWindowViewModel : BaseViewModel
+public class MainWindowViewModel : BaseViewModel, IDisposable
 {
     private readonly AppBootstrapper _boot;
 
@@ -38,7 +38,7 @@ public class MainWindowViewModel : BaseViewModel
         set
         {
             SetField(ref _isEnabled, value);
-            ServiceLocator.Instance?.Orchestrator.SetEnabled(value);
+            _boot.Orchestrator.SetEnabled(value);
         }
     }
 
@@ -63,14 +63,14 @@ public class MainWindowViewModel : BaseViewModel
         CustomCommands = new CustomCommandsViewModel(boot.CustomCommandRepo, boot.AliasRepo);
         ChannelRewards = new ChannelRewardsViewModel(boot.ChannelRewardRepo, boot.TwitchAuth, boot.AliasRepo);
         QueueStatus = new QueueStatusViewModel(boot.Queue);
-        GeneralSettings = new GeneralSettingsViewModel(boot.SettingsRepo, boot.DeviceEnumerator);
+        GeneralSettings = new GeneralSettingsViewModel(boot.SettingsRepo, boot.DeviceEnumerator, boot.AliasRepo);
         Accounts = new AccountsViewModel(boot.TwitchAuth, boot.SettingsRepo);
         Accounts.SetTwitchService(boot.Twitch);
         VoiceGate = new VoiceGateViewModel(boot.VoiceGate, boot.Database, boot.DeviceEnumerator);
         SpeechEngines = new SpeechEnginesViewModel(boot.Database, boot.EngineRegistry, boot.VoicePool, boot.Extensions, boot.Logger);
-        IgnoredVoices = new IgnoredVoicesViewModel(boot.Database, boot.EngineRegistry, boot.VoicePool);
-        SpeakingOptions = new SpeakingOptionsViewModel(boot.SettingsRepo, boot.EmoteCache, boot.Twitch);
-        Replacement = new ReplacementViewModel(boot.Database, boot.SettingsRepo);
+        IgnoredVoices = new IgnoredVoicesViewModel(boot.Database, boot.VoicePool);
+        SpeakingOptions = new SpeakingOptionsViewModel(boot.SettingsRepo, boot.EmoteCache, boot.Twitch, boot.AliasRepo);
+        Replacement = new ReplacementViewModel(boot.RegexReplacementRepo, boot.SettingsRepo);
         VoiceAliases = new VoiceAliasListViewModel(boot.AliasRepo, boot.EngineRegistry, boot.VoicePool, boot.DeviceEnumerator, boot.UserRepo, () => Users.AllUsers, boot.Logger);
         WebSocketServer = new WebSocketServerViewModel(boot.WsServer, boot.SettingsRepo);
         UdpServer = new UdpServerViewModel(boot.UdpServer, boot.SettingsRepo);
@@ -83,6 +83,8 @@ public class MainWindowViewModel : BaseViewModel
             OnComplete = () =>
             {
                 boot.SettingsRepo.Invalidate();
+                boot.CustomCommandRepo.Invalidate();
+                boot.RegexReplacementRepo.Invalidate();
                 Users.Refresh();
                 VoiceAliases.Refresh();
                 SpeechEngines.Refresh();
@@ -98,7 +100,11 @@ public class MainWindowViewModel : BaseViewModel
             }
         };
 
-        boot.Twitch.ChatMessage += (_, e) => Users.OnChatMessage(e.UserId);
+        boot.Twitch.ChatMessage += (_, e) =>
+        {
+            Users.OnChatMessage(e.UserId);
+            VoiceAliases.NotifyUserActivity(e.UserId);
+        };
 
         SilenceTtsCommand = new AsyncRelayCommand(SilenceTtsAsync);
         GenericSpeakCommand = new AsyncRelayCommand(GenericSpeakAsync);
@@ -122,5 +128,9 @@ public class MainWindowViewModel : BaseViewModel
         await Task.CompletedTask;
     }
 
-
+    public void Dispose()
+    {
+        VoiceGate.Dispose();
+        VoiceAliases.Dispose();
+    }
 }

@@ -67,13 +67,9 @@ public class TikTokEngine : ITtsEngine
                 throw new InvalidOperationException($"TikTok TTS API returned no audio. Response: {responseText}");
 
             var mp3Bytes = Convert.FromBase64String(b64);
-            using var ms = new MemoryStream(mp3Bytes);
-            using var reader = new Mp3FileReader(ms);
-            using var pcmStream = WaveFormatConversionStream.CreatePcmStream(reader);
-            using var pcmMs = new MemoryStream();
-            await pcmStream.CopyToAsync(pcmMs);
-            format ??= pcmStream.WaveFormat;
-            pcmChunks.Add(pcmMs.ToArray());
+            var decoded = await AudioDecoder.DecodeAsync(mp3Bytes);
+            format ??= decoded.Format;
+            pcmChunks.Add(decoded.Samples);
         }
 
         if (pcmChunks.Count == 0 || format == null) return AudioData.Empty;

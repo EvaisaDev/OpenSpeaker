@@ -33,7 +33,7 @@ public class TtsEngineRegistry : IDisposable
 
         if (!_engines.ContainsKey(EngineIds.Sapi5))
         {
-            _engines[EngineIds.Sapi5] = _factory.Create(sapi5Config);
+            _engines[EngineIds.Sapi5] = _factory.Create(sapi5Config, _logger);
             _displayNames[EngineIds.Sapi5] = TtsEngineFactory.GetDisplayName(EngineIds.Sapi5);
         }
 
@@ -62,7 +62,7 @@ public class TtsEngineRegistry : IDisposable
             }
             else
             {
-                _engines[config.EngineId] = _factory.Create(config);
+                _engines[config.EngineId] = _factory.Create(config, _logger);
                 _displayNames[config.EngineId] = TtsEngineFactory.GetDisplayName(config.EngineId);
             }
         }
@@ -86,11 +86,16 @@ public class TtsEngineRegistry : IDisposable
     public string GetDisplayName(string engineId) =>
         _displayNames.TryGetValue(engineId, out var name) ? name : engineId;
 
-    public void Reload()
+    private void DisposeOwnedEngines()
     {
         foreach (var kv in _engines)
             if (!kv.Key.StartsWith("ext:", StringComparison.Ordinal))
                 kv.Value.Dispose();
+    }
+
+    public void Reload()
+    {
+        DisposeOwnedEngines();
         _engines.Clear();
         _displayNames.Clear();
         LoadEngines();
@@ -98,9 +103,7 @@ public class TtsEngineRegistry : IDisposable
 
     public void Dispose()
     {
-        foreach (var kv in _engines)
-            if (!kv.Key.StartsWith("ext:", StringComparison.Ordinal))
-                kv.Value.Dispose();
+        DisposeOwnedEngines();
         _engines.Clear();
     }
 }

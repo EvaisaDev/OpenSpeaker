@@ -69,9 +69,8 @@ public class UdpCommandRouter
                 var eventsReq = request as UdpEventsRequest;
                 if (eventsReq != null)
                 {
-                    var settings = _settingsRepo.GetSettings();
-                    settings.EventsEnabled = eventsReq.State.ToLower() == "on";
-                    _settingsRepo.SaveSettings(settings);
+                    var enabled = eventsReq.State.ToLower() == "on";
+                    _settingsRepo.Update(s => s.EventsEnabled = enabled);
                 }
                 break;
 

@@ -6,26 +6,30 @@ public class TwitchAuthService
 {
     private readonly DatabaseContext _db;
     private TwitchAccountInfo? _cached;
+    private readonly object _lock = new();
 
     public TwitchAuthService(DatabaseContext db)
     {
         _db = db;
     }
 
-    public TwitchAccountInfo? GetAccount() =>
-        _cached ??= _db.TwitchAccounts.FindById(1);
+    public TwitchAccountInfo? GetAccount()
+    {
+        lock (_lock)
+            return _cached ??= _db.TwitchAccounts.FindById(1);
+    }
 
     public void SaveAccount(TwitchAccountInfo info)
     {
         info.Id = 1;
         _db.TwitchAccounts.Upsert(info);
-        _cached = info;
+        lock (_lock) { _cached = info; }
     }
 
     public void ClearAccount()
     {
         _db.TwitchAccounts.Delete(1);
-        _cached = null;
+        lock (_lock) { _cached = null; }
     }
 
     public bool HasValidAccount()

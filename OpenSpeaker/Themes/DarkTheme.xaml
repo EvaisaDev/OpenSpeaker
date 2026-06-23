@@ -19,13 +19,9 @@
     <SolidColorBrush x:Key="TextSecondary" Color="#C0C0D8"/>
     <SolidColorBrush x:Key="TextMuted" Color="#808098"/>
     <SolidColorBrush x:Key="TextDisabled" Color="#505068"/>
-    <SolidColorBrush x:Key="GreenBrush" Color="#10B981"/>
     <SolidColorBrush x:Key="YellowBrush" Color="#F59E0B"/>
-    <SolidColorBrush x:Key="RedBrush" Color="#EF4444"/>
-    <SolidColorBrush x:Key="BlueBrush" Color="#3B82F6"/>
-    <SolidColorBrush x:Key="SelectedRowBrush" Color="#2D1B69"/>
     <SolidColorBrush x:Key="HoverRowBrush" Color="#252540"/>
-    <SolidColorBrush x:Key="Transparent" Color="Transparent"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#7F1D1D"/>
 
     <!-- Converters -->
     <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
@@ -183,7 +179,7 @@
 
     <!-- Danger Button -->
     <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
-        <Setter Property="Background" Value="#7F1D1D"/>
+        <Setter Property="Background" Value="{StaticResource DangerBrush}"/>
         <Setter Property="Foreground" Value="White"/>
     </Style>
 
@@ -360,7 +356,7 @@
                                                                     <VisualBrush.Visual>
                                                                         <StackPanel Orientation="Horizontal">
                                                                             <Border Width="8"/>
-                                                                            <TextBlock Text="Search..." Foreground="#808098" FontFamily="Segoe UI" FontSize="12"/>
+                                                                            <TextBlock Text="Search..." Foreground="{StaticResource TextMuted}" FontFamily="Segoe UI" FontSize="12"/>
                                                                         </StackPanel>
                                                                     </VisualBrush.Visual>
                                                                 </VisualBrush>
@@ -794,15 +790,6 @@
         <Setter Property="Margin" Value="0,0,0,6"/>
     </Style>
 
-    <!-- Card panel -->
-    <Style x:Key="Card" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource Bg2}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush0}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="6"/>
-        <Setter Property="Padding" Value="12"/>
-    </Style>
-
     <!-- Muted label style -->
     <Style x:Key="MutedText" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
@@ -858,20 +845,4 @@
         </Setter>
     </Style>
 
-    <!-- Tag/badge style -->
-    <Style x:Key="TagGreen" TargetType="Border">
-        <Setter Property="Background" Value="#14532D"/>
-        <Setter Property="CornerRadius" Value="3"/>
-        <Setter Property="Padding" Value="6,2"/>
-    </Style>
-    <Style x:Key="TagRed" TargetType="Border">
-        <Setter Property="Background" Value="#7F1D1D"/>
-        <Setter Property="CornerRadius" Value="3"/>
-        <Setter Property="Padding" Value="6,2"/>
-    </Style>
-    <Style x:Key="TagBlue" TargetType="Border">
-        <Setter Property="Background" Value="#1E3A5F"/>
-        <Setter Property="CornerRadius" Value="3"/>
-        <Setter Property="Padding" Value="6,2"/>
-    </Style>
 </ResourceDictionary>

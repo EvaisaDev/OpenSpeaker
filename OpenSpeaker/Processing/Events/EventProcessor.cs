@@ -52,8 +52,7 @@ public class EventProcessor : IEventProcessor
             {
                 Text = text,
                 VoiceAliasName = alias,
-                SourceEvent = eventType,
-                ApplyBadWordFilter = false
+                SourceEvent = eventType
             });
         });
     }

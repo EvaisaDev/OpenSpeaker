@@ -44,7 +44,7 @@ public class ChatService
     private async void OnChatMessage(object? sender, Twitch.TwitchEventArgs.ChatMessageEventArgs e)
     {
         _logger?.Info($"CHAT :: Message from {e.Username}: {e.Message}");
-        _ = _userService.TouchLastActiveAsync(e.UserId, e.Username);
+        _userService.TouchLastActiveAsync(e.UserId, e.Username).Forget(_logger, "TouchLastActive");
         if (await _builtIn.HandleAsync(e.UserId, e.Username, e.Roles, e.Message)) { _logger?.Info("CHAT :: Handled as built-in command"); return; }
         if (await _custom.HandleAsync(e.UserId, e.Username, e.Roles, e.Message)) { _logger?.Info("CHAT :: Handled as custom command"); return; }
 

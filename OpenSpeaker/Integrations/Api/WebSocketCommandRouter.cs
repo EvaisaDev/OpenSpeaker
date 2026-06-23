@@ -116,9 +116,8 @@ public class WebSocketCommandRouter
                     var eventsReq = request as EventsRequest;
                     if (eventsReq != null)
                     {
-                        var settings = _settingsRepo.GetSettings();
-                        settings.EventsEnabled = eventsReq.State.ToLower() == "on";
-                        _settingsRepo.SaveSettings(settings);
+                        var enabled = eventsReq.State.ToLower() == "on";
+                        _settingsRepo.Update(s => s.EventsEnabled = enabled);
                     }
                     return ApiResponse.Ok(request.Id);
 
@@ -126,18 +125,16 @@ public class WebSocketCommandRouter
                     var modeReq = request as ModeRequest;
                     if (modeReq != null)
                     {
-                        var settings = _settingsRepo.GetSettings();
                         if (modeReq.Mode.ToLower() == "command")
                         {
-                            if (settings.TtsCommands.Count == 0)
+                            if (_settingsRepo.GetSettings().TtsCommands.Count == 0)
                                 return ApiResponse.Err(request.Id, "No TTS commands configured.");
-                            settings.Mode = TtsModes.Command;
+                            _settingsRepo.Update(s => s.Mode = TtsModes.Command);
                         }
                         else
                         {
-                            settings.Mode = TtsModes.Everything;
+                            _settingsRepo.Update(s => s.Mode = TtsModes.Everything);
                         }
-                        _settingsRepo.SaveSettings(settings);
                     }
                     return ApiResponse.Ok(request.Id);
 

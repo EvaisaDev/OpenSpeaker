@@ -32,7 +32,6 @@ public class TtsOrchestrator : ITtsOrchestrator
         {
             Text = sanitized,
             VoiceAliasName = voiceAliasName,
-            ApplyBadWordFilter = false,
             IsSilent = silent
         };
 
@@ -44,11 +43,11 @@ public class TtsOrchestrator : ITtsOrchestrator
             {
                 if (e.Item == item)
                 {
-                    ((OpenSpeaker.Queue.TtsQueueService)_queue).ItemCompleted -= handler;
+                    _queue.ItemCompleted -= handler;
                     tcs.TrySetResult(e.OutputFilePath);
                 }
             };
-            ((OpenSpeaker.Queue.TtsQueueService)_queue).ItemCompleted += handler;
+            _queue.ItemCompleted += handler;
             _queue.Enqueue(item);
 
             var timeoutTask = Task.Delay(TimeSpan.FromSeconds(Core.Constants.SpeakTimeoutSeconds));
@@ -70,8 +69,6 @@ public class TtsOrchestrator : ITtsOrchestrator
 
     public void SetEnabled(bool enabled)
     {
-        var settings = _settingsRepo.GetSettings();
-        settings.Enabled = enabled;
-        _settingsRepo.SaveSettings(settings);
+        _settingsRepo.Update(s => s.Enabled = enabled);
     }
 }

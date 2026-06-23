@@ -21,11 +21,9 @@ public class EventMessageViewModel : BaseViewModel
     public EventMessageViewModel(EventMessage model) { _model = model; }
 }
 
-public class EventsViewModel : BaseViewModel
+public class EventsViewModel : SettingsViewModelBase
 {
     private readonly EventConfigRepository _repo;
-    private readonly SettingsRepository _settingsRepo;
-    private AppSettings _settings;
 
     public ObservableCollection<EventTypeItem> EventTypes { get; } = new();
     public ObservableCollection<EventMessageViewModel> Messages { get; } = new();
@@ -69,14 +67,14 @@ public class EventsViewModel : BaseViewModel
 
     public bool GlobalEventsEnabled
     {
-        get => _settings.EventsEnabled;
-        set { _settings.EventsEnabled = value; OnPropertyChanged(); SaveSettings(); }
+        get => Settings.EventsEnabled;
+        set => Set(s => s.EventsEnabled = value);
     }
 
     public string GlobalVoiceAlias
     {
-        get => _settings.GlobalEventVoiceAlias;
-        set { _settings.GlobalEventVoiceAlias = value; OnPropertyChanged(); SaveSettings(); }
+        get => Settings.GlobalEventVoiceAlias;
+        set => Set(s => s.GlobalEventVoiceAlias = value);
     }
 
     public bool FollowsEnabled { get => GetState(Models.EventTypes.Follow).Enabled; set { GetState(Models.EventTypes.Follow).Enabled = value; SaveEvent(Models.EventTypes.Follow); OnPropertyChanged(); } }
@@ -96,10 +94,9 @@ public class EventsViewModel : BaseViewModel
     public RelayCommand SaveMessageCommand { get; }
 
     public EventsViewModel(EventConfigRepository repo, SettingsRepository settingsRepo, VoiceAliasRepository aliasRepo)
+        : base(settingsRepo)
     {
         _repo = repo;
-        _settingsRepo = settingsRepo;
-        _settings = settingsRepo.GetSettings();
 
         _repo.EnsureAllEventTypes();
 
@@ -143,9 +140,9 @@ public class EventsViewModel : BaseViewModel
         if (cfg != null) _repo.Upsert(cfg);
     }
 
-    public void Refresh()
+    public override void Refresh()
     {
-        _settings = _settingsRepo.GetSettings();
+        Settings = SettingsRepo.GetSettings();
         OnPropertyChanged(nameof(GlobalEventsEnabled));
         OnPropertyChanged(nameof(GlobalVoiceAlias));
         LoadEvent();
@@ -208,6 +205,4 @@ public class EventsViewModel : BaseViewModel
         if (_currentConfig == null) return;
         _repo.Upsert(_currentConfig);
     }
-
-    private void SaveSettings() => _settingsRepo.SaveSettings(_settings);
 }

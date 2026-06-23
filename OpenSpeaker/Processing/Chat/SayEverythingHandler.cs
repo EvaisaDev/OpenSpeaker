@@ -7,6 +7,7 @@ using OpenSpeaker.Text;
 using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Twitch;
 using OpenSpeaker.Users;
+using System.Collections.Concurrent;
 namespace OpenSpeaker.Chat;
 
 public class SayEverythingHandler
@@ -22,7 +23,8 @@ public class SayEverythingHandler
     private readonly IAppLogger? _logger;
 
     private string _lastSpeakingUser = string.Empty;
-    private readonly Dictionary<string, DateTime> _lastSpoke = new();
+    private readonly ConcurrentDictionary<string, DateTime> _lastSpoke = new();
+    private DateTime _lastSpokePrune = DateTime.UtcNow;
 
     public SayEverythingHandler(
         SettingsRepository settingsRepo,
@@ -75,6 +77,14 @@ public class SayEverythingHandler
             if (_lastSpoke.TryGetValue(twitchId, out var last) && (now - last).TotalSeconds < settings.CooldownSeconds)
             { _logger?.Info($"SAY :: Dropped - cooldown ({settings.CooldownSeconds}s)"); return; }
             _lastSpoke[twitchId] = now;
+
+            if ((now - _lastSpokePrune).TotalSeconds > settings.CooldownSeconds)
+            {
+                _lastSpokePrune = now;
+                foreach (var entry in _lastSpoke)
+                    if ((now - entry.Value).TotalSeconds >= settings.CooldownSeconds)
+                        _lastSpoke.TryRemove(entry.Key, out _);
+            }
         }
 
         var sanitized = _sanitizer.Sanitize(message, true, messageEmotes, messageCheermotes);
@@ -86,9 +96,9 @@ public class SayEverythingHandler
             var ctx = new MessageFilterContext(
                 twitchId, username, displayName, user.Nickname,
                 isSubscriber,
-                roles.Contains("moderator", StringComparer.OrdinalIgnoreCase),
-                roles.Contains("vip", StringComparer.OrdinalIgnoreCase),
-                roles.Contains("broadcaster", StringComparer.OrdinalIgnoreCase),
+                roles.Contains(UserRoles.Moderator, StringComparer.OrdinalIgnoreCase),
+                roles.Contains(UserRoles.VIP, StringComparer.OrdinalIgnoreCase),
+                roles.Contains(UserRoles.Broadcaster, StringComparer.OrdinalIgnoreCase),
                 user.IsRegular, user.IsIgnored, user.IsForced
             );
             sanitized = await _extensions.ProcessMessageAsync(ctx, sanitized);

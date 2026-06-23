@@ -4,13 +4,11 @@ using LiteDB;
 using OpenSpeaker.Data;
 using OpenSpeaker.Models;
 using OpenSpeaker.Services;
-using OpenSpeaker.TTS;
 namespace OpenSpeaker.ViewModels;
 
 public class IgnoredVoicesViewModel : BaseViewModel
 {
     private readonly DatabaseContext _db;
-    private readonly TtsEngineRegistry _registry;
     private readonly VoicePool _voicePool;
 
     public ObservableCollection<string> AvailableVoices { get; } = new();
@@ -55,10 +53,9 @@ public class IgnoredVoicesViewModel : BaseViewModel
     private readonly List<string> _allVoices = new();
     private readonly List<string> _allLocales = new();
 
-    public IgnoredVoicesViewModel(DatabaseContext db, TtsEngineRegistry registry, VoicePool voicePool)
+    public IgnoredVoicesViewModel(DatabaseContext db, VoicePool voicePool)
     {
         _db = db;
-        _registry = registry;
         _voicePool = voicePool;
 
         IgnoreVoiceCommand = new RelayCommand(IgnoreVoice, () => SelectedAvailableVoice != null);

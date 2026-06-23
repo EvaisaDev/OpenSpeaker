@@ -1,17 +1,16 @@
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.Text;
 
 public class RegexReplacer
 {
-    public string Replace(string message, IEnumerable<RegexReplacement> replacements)
+    private static readonly ConcurrentDictionary<string, Regex> _compiled = new();
+
+    private static Regex? GetRegex(string pattern)
     {
-        foreach (var r in replacements.Where(x => x.Enabled).OrderBy(x => x.Order))
-        {
-            message = ApplySingle(message, r);
-            if (string.IsNullOrEmpty(message)) return string.Empty;
-        }
-        return message;
+        try { return _compiled.GetOrAdd(pattern, p => new Regex(p, RegexOptions.IgnoreCase | RegexOptions.Compiled, TimeSpan.FromSeconds(1))); }
+        catch { return null; }
     }
 
     public string ApplySingle(string message, RegexReplacement r)
@@ -24,13 +23,16 @@ public class RegexReplacer
             bool skip;
             if (r.IsRegex)
             {
-                try { skip = Regex.IsMatch(message, r.Pattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1)); }
+                var rx = GetRegex(r.Pattern);
+                if (rx == null) return message;
+                try { skip = rx.IsMatch(message); }
                 catch { return message; }
             }
             else if (r.WholeWord)
             {
-                var wbPattern = $@"\b{Regex.Escape(r.Pattern)}\b";
-                try { skip = Regex.IsMatch(message, wbPattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1)); }
+                var rx = GetRegex($@"\b{Regex.Escape(r.Pattern)}\b");
+                if (rx == null) return message;
+                try { skip = rx.IsMatch(message); }
                 catch { return message; }
             }
             else
@@ -43,13 +45,16 @@ public class RegexReplacer
         {
             if (r.IsRegex)
             {
-                try { return Regex.Replace(message, r.Pattern, r.Replacement, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1)); }
+                var rx = GetRegex(r.Pattern);
+                if (rx == null) return message;
+                try { return rx.Replace(message, r.Replacement); }
                 catch { return message; }
             }
             else if (r.WholeWord)
             {
-                var wbPattern = $@"\b{Regex.Escape(r.Pattern)}\b";
-                try { return Regex.Replace(message, wbPattern, r.Replacement, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1)); }
+                var rx = GetRegex($@"\b{Regex.Escape(r.Pattern)}\b");
+                if (rx == null) return message;
+                try { return rx.Replace(message, r.Replacement); }
                 catch { return message; }
             }
             else

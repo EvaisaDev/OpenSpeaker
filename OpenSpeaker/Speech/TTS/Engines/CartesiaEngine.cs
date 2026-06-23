@@ -1,14 +1,10 @@
-using System.IO;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using NAudio.Wave;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.TTS.Engines;
 
-public class CartesiaEngine : ITtsEngine
+public class CartesiaEngine : HttpTtsEngine
 {
     private static readonly IReadOnlyList<EngineParameterDef> Schema = new[]
     {
@@ -18,28 +14,26 @@ public class CartesiaEngine : ITtsEngine
             "sonic-3.5"),
     };
 
-    private string _apiKey = string.Empty;
+    public CartesiaEngine(IAppLogger? logger = null)
+        : base("cartesia", "https://api.cartesia.ai", logger) { }
 
-    private readonly HttpClient _http = new() { BaseAddress = new Uri("https://api.cartesia.ai") };
+    public override string EngineId => EngineIds.Cartesia;
+    public override IReadOnlyList<EngineParameterDef> GetParameters() => Schema;
 
-    public string EngineId => EngineIds.Cartesia;
-    public bool IsConfigured => !string.IsNullOrEmpty(_apiKey);
-    public IReadOnlyList<EngineParameterDef> GetParameters() => Schema;
-
-    public void Configure(string configJson)
+    protected override void ApplyAuth(HttpRequestMessage request)
     {
-        var obj = JObject.Parse(configJson);
-        _apiKey = obj["apiKey"]?.Value<string>() ?? string.Empty;
+        request.Headers.TryAddWithoutValidation("X-API-Key", ApiKey);
+        request.Headers.TryAddWithoutValidation("Cartesia-Version", "2026-03-01");
     }
 
-    public async Task<AudioData> SynthesizeAsync(string text, string voiceId, SynthParams parameters)
+    public override async Task<AudioData> SynthesizeAsync(string text, string voiceId, SynthParams parameters)
     {
         if (!IsConfigured || string.IsNullOrWhiteSpace(text)) return AudioData.Empty;
 
         var speed   = parameters.Dbl("speed", 0.0);
         var modelId = parameters.Str("model", "sonic-3.5");
 
-        var body = JsonConvert.SerializeObject(new
+        var bytes = await PostJsonForBytesAsync("/tts/bytes", new
         {
             model_id   = modelId,
             transcript = text,
@@ -52,69 +46,30 @@ public class CartesiaEngine : ITtsEngine
             },
             generation_config = new { speed },
         });
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "/tts/bytes")
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json"),
-        };
-        request.Headers.TryAddWithoutValidation("X-API-Key", _apiKey);
-        request.Headers.TryAddWithoutValidation("Cartesia-Version", "2026-03-01");
-
-        var response = await _http.SendAsync(request);
-        var bytes    = await response.Content.ReadAsByteArrayAsync();
-
-        if (!response.IsSuccessStatusCode)
-            throw new HttpRequestException($"Cartesia TTS failed ({(int)response.StatusCode}): {Encoding.UTF8.GetString(bytes)}");
-
-        using var ms        = new MemoryStream(bytes);
-        using var reader    = new Mp3FileReader(ms);
-        using var pcmStream = WaveFormatConversionStream.CreatePcmStream(reader);
-        using var pcmMs     = new MemoryStream();
-        await pcmStream.CopyToAsync(pcmMs);
-        return new AudioData { Samples = pcmMs.ToArray(), Format = pcmStream.WaveFormat };
+        return await AudioDecoder.DecodeAsync(bytes);
     }
 
-    public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()
+    public override async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()
     {
         if (!IsConfigured) return Array.Empty<VoiceInfo>();
 
-        var voices = new List<VoiceInfo>();
-        string? cursor = null;
-
-        while (true)
-        {
-            var url = cursor == null ? "/voices?limit=100" : $"/voices?limit=100&starting_after={cursor}";
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.TryAddWithoutValidation("X-API-Key", _apiKey);
-            request.Headers.TryAddWithoutValidation("Cartesia-Version", "2026-03-01");
-
-            var response = await _http.SendAsync(request);
-            if (!response.IsSuccessStatusCode) break;
-
-            var json    = await response.Content.ReadAsStringAsync();
-            var obj     = JObject.Parse(json);
-            var items   = obj["data"] as JArray ?? new JArray();
-            var hasMore = obj["has_more"]?.Value<bool>() ?? false;
-
-            foreach (var v in items)
+        return await FetchAllPagesAsync(
+            cursor => cursor == null ? "/voices?limit=100" : $"/voices?limit=100&starting_after={cursor}",
+            obj => obj["data"] as JArray ?? new JArray(),
+            (obj, items, cursor) => (obj["has_more"]?.Value<bool>() ?? false)
+                ? items.Last()["id"]?.Value<string>()
+                : null,
+            v =>
             {
                 var id = v["id"]?.Value<string>() ?? string.Empty;
-                if (string.IsNullOrEmpty(id)) continue;
-                voices.Add(new VoiceInfo
+                if (string.IsNullOrEmpty(id)) return null;
+                return new VoiceInfo
                 {
                     Id     = id,
                     Name   = v["name"]?.Value<string>()     ?? id,
                     Locale = v["language"]?.Value<string>() ?? string.Empty,
                     Gender = v["gender"]?.Value<string>()   ?? string.Empty,
-                });
-                cursor = id;
-            }
-
-            if (!hasMore || items.Count == 0) break;
-        }
-
-        return voices;
+                };
+            });
     }
-
-    public void Dispose() => _http.Dispose();
 }

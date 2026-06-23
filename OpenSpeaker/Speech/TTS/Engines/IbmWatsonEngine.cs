@@ -54,12 +54,7 @@ public class IbmWatsonEngine : ITtsEngine
         if (!response.IsSuccessStatusCode)
             throw new Exception($"IBM Watson synthesize failed ({(int)response.StatusCode}): {Encoding.UTF8.GetString(bytes)}");
 
-        using var ms = new MemoryStream(bytes);
-        using var reader = new Mp3FileReader(ms);
-        using var pcm = WaveFormatConversionStream.CreatePcmStream(reader);
-        using var pcmMs = new MemoryStream();
-        await pcm.CopyToAsync(pcmMs);
-        return new AudioData { Samples = pcmMs.ToArray(), Format = pcm.WaveFormat };
+        return await AudioDecoder.DecodeAsync(bytes);
     }
 
     public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()

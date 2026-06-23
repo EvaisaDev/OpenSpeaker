@@ -6,6 +6,7 @@ public class UserService : IUserService
 {
     private readonly UserRepository _userRepo;
     private readonly VoiceAliasRepository _aliasRepo;
+    private readonly object _lock = new();
 
     public UserService(UserRepository userRepo, VoiceAliasRepository aliasRepo)
     {
@@ -13,9 +14,11 @@ public class UserService : IUserService
         _aliasRepo = aliasRepo;
     }
 
-    public async Task<UserRecord> GetOrCreateAsync(string twitchId, string username)
-    {
-        return await Task.Run(() =>
+    private Task LockedAsync(Action action) => Task.Run(() => { lock (_lock) { action(); } });
+    private Task<T> LockedAsync<T>(Func<T> func) => Task.Run(() => { lock (_lock) { return func(); } });
+
+    public Task<UserRecord> GetOrCreateAsync(string twitchId, string username) =>
+        LockedAsync(() =>
         {
             var user = _userRepo.FindByTwitchId(twitchId);
             if (user != null) return user;
@@ -24,22 +27,18 @@ public class UserService : IUserService
             _userRepo.Upsert(user);
             return user;
         });
-    }
 
-    public async Task UpdateSubscribedAsync(string twitchId, bool isSubscribed)
-    {
-        await Task.Run(() =>
+    public Task UpdateSubscribedAsync(string twitchId, bool isSubscribed) =>
+        LockedAsync(() =>
         {
             var user = _userRepo.FindByTwitchId(twitchId);
             if (user == null || user.IsSubscribed == isSubscribed) return;
             user.IsSubscribed = isSubscribed;
             _userRepo.Upsert(user);
         });
-    }
 
-    public async Task TouchLastActiveAsync(string twitchId, string username)
-    {
-        await Task.Run(() =>
+    public Task TouchLastActiveAsync(string twitchId, string username) =>
+        LockedAsync(() =>
         {
             var user = _userRepo.FindByTwitchId(twitchId);
             if (user == null)
@@ -51,12 +50,11 @@ public class UserService : IUserService
             user.LastActive = DateTime.Now;
             _userRepo.Upsert(user);
         });
-    }
 
-    public async Task AddPastVoiceAsync(string twitchId, string voiceId, string engineId)
+    public Task AddPastVoiceAsync(string twitchId, string voiceId, string engineId)
     {
-        if (string.IsNullOrEmpty(voiceId)) return;
-        await Task.Run(() =>
+        if (string.IsNullOrEmpty(voiceId)) return Task.CompletedTask;
+        return LockedAsync(() =>
         {
             var user = _userRepo.FindByTwitchId(twitchId);
             if (user == null) return;
@@ -82,9 +80,8 @@ public class UserService : IUserService
     public async Task SetNicknameAsync(string username, string nickname) =>
         await UpdateByUsernameAsync(username, u => u.Nickname = nickname);
 
-    public async Task SetStickyRandomVoiceAsync(string twitchId, string voiceId, string engineId)
-    {
-        await Task.Run(() =>
+    public Task SetStickyRandomVoiceAsync(string twitchId, string voiceId, string engineId) =>
+        LockedAsync(() =>
         {
             var user = _userRepo.FindByTwitchId(twitchId);
             if (user == null) return;
@@ -92,7 +89,6 @@ public class UserService : IUserService
             user.StickyVoiceEngineId = engineId;
             _userRepo.Upsert(user);
         });
-    }
 
     public async Task AssignLastVoiceAsync(string username, string voiceId, string engineId) =>
         await UpdateByUsernameAsync(username, u =>
@@ -108,14 +104,12 @@ public class UserService : IUserService
             u.StickyVoiceEngineId = string.Empty;
         });
 
-    private async Task UpdateByUsernameAsync(string username, Action<UserRecord> update)
-    {
-        await Task.Run(() =>
+    private Task UpdateByUsernameAsync(string username, Action<UserRecord> update) =>
+        LockedAsync(() =>
         {
             var user = _userRepo.FindByUsername(username);
             if (user == null) return;
             update(user);
             _userRepo.Upsert(user);
         });
-    }
 }

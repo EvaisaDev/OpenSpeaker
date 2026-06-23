@@ -20,7 +20,22 @@ public class ProfileService
     {
         if (!File.Exists(_manifestPath)) return new ProfileManifest();
         try { return JsonSerializer.Deserialize<ProfileManifest>(File.ReadAllText(_manifestPath)) ?? new ProfileManifest(); }
-        catch { return new ProfileManifest(); }
+        catch
+        {
+            TryBackupCorruptManifest();
+            return new ProfileManifest();
+        }
+    }
+
+    private void TryBackupCorruptManifest()
+    {
+        try
+        {
+            if (!File.Exists(_manifestPath)) return;
+            var backup = _manifestPath + ".corrupt-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+            File.Copy(_manifestPath, backup, overwrite: true);
+        }
+        catch { }
     }
 
     public void Save(ProfileManifest manifest) =>

@@ -1,4 +1,5 @@
 using OpenSpeaker.Data;
+using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.TTS;
 namespace OpenSpeaker.Services;
 
@@ -6,14 +7,16 @@ public class VoicePool
 {
     private readonly TtsEngineRegistry _registry;
     private readonly DatabaseContext _db;
+    private readonly IAppLogger? _logger;
     private List<(string EngineId, VoiceInfo Voice)>? _cache;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly Random _rng = new();
 
-    public VoicePool(TtsEngineRegistry registry, DatabaseContext db)
+    public VoicePool(TtsEngineRegistry registry, DatabaseContext db, IAppLogger? logger = null)
     {
         _registry = registry;
         _db = db;
+        _logger = logger;
     }
 
     public async Task<(string EngineId, VoiceInfo Voice)?> GetRandomAsync()
@@ -52,7 +55,7 @@ public class VoicePool
             var nativeTasks = nativeEngines.Select(async x =>
             {
                 try { return (x.id, voices: await x.engine!.GetVoicesAsync()); }
-                catch { return (x.id, voices: (IReadOnlyList<VoiceInfo>)Array.Empty<VoiceInfo>()); }
+                catch (Exception ex) { _logger?.Warn($"VOICES :: Failed to load voices for engine {x.id}: {ex.Message}"); return (x.id, voices: (IReadOnlyList<VoiceInfo>)Array.Empty<VoiceInfo>()); }
             });
             var nativeResults = await Task.WhenAll(nativeTasks);
 
@@ -60,7 +63,7 @@ public class VoicePool
             foreach (var x in luaEngines)
             {
                 try { luaResults.Add((x.id, await x.engine!.GetVoicesAsync())); }
-                catch { luaResults.Add((x.id, Array.Empty<VoiceInfo>())); }
+                catch (Exception ex) { _logger?.Warn($"VOICES :: Failed to load voices for engine {x.id}: {ex.Message}"); luaResults.Add((x.id, Array.Empty<VoiceInfo>())); }
             }
 
             var result = nativeResults.Concat(luaResults)

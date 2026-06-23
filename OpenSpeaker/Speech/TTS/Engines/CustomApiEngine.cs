@@ -65,7 +65,7 @@ public class CustomApiEngine : ITtsEngine
                     break;
             }
 
-            return await ToAudioDataAsync(audioBytes, _def.AudioFormat);
+            return await AudioDecoder.DecodeAsync(audioBytes, _def.AudioFormat);
         }
         catch { return AudioData.Empty; }
     }
@@ -112,23 +112,6 @@ public class CustomApiEngine : ITtsEngine
 
     private static JToken? Select(JToken root, string? path) =>
         string.IsNullOrEmpty(path) ? root : root.SelectToken(path);
-
-    private static async Task<AudioData> ToAudioDataAsync(byte[] bytes, string format)
-    {
-        if (bytes.Length == 0) return AudioData.Empty;
-        try
-        {
-            using var ms = new MemoryStream(bytes);
-            WaveStream reader = format.ToLowerInvariant() == "wav"
-                ? (WaveStream)new WaveFileReader(ms)
-                : new Mp3FileReader(ms);
-            using var pcm = WaveFormatConversionStream.CreatePcmStream(reader);
-            using var outMs = new MemoryStream();
-            await pcm.CopyToAsync(outMs);
-            return new AudioData { Samples = outMs.ToArray(), Format = pcm.WaveFormat };
-        }
-        catch { return AudioData.Empty; }
-    }
 
     private static string JsonEscape(string s) =>
         s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");

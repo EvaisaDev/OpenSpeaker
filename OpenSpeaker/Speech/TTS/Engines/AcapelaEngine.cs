@@ -50,32 +50,22 @@ public class AcapelaEngine : ITtsEngine
             ["req_snd_type"] = "MP3"
         };
 
-        try
-        {
-            var response = await _http.PostAsync("/Services/Synthesizer", new FormUrlEncodedContent(formData));
-            if (!response.IsSuccessStatusCode) return AudioData.Empty;
+        var response = await _http.PostAsync("/Services/Synthesizer", new FormUrlEncodedContent(formData));
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Acapela TTS failed ({(int)response.StatusCode})");
 
-            var json = await response.Content.ReadAsStringAsync();
-            var obj2 = JObject.Parse(json);
-            var sndUrl = obj2["snd_url"]?.Value<string>() ?? string.Empty;
-            if (string.IsNullOrEmpty(sndUrl)) return AudioData.Empty;
+        var json = await response.Content.ReadAsStringAsync();
+        var obj2 = JObject.Parse(json);
+        var sndUrl = obj2["snd_url"]?.Value<string>() ?? string.Empty;
+        if (string.IsNullOrEmpty(sndUrl))
+            throw new InvalidOperationException($"Acapela TTS: no snd_url in response: {json}");
 
-            var mp3Bytes = await _http.GetByteArrayAsync(sndUrl);
-            using var ms = new MemoryStream(mp3Bytes);
-            using var reader = new Mp3FileReader(ms);
-            using var pcmStream = WaveFormatConversionStream.CreatePcmStream(reader);
-            using var pcmMs = new MemoryStream();
-            await pcmStream.CopyToAsync(pcmMs);
-            return new AudioData { Samples = pcmMs.ToArray(), Format = pcmStream.WaveFormat };
-        }
-        catch
-        {
-            return AudioData.Empty;
-        }
+        var mp3Bytes = await _http.GetByteArrayAsync(sndUrl);
+        return await AudioDecoder.DecodeAsync(mp3Bytes);
     }
 
-    public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync() =>
-        await Task.FromResult<IReadOnlyList<VoiceInfo>>(Array.Empty<VoiceInfo>());
+    public Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync() =>
+        Task.FromResult<IReadOnlyList<VoiceInfo>>(Array.Empty<VoiceInfo>());
 
     public void Dispose() { }
 }

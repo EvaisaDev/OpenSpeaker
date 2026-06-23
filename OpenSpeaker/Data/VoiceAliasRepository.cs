@@ -10,4 +10,20 @@ public class VoiceAliasRepository : LiteDbRepository<VoiceAlias>
 
     public IEnumerable<VoiceAlias> GetAllSorted() =>
         _collection.FindAll().OrderBy(a => a.Name);
+
+    public const string DefaultAliasName = "Default";
+
+    public void EnsureDefaultAlias(string defaultVoiceId)
+    {
+        if (GetByName(DefaultAliasName) != null) return;
+        Upsert(new VoiceAlias
+        {
+            Name = DefaultAliasName,
+            EngineId = EngineIds.Sapi5,
+            VoiceId = defaultVoiceId,
+            VoiceIds = string.IsNullOrEmpty(defaultVoiceId)
+                ? new List<string>()
+                : new List<string> { defaultVoiceId },
+        });
+    }
 }

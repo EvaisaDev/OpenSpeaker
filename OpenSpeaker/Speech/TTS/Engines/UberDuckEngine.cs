@@ -40,27 +40,17 @@ public class UberDuckEngine : ITtsEngine
         };
         SetAuth(request);
 
-        try
-        {
-            var response = await _http.SendAsync(request);
-            if (!response.IsSuccessStatusCode) return AudioData.Empty;
+        var response = await _http.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Uberduck TTS failed ({(int)response.StatusCode})");
 
-            var json = await response.Content.ReadAsStringAsync();
-            var audioUrl = JObject.Parse(json)["audio_url"]?.Value<string>();
-            if (string.IsNullOrEmpty(audioUrl)) return AudioData.Empty;
+        var json = await response.Content.ReadAsStringAsync();
+        var audioUrl = JObject.Parse(json)["audio_url"]?.Value<string>();
+        if (string.IsNullOrEmpty(audioUrl))
+            throw new InvalidOperationException($"Uberduck TTS: no audio_url in response: {json}");
 
-            var audioBytes = await _http.GetByteArrayAsync(audioUrl);
-            using var ms = new MemoryStream(audioBytes);
-            using var reader = new Mp3FileReader(ms);
-            using var pcmStream = WaveFormatConversionStream.CreatePcmStream(reader);
-            using var pcmMs = new MemoryStream();
-            await pcmStream.CopyToAsync(pcmMs);
-            return new AudioData { Samples = pcmMs.ToArray(), Format = pcmStream.WaveFormat };
-        }
-        catch
-        {
-            return AudioData.Empty;
-        }
+        var audioBytes = await _http.GetByteArrayAsync(audioUrl);
+        return await AudioDecoder.DecodeAsync(audioBytes);
     }
 
     public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()
@@ -82,8 +72,7 @@ public class UberDuckEngine : ITtsEngine
                 Id       = v["uuid"]?.Value<string>() ?? v["name"]?.Value<string>() ?? string.Empty,
                 Name     = v["display_name"]?.Value<string>() ?? v["name"]?.Value<string>() ?? string.Empty,
                 Locale   = v["language"]?.Value<string>() ?? "en-US",
-                Gender   = v["gender"]?.Value<string>() ?? "Neutral",
-                EngineId = EngineId
+                Gender   = v["gender"]?.Value<string>() ?? "Neutral"
             }).Where(v => !string.IsNullOrEmpty(v.Id)).ToList();
         }
         catch

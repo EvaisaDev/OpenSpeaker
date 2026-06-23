@@ -51,7 +51,6 @@ public partial class App : Application
             _profileVm.OnSwitch = name => _ = SwitchProfileAsync(name);
 
             _boot = new AppBootstrapper(_profileService.GetDbPath(manifest.ActiveProfile));
-            ServiceLocator.Initialize(_boot);
 
             var settings = _boot.SettingsRepo.GetSettings();
             ThemeService.Apply(settings.Theme);
@@ -83,12 +82,13 @@ public partial class App : Application
         _boot.Dispose();
 
         _boot = new AppBootstrapper(dbPath);
-        ServiceLocator.Initialize(_boot);
 
         var settings = _boot.SettingsRepo.GetSettings();
         ThemeService.Apply(settings.Theme);
 
         await _boot.StartAsync();
+
+        (_window.DataContext as IDisposable)?.Dispose();
 
         var viewModel = new MainWindowViewModel(_boot, _profileVm);
         _window.SetBootstrapper(_boot);

@@ -24,6 +24,7 @@ public class AppBootstrapper : IDisposable
     public VoiceAliasRepository AliasRepo { get; }
     public EventConfigRepository EventConfigRepo { get; }
     public CustomCommandRepository CustomCommandRepo { get; }
+    public RegexReplacementRepository RegexReplacementRepo { get; }
     public ChannelRewardRepository ChannelRewardRepo { get; }
     public ExtensionManager Extensions { get; }
     public TtsEngineRegistry EngineRegistry { get; }
@@ -59,8 +60,10 @@ public class AppBootstrapper : IDisposable
         Logger = new AppLogger(logsDir, logLevel);
         UserRepo = new UserRepository(Database);
         AliasRepo = new VoiceAliasRepository(Database);
+        AliasRepo.EnsureDefaultAlias(OpenSpeaker.TTS.Engines.Sapi5Engine.GetDefaultVoiceName());
         EventConfigRepo = new EventConfigRepository(Database);
         CustomCommandRepo = new CustomCommandRepository(Database);
+        RegexReplacementRepo = new RegexReplacementRepository(Database);
         ChannelRewardRepo = new ChannelRewardRepository(Database);
         DeviceEnumerator = new AudioDeviceEnumerator(Logger);
 
@@ -72,14 +75,17 @@ public class AppBootstrapper : IDisposable
         PermissionChecker = new PermissionChecker();
         UserService = new UserService(UserRepo, AliasRepo);
 
-        _queueService = new TtsQueueService(EngineRegistry, audioPlayer, () => new NAudioPlayer(), wavSaver, SettingsRepo, AliasRepo, UserService, Logger);
+        var voiceResolver = new VoiceResolver(EngineRegistry, AliasRepo);
+        var playbackCoordinator = new PlaybackCoordinator(audioPlayer);
+        var synthesizer = new TtsSynthesizer(voiceResolver, wavSaver, SettingsRepo, UserService, Logger);
+        _queueService = new TtsQueueService(synthesizer, playbackCoordinator, () => new NAudioPlayer(), SettingsRepo, Logger);
         Queue = _queueService;
 
         EmoteStripper = new EmoteStripper();
         var prefixChecker = new PrefixChecker();
         var regexReplacer = new RegexReplacer();
         var substitutor = new VariableSubstitutor();
-        var sanitizer = new MessageSanitizer(EmoteStripper, prefixChecker, regexReplacer, SettingsRepo, Database, Logger);
+        var sanitizer = new MessageSanitizer(EmoteStripper, prefixChecker, regexReplacer, SettingsRepo, RegexReplacementRepo, Logger);
 
         TwitchAuth = new TwitchAuthService(Database);
         var emoteCache = new EmoteCacheService(TwitchAuth, EmoteStripper, Logger);
@@ -90,13 +96,13 @@ public class AppBootstrapper : IDisposable
         var messagePicker = new WeightedMessagePicker();
         var variableBuilder = new VariableBuilder();
         var eventProcessor = new EventProcessor(EventConfigRepo, messagePicker, substitutor, Queue, SettingsRepo);
-        var _ = new EventDispatcher(Twitch, eventProcessor, variableBuilder);
+        var _ = new EventDispatcher(Twitch, eventProcessor, variableBuilder, Logger);
 
-        VoicePool = new VoicePool(EngineRegistry, Database);
+        VoicePool = new VoicePool(EngineRegistry, Database, Logger);
         var voicePool = VoicePool;
 
-        var builtIn = new BuiltInCommandHandler(SettingsRepo, Queue, UserService, UserRepo, EngineRegistry, EventConfigRepo, CustomCommandRepo, Twitch, voicePool);
-        var custom = new CustomCommandHandler(Database, PermissionChecker, Queue);
+        var builtIn = new BuiltInCommandHandler(SettingsRepo, Queue, UserService, UserRepo, EngineRegistry, CustomCommandRepo, Twitch, voicePool);
+        var custom = new CustomCommandHandler(CustomCommandRepo, PermissionChecker, Queue);
         var sayEverything = new SayEverythingHandler(SettingsRepo, UserService, PermissionChecker, sanitizer, Queue, voicePool, Twitch, Extensions, Logger);
 
         var orchestrator = new TtsOrchestrator(Queue, SettingsRepo, sanitizer);

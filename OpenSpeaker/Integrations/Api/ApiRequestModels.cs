@@ -78,9 +78,6 @@ public class UdpSpeakRequest : UdpBaseRequest
 
 public class UdpEventsRequest : UdpBaseRequest
 {
-    [JsonProperty("value")]
-    public string Value { get; set; } = string.Empty;
-
     [JsonProperty("state")]
     public string State { get; set; } = string.Empty;
 }
@@ -92,9 +89,6 @@ public class UdpRegRequest : UdpBaseRequest
 
     [JsonProperty("user")]
     public string User { get; set; } = string.Empty;
-
-    [JsonProperty("id")]
-    public new string Id { get; set; } = string.Empty;
 }
 
 public class UdpSetRequest : UdpBaseRequest
@@ -107,9 +101,6 @@ public class UdpSetRequest : UdpBaseRequest
 
     [JsonProperty("nickname")]
     public string Nickname { get; set; } = string.Empty;
-
-    [JsonProperty("value")]
-    public object? Value { get; set; }
 }
 
 public class UdpAssignRequest : UdpBaseRequest

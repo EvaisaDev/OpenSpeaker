@@ -28,6 +28,7 @@ public class EngineConfigViewModel : BaseViewModel
     private EngineOption? _selectedEngine;
     private readonly Action _close;
     private readonly ExtensionManager? _extensions;
+    private readonly IDialogService _dialogs;
 
     public ObservableCollection<EngineOption> Engines { get; } = new();
     public ObservableCollection<EngineConfigField> Fields { get; } = new();
@@ -43,10 +44,11 @@ public class EngineConfigViewModel : BaseViewModel
     public RelayCommand CancelCommand { get; }
     public RelayCommand BrowseFileCommand { get; }
 
-    public EngineConfigViewModel(IEnumerable<EngineOption> engines, Action close, ExtensionManager? extensions = null)
+    public EngineConfigViewModel(IEnumerable<EngineOption> engines, Action close, ExtensionManager? extensions = null, IDialogService? dialogs = null)
     {
         _close = close;
         _extensions = extensions;
+        _dialogs = dialogs ?? new DialogService();
 
         foreach (var opt in engines)
             Engines.Add(opt);
@@ -56,9 +58,8 @@ public class EngineConfigViewModel : BaseViewModel
         BrowseFileCommand = new RelayCommand(p =>
         {
             if (p is not EngineConfigField field) return;
-            var dialog = new OpenFileDialog { Filter = field.FileFilter };
-            if (dialog.ShowDialog() == DialogResult.OK)
-                field.Value = dialog.FileName;
+            var path = _dialogs.PickFile(field.FileFilter);
+            if (path != null) field.Value = path;
         });
 
         SelectedEngine = Engines.FirstOrDefault();

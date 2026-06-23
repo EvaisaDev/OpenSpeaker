@@ -14,6 +14,4 @@ public class UserRepository : LiteDbRepository<UserRecord>
 
     public List<UserRecord> GetIgnored() =>
         _collection.Find(u => u.IsIgnored).ToList();
-
-    public void Upsert(UserRecord user) => _collection.Upsert(user);
 }

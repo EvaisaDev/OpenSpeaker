@@ -2,31 +2,40 @@ using System.Collections.ObjectModel;
 using OpenSpeaker.Audio;
 using OpenSpeaker.Data;
 using OpenSpeaker.Localization;
-using OpenSpeaker.Models;
 using OpenSpeaker.Themes;
 namespace OpenSpeaker.ViewModels;
 
-public class GeneralSettingsViewModel : BaseViewModel
+public class GeneralSettingsViewModel : SettingsViewModelBase
 {
-    private readonly SettingsRepository _settingsRepo;
     private readonly AudioDeviceEnumerator _deviceEnumerator;
-    private AppSettings _settings;
+    private readonly VoiceAliasRepository _aliasRepo;
+    private readonly IDialogService _dialogs;
 
     public ObservableCollection<AudioDeviceInfo> OutputDevices { get; } = new();
 
-    public string InstanceId => _settings.InstanceId;
-    public string InstanceName { get => _settings.InstanceName; set { _settings.InstanceName = value; OnPropertyChanged(); Save(); } }
-    public bool Enabled { get => _settings.Enabled; set { _settings.Enabled = value; OnPropertyChanged(); Save(); } }
-    public string AudioOutputDeviceId { get => _settings.AudioOutputDeviceId; set { _settings.AudioOutputDeviceId = value; OnPropertyChanged(); Save(); } }
-    public int ApplicationVolume { get => _settings.ApplicationVolume; set { _settings.ApplicationVolume = value; OnPropertyChanged(); Save(); } }
-    public bool SaveTts { get => _settings.SaveTts; set { _settings.SaveTts = value; OnPropertyChanged(); Save(); } }
-    public string SaveTtsFolder { get => _settings.SaveTtsFolder; set { _settings.SaveTtsFolder = value; OnPropertyChanged(); Save(); } }
-    public string DefaultVoiceAlias { get => _settings.DefaultVoiceAlias; set { _settings.DefaultVoiceAlias = value; OnPropertyChanged(); Save(); } }
-    public string HighlightVoiceAlias { get => _settings.HighlightVoiceAlias; set { _settings.HighlightVoiceAlias = value; OnPropertyChanged(); Save(); } }
-    public bool UseHighlightVoice { get => _settings.UseHighlightVoice; set { _settings.UseHighlightVoice = value; OnPropertyChanged(); Save(); } }
-    public bool MinimizeToTray { get => _settings.MinimizeToTray; set { _settings.MinimizeToTray = value; OnPropertyChanged(); Save(); } }
-    public bool ConfirmationOnClose { get => _settings.ConfirmationOnClose; set { _settings.ConfirmationOnClose = value; OnPropertyChanged(); Save(); } }
-    public string LogLevel { get => _settings.LogLevel; set { _settings.LogLevel = value; OnPropertyChanged(); Save(); } }
+    public ObservableCollection<string> AvailableAliases { get; } = new();
+
+    public string InstanceId => Settings.InstanceId;
+    public string InstanceName { get => Settings.InstanceName; set => Set(s => s.InstanceName = value); }
+    public bool Enabled { get => Settings.Enabled; set => Set(s => s.Enabled = value); }
+    public string AudioOutputDeviceId { get => Settings.AudioOutputDeviceId; set => Set(s => s.AudioOutputDeviceId = value); }
+    public int ApplicationVolume { get => Settings.ApplicationVolume; set => Set(s => s.ApplicationVolume = value); }
+    public bool SaveTts { get => Settings.SaveTts; set => Set(s => s.SaveTts = value); }
+    public string SaveTtsFolder { get => Settings.SaveTtsFolder; set => Set(s => s.SaveTtsFolder = value); }
+    public string DefaultVoiceAlias
+    {
+        get => string.IsNullOrEmpty(Settings.DefaultVoiceAlias) ? NoneAlias : Settings.DefaultVoiceAlias;
+        set => Set(s => s.DefaultVoiceAlias = value == NoneAlias ? string.Empty : value);
+    }
+    public string HighlightVoiceAlias
+    {
+        get => string.IsNullOrEmpty(Settings.HighlightVoiceAlias) ? NoneAlias : Settings.HighlightVoiceAlias;
+        set => Set(s => s.HighlightVoiceAlias = value == NoneAlias ? string.Empty : value);
+    }
+    public bool UseHighlightVoice { get => Settings.UseHighlightVoice; set => Set(s => s.UseHighlightVoice = value); }
+    public bool MinimizeToTray { get => Settings.MinimizeToTray; set => Set(s => s.MinimizeToTray = value); }
+    public bool ConfirmationOnClose { get => Settings.ConfirmationOnClose; set => Set(s => s.ConfirmationOnClose = value); }
+    public string LogLevel { get => Settings.LogLevel; set => Set(s => s.LogLevel = value); }
 
     public IEnumerable<string> LogLevels { get; } = new[] { "Debug", "Info", "Warn", "Error" };
     public IEnumerable<string> AvailableLanguages => LocalizationService.AvailableLanguages;
@@ -34,32 +43,32 @@ public class GeneralSettingsViewModel : BaseViewModel
 
     public string Language
     {
-        get => _settings.Language;
-        set { _settings.Language = value; OnPropertyChanged(); LocalizationService.Load(value); Save(); }
+        get => Settings.Language;
+        set { Set(s => s.Language = value); LocalizationService.Load(value); }
     }
 
     public string Theme
     {
-        get => _settings.Theme;
-        set { _settings.Theme = value; OnPropertyChanged(); ThemeService.Apply(value); Save(); }
+        get => Settings.Theme;
+        set { Set(s => s.Theme = value); ThemeService.Apply(value); }
     }
 
     public bool ShowTooltips
     {
-        get => _settings.ShowTooltips;
-        set { _settings.ShowTooltips = value; OnPropertyChanged(); UiController.Instance.ShowTooltips = value; Save(); }
+        get => Settings.ShowTooltips;
+        set { Set(s => s.ShowTooltips = value); UiController.Instance.ShowTooltips = value; }
     }
 
     public bool DisableAudioOutput
     {
-        get => _settings.DisableAudioOutput;
-        set { _settings.DisableAudioOutput = value; OnPropertyChanged(); Save(); }
+        get => Settings.DisableAudioOutput;
+        set => Set(s => s.DisableAudioOutput = value);
     }
 
     public string QueueMode
     {
-        get => _settings.QueueMode;
-        set { _settings.QueueMode = value; OnPropertyChanged(); Save(); }
+        get => Settings.QueueMode;
+        set => Set(s => s.QueueMode = value);
     }
 
     public IEnumerable<string> QueueModes => Models.QueueModes.All;
@@ -72,19 +81,21 @@ public class GeneralSettingsViewModel : BaseViewModel
     public RelayCommand RefreshLanguagesCommand { get; }
     public RelayCommand OpenLanguagesFolderCommand { get; }
 
-    public GeneralSettingsViewModel(SettingsRepository settingsRepo, AudioDeviceEnumerator deviceEnumerator)
+    public GeneralSettingsViewModel(SettingsRepository settingsRepo, AudioDeviceEnumerator deviceEnumerator, VoiceAliasRepository aliasRepo, IDialogService? dialogs = null)
+        : base(settingsRepo)
     {
-        _settingsRepo = settingsRepo;
         _deviceEnumerator = deviceEnumerator;
-        _settings = settingsRepo.GetSettings();
+        _aliasRepo = aliasRepo;
+        _dialogs = dialogs ?? new DialogService();
+        RefreshAliases();
         foreach (var d in deviceEnumerator.GetOutputDevices()) OutputDevices.Add(d);
 
-        if (OutputDevices.Count > 0 && !OutputDevices.Any(d => d.Id == (_settings.AudioOutputDeviceId ?? "")))
+        if (OutputDevices.Count > 0 && !OutputDevices.Any(d => d.Id == (Settings.AudioOutputDeviceId ?? "")))
         {
-            _settings.AudioOutputDeviceId = OutputDevices[0].Id;
-            settingsRepo.SaveSettings(_settings);
+            Settings.AudioOutputDeviceId = OutputDevices[0].Id;
+            SettingsRepo.SaveSettings(Settings);
         }
-        _settings.AudioOutputDeviceId ??= string.Empty;
+        Settings.AudioOutputDeviceId ??= string.Empty;
 
         BrowseFolderCommand = new RelayCommand(BrowseFolder);
         RefreshDevicesCommand = new RelayCommand(RefreshDevices);
@@ -93,6 +104,14 @@ public class GeneralSettingsViewModel : BaseViewModel
         OpenThemesFolderCommand = new RelayCommand(() => OpenFolder(ThemeService.ThemesDirectory));
         RefreshLanguagesCommand = new RelayCommand(() => OnPropertyChanged(nameof(AvailableLanguages)));
         OpenLanguagesFolderCommand = new RelayCommand(() => OpenFolder(LocalizationService.LocalizationDirectory));
+    }
+
+    public void RefreshAliases()
+    {
+        AvailableAliases.Clear();
+        AvailableAliases.Add(NoneAlias);
+        foreach (var a in _aliasRepo.GetAllSorted())
+            AvailableAliases.Add(a.Name);
     }
 
     private static void OpenFolder(string path)
@@ -109,19 +128,10 @@ public class GeneralSettingsViewModel : BaseViewModel
         catch { }
     }
 
-    public void Refresh()
-    {
-        _settings = _settingsRepo.GetSettings();
-        OnPropertyChanged(string.Empty);
-    }
-
-    private void Save() => _settingsRepo.SaveSettings(_settings);
-
     private void BrowseFolder()
     {
-        var dialog = new System.Windows.Forms.FolderBrowserDialog();
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            SaveTtsFolder = dialog.SelectedPath;
+        var path = _dialogs.PickFolder();
+        if (path != null) SaveTtsFolder = path;
     }
 
     private void RefreshDevices()
@@ -132,10 +142,6 @@ public class GeneralSettingsViewModel : BaseViewModel
         AudioOutputDeviceId = current;
     }
 
-    private void ResetInstanceId()
-    {
-        _settings.InstanceId = Guid.NewGuid().ToString();
-        OnPropertyChanged(nameof(InstanceId));
-        Save();
-    }
+    private void ResetInstanceId() =>
+        Set(s => s.InstanceId = Guid.NewGuid().ToString(), nameof(InstanceId));
 }

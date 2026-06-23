@@ -25,6 +25,7 @@ public class SpeechEnginesViewModel : BaseViewModel
     private readonly VoicePool _voicePool;
     private readonly ExtensionManager _extensions;
     private readonly IAppLogger? _logger;
+    private readonly IDialogService _dialogs;
 
     public ObservableCollection<SpeechEngineItem> Engines { get; } = new();
 
@@ -39,13 +40,14 @@ public class SpeechEnginesViewModel : BaseViewModel
     public RelayCommand RemoveCommand { get; }
     public RelayCommand ReloadCommand { get; }
 
-    public SpeechEnginesViewModel(DatabaseContext db, TtsEngineRegistry registry, VoicePool voicePool, ExtensionManager extensions, IAppLogger? logger = null)
+    public SpeechEnginesViewModel(DatabaseContext db, TtsEngineRegistry registry, VoicePool voicePool, ExtensionManager extensions, IAppLogger? logger = null, IDialogService? dialogs = null)
     {
         _db = db;
         _registry = registry;
         _voicePool = voicePool;
         _extensions = extensions;
         _logger = logger;
+        _dialogs = dialogs ?? new DialogService();
 
         ShowAddDialogCommand = new AsyncRelayCommand(ShowAddDialog);
         RemoveCommand = new RelayCommand(RemoveEngine, () => SelectedEngine != null);
@@ -174,14 +176,14 @@ public class SpeechEnginesViewModel : BaseViewModel
             catch (Exception ex)
             {
                 RevertEngineConfig(engineId);
-                MessageBox.Show($"Failed to connect: {ex.Message}", "Authentication Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _dialogs.ShowWarning($"Failed to connect: {ex.Message}", "Authentication Failed");
                 return;
             }
 
             if (voices.Count == 0)
             {
                 RevertEngineConfig(engineId);
-                MessageBox.Show("The engine returned no voices, check your credentials.", "Authentication Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _dialogs.ShowWarning("The engine returned no voices, check your credentials.", "Authentication Failed");
                 return;
             }
         }

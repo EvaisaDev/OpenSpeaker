@@ -92,9 +92,13 @@ public class UdpServer : IDisposable
     {
         if (!IsRunning) return;
         _cts?.Cancel();
+        try { _listenTask?.Wait(TimeSpan.FromSeconds(2)); } catch { }
+        _listenTask = null;
         _client?.Close();
         _client?.Dispose();
         _client = null;
+        _cts?.Dispose();
+        _cts = null;
         IsRunning = false;
         _logger.Info("UDP server stopped.");
     }

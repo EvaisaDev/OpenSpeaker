@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -31,6 +33,17 @@ jobs:
           $version = $ref -replace '^v', ''
           if ($version -notmatch '^\d+\.\d+\.\d+') { $version = '0.0.0' }
           "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build release body
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          ./.github/scripts/generate-changelog.ps1 `
+            -Version '${{ steps.version.outputs.version }}' `
+            -ReleaseNotesOut 'release-notes.md' `
+            -RepoUrl '${{ github.server_url }}/${{ github.repository }}'
+          $body = (Get-Content .github/release-body.md -Raw) + "`n`n" + (Get-Content release-notes.md -Raw)
+          Set-Content -Path release-body-final.md -Value $body -Encoding utf8
 
       - name: Publish portable (framework-dependent, requires .NET 8 Desktop Runtime)
         run: dotnet publish OpenSpeaker/OpenSpeaker.csproj -p:PublishProfile=portable -p:Version=${{ steps.version.outputs.version }}
@@ -66,4 +79,22 @@ jobs:
           files: |
             ${{ steps.package.outputs.portable }}
             ${{ steps.package.outputs.standalone }}
-          generate_release_notes: true
+          body_path: release-body-final.md
+
+      - name: Update CHANGELOG.md
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git checkout main
+          ./.github/scripts/generate-changelog.ps1 `
+            -Version '${{ steps.version.outputs.version }}' `
+            -UpdateChangelog -ChangelogFile 'CHANGELOG.md' `
+            -RepoUrl '${{ github.server_url }}/${{ github.repository }}'
+          git add CHANGELOG.md
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host 'No changelog changes.'; exit 0 }
+          git commit -m "docs: update changelog for ${{ steps.version.outputs.version }} [skip ci]"
+          git push origin main

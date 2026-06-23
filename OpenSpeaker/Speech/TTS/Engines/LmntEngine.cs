@@ -1,80 +1,49 @@
-using System.IO;
 using System.Net.Http;
-using System.Text;
-using NAudio.Wave;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.TTS.Engines;
 
-public class LmntEngine : ITtsEngine
+public class LmntEngine : HttpTtsEngine
 {
     private static readonly IReadOnlyList<EngineParameterDef> Schema = new[]
     {
         EngineParameterDef.Slider("temperature", "Expression", 0.0, 1.0, 0.05, 0.5),
     };
 
-    private string _apiKey = string.Empty;
-    private readonly HttpClient _http = new() { BaseAddress = new Uri("https://api.lmnt.com") };
+    public LmntEngine(IAppLogger? logger = null)
+        : base("lmnt", "https://api.lmnt.com", logger) { }
 
-    public string EngineId => EngineIds.Lmnt;
-    public bool IsConfigured => !string.IsNullOrEmpty(_apiKey);
-    public IReadOnlyList<EngineParameterDef> GetParameters() => Schema;
+    public override string EngineId => EngineIds.Lmnt;
+    public override IReadOnlyList<EngineParameterDef> GetParameters() => Schema;
 
-    public void Configure(string configJson)
+    protected override void ApplyAuth(HttpRequestMessage request)
     {
-        var obj = JObject.Parse(configJson);
-        _apiKey = obj["apiKey"]?.Value<string>() ?? string.Empty;
+        request.Headers.TryAddWithoutValidation("X-API-Key", ApiKey);
+        request.Headers.TryAddWithoutValidation("lmnt-version", "1.2");
     }
 
-    public async Task<AudioData> SynthesizeAsync(string text, string voiceId, SynthParams parameters)
+    public override async Task<AudioData> SynthesizeAsync(string text, string voiceId, SynthParams parameters)
     {
         if (!IsConfigured || string.IsNullOrWhiteSpace(text)) return AudioData.Empty;
 
         var temperature = parameters.Dbl("temperature", 0.5);
 
-        var body = JsonConvert.SerializeObject(new
+        var bytes = await PostJsonForBytesAsync("/v1/ai/speech/bytes", new
         {
-            text        = text,
+            text,
             voice       = voiceId,
             format      = "mp3",
-            temperature = temperature,
+            temperature,
         });
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "/v1/ai/speech/bytes")
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json"),
-        };
-        request.Headers.TryAddWithoutValidation("X-API-Key", _apiKey);
-        request.Headers.TryAddWithoutValidation("lmnt-version", "1.2");
-
-        var response = await _http.SendAsync(request);
-        var bytes    = await response.Content.ReadAsByteArrayAsync();
-
-        if (!response.IsSuccessStatusCode)
-            throw new HttpRequestException($"LMNT TTS failed ({(int)response.StatusCode}): {Encoding.UTF8.GetString(bytes)}");
-
-        using var ms        = new MemoryStream(bytes);
-        using var reader    = new Mp3FileReader(ms);
-        using var pcmStream = WaveFormatConversionStream.CreatePcmStream(reader);
-        using var pcmMs     = new MemoryStream();
-        await pcmStream.CopyToAsync(pcmMs);
-        return new AudioData { Samples = pcmMs.ToArray(), Format = pcmStream.WaveFormat };
+        return await AudioDecoder.DecodeAsync(bytes);
     }
 
-    public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()
+    public override async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()
     {
         if (!IsConfigured) return Array.Empty<VoiceInfo>();
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/v1/ai/voice/list");
-        request.Headers.TryAddWithoutValidation("X-API-Key", _apiKey);
-        request.Headers.TryAddWithoutValidation("lmnt-version", "1.2");
-
-        var response = await _http.SendAsync(request);
-        if (!response.IsSuccessStatusCode) return Array.Empty<VoiceInfo>();
-
-        var json = await response.Content.ReadAsStringAsync();
-        var arr  = JArray.Parse(json);
+        if (await GetJsonAsync("/v1/ai/voice/list") is not JArray arr) return Array.Empty<VoiceInfo>();
 
         return arr.Select(v => new VoiceInfo
         {
@@ -86,6 +55,4 @@ public class LmntEngine : ITtsEngine
         .Where(v => !string.IsNullOrEmpty(v.Id))
         .ToList();
     }
-
-    public void Dispose() => _http.Dispose();
 }

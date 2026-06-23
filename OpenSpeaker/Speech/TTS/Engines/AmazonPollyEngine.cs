@@ -49,21 +49,14 @@ public class AmazonPollyEngine : ITtsEngine
             Engine = parameters.Str("engine", "neural")
         };
 
-        try
+        var response = await _client.SynthesizeSpeechAsync(request);
+        using var ms = new MemoryStream();
+        await response.AudioStream.CopyToAsync(ms);
+        return new AudioData
         {
-            var response = await _client.SynthesizeSpeechAsync(request);
-            using var ms = new MemoryStream();
-            await response.AudioStream.CopyToAsync(ms);
-            return new AudioData
-            {
-                Samples = ms.ToArray(),
-                Format = new WaveFormat(16000, 16, 1)
-            };
-        }
-        catch
-        {
-            return AudioData.Empty;
-        }
+            Samples = ms.ToArray(),
+            Format = new WaveFormat(16000, 16, 1)
+        };
     }
 
     public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()

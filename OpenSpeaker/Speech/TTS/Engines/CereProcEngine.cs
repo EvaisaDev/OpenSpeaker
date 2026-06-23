@@ -20,6 +20,7 @@ public class CereProcEngine : ITtsEngine
     private string _password = string.Empty;
     private string _token = string.Empty;
     private readonly HttpClient _http = HttpClientFactory.GetClient("cereproc", "https://api.cerevoice.com");
+    private readonly SemaphoreSlim _tokenLock = new(1, 1);
 
     public string EngineId => EngineIds.CereProc;
     public bool IsConfigured => !string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password);
@@ -36,8 +37,33 @@ public class CereProcEngine : ITtsEngine
 
     private async Task<string> GetTokenAsync()
     {
-        if (!string.IsNullOrEmpty(_token)) return _token;
+        var cached = _token;
+        if (!string.IsNullOrEmpty(cached)) return cached;
 
+        await _tokenLock.WaitAsync();
+        try
+        {
+            if (string.IsNullOrEmpty(_token))
+                _token = await FetchTokenAsync();
+            return _token;
+        }
+        finally { _tokenLock.Release(); }
+    }
+
+    private async Task<string> RefreshTokenAsync(string staleToken)
+    {
+        await _tokenLock.WaitAsync();
+        try
+        {
+            if (_token == staleToken || string.IsNullOrEmpty(_token))
+                _token = await FetchTokenAsync();
+            return _token;
+        }
+        finally { _tokenLock.Release(); }
+    }
+
+    private async Task<string> FetchTokenAsync()
+    {
         var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_username}:{_password}"));
         var request = new HttpRequestMessage(HttpMethod.Get, "/v2/auth");
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
@@ -47,46 +73,34 @@ public class CereProcEngine : ITtsEngine
         if (!response.IsSuccessStatusCode)
             throw new Exception($"CereProc auth failed ({(int)response.StatusCode}): {json}");
 
-        _token = JObject.Parse(json)["access_token"]?.Value<string>() ?? string.Empty;
-        if (string.IsNullOrEmpty(_token))
+        var token = JObject.Parse(json)["access_token"]?.Value<string>() ?? string.Empty;
+        if (string.IsNullOrEmpty(token))
             throw new Exception($"CereProc auth: no access_token in response: {json}");
 
-        return _token;
+        return token;
     }
 
-    private async Task<HttpResponseMessage> AuthedGetAsync(string url)
+    private async Task<HttpResponseMessage> SendAuthedAsync(Func<HttpRequestMessage> buildRequest)
     {
         var token = await GetTokenAsync();
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        var request = buildRequest();
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await _http.SendAsync(request);
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            _token = string.Empty;
-            token = await GetTokenAsync();
-            request = new HttpRequestMessage(HttpMethod.Get, url);
+            token = await RefreshTokenAsync(token);
+            request = buildRequest();
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             response = await _http.SendAsync(request);
         }
         return response;
     }
 
-    private async Task<HttpResponseMessage> AuthedPostAsync(string url, HttpContent content)
-    {
-        var token = await GetTokenAsync();
-        var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var response = await _http.SendAsync(request);
-        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            _token = string.Empty;
-            token = await GetTokenAsync();
-            request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            response = await _http.SendAsync(request);
-        }
-        return response;
-    }
+    private Task<HttpResponseMessage> AuthedGetAsync(string url) =>
+        SendAuthedAsync(() => new HttpRequestMessage(HttpMethod.Get, url));
+
+    private Task<HttpResponseMessage> AuthedPostAsync(string url, HttpContent content) =>
+        SendAuthedAsync(() => new HttpRequestMessage(HttpMethod.Post, url) { Content = content });
 
     private static string BuildSsml(string text, SynthParams parameters)
     {
@@ -112,12 +126,7 @@ public class CereProcEngine : ITtsEngine
         if (!response.IsSuccessStatusCode)
             throw new Exception($"CereProc speak failed ({(int)response.StatusCode}): {Encoding.UTF8.GetString(bytes)}");
 
-        using var ms = new MemoryStream(bytes);
-        using var reader = new Mp3FileReader(ms);
-        using var pcmStream = WaveFormatConversionStream.CreatePcmStream(reader);
-        using var pcmMs = new MemoryStream();
-        await pcmStream.CopyToAsync(pcmMs);
-        return new AudioData { Samples = pcmMs.ToArray(), Format = pcmStream.WaveFormat };
+        return await AudioDecoder.DecodeAsync(bytes);
     }
 
     public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()
@@ -140,5 +149,5 @@ public class CereProcEngine : ITtsEngine
         }).Where(v => !string.IsNullOrEmpty(v.Id)).ToList();
     }
 
-    public void Dispose() { }
+    public void Dispose() => _tokenLock.Dispose();
 }

@@ -10,6 +10,7 @@ namespace OpenSpeaker.Services;
 public static class UpdateService
 {
     private const string Repo = "EvaisaDev/OpenSpeaker";
+    private const string GitHubClientName = "github";
 
     public record UpdateInfo(
         bool IsAvailable,
@@ -38,7 +39,7 @@ public static class UpdateService
         var current = CurrentVersion;
         try
         {
-            var client = HttpClientFactory.GetClient("github");
+            var client = HttpClientFactory.GetClient(GitHubClientName);
             using var req = new HttpRequestMessage(HttpMethod.Get,
                 $"https://api.github.com/repos/{Repo}/releases/latest");
             req.Headers.Add("Accept", "application/vnd.github+json");
@@ -101,7 +102,7 @@ public static class UpdateService
         if (Directory.Exists(root)) Directory.Delete(root, true);
         Directory.CreateDirectory(staging);
 
-        var client = HttpClientFactory.GetClient("github");
+        var client = HttpClientFactory.GetClient(GitHubClientName);
         using (var resp = await client.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead))
         {
             resp.EnsureSuccessStatusCode();

@@ -31,9 +31,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <UserAssetTemplate Include="$(MSBuildProjectDirectory)\Themes\LightTheme.xaml">
-      <Dest>Themes\Light.xaml</Dest>
-    </UserAssetTemplate>
     <UserAssetTemplate Include="$(MSBuildProjectDirectory)\Themes\README.txt">
       <Dest>Themes\README.txt</Dest>
     </UserAssetTemplate>
@@ -63,11 +60,13 @@
   <Target Name="CopyUserAssetTemplates" AfterTargets="Build">
     <Copy SourceFiles="@(UserAssetTemplate)" DestinationFiles="@(UserAssetTemplate->'$(OutputPath)%(Dest)')" SkipUnchangedFiles="true" />
     <EmitLooseTheme Source="$(MSBuildProjectDirectory)\Themes\DarkTheme.xaml" Destination="$(OutputPath)Themes\Dark.xaml" />
+    <EmitLooseTheme Source="$(MSBuildProjectDirectory)\Themes\LightTheme.xaml" Destination="$(OutputPath)Themes\Light.xaml" />
   </Target>
 
   <Target Name="CopyUserAssetTemplatesOnPublish" AfterTargets="Publish">
     <Copy SourceFiles="@(UserAssetTemplate)" DestinationFiles="@(UserAssetTemplate->'$(PublishDir)%(Dest)')" SkipUnchangedFiles="true" />
     <EmitLooseTheme Source="$(MSBuildProjectDirectory)\Themes\DarkTheme.xaml" Destination="$(PublishDir)Themes\Dark.xaml" />
+    <EmitLooseTheme Source="$(MSBuildProjectDirectory)\Themes\LightTheme.xaml" Destination="$(PublishDir)Themes\Light.xaml" />
   </Target>
 
   <Target Name="CopyMoveAfterFiles" AfterTargets="Build">

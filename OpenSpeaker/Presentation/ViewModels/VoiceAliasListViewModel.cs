@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Threading;
 using OpenSpeaker.Audio;
 using OpenSpeaker.Data;
 using OpenSpeaker.Infrastructure.Logging;
@@ -18,7 +19,7 @@ public class AliasUserNode
     public List<AliasUserNode> Children { get; init; } = new();
 }
 
-public class VoiceAliasListViewModel : BaseViewModel
+public class VoiceAliasListViewModel : BaseViewModel, IDisposable
 {
     private readonly VoiceAliasRepository _repo;
     private readonly TtsEngineRegistry _engineRegistry;
@@ -218,7 +219,9 @@ public class VoiceAliasListViewModel : BaseViewModel
     public AsyncRelayCommand TestSpeakCommand { get; }
     public AsyncRelayCommand LoadVoicesCommand { get; }
 
-    public VoiceAliasListViewModel(VoiceAliasRepository repo, TtsEngineRegistry engineRegistry, VoicePool voicePool, AudioDeviceEnumerator deviceEnumerator, UserRepository userRepo, Func<IReadOnlyList<UserRecord>> getAllUsers, IAppLogger? logger = null)
+    private readonly IDialogService _dialogs;
+
+    public VoiceAliasListViewModel(VoiceAliasRepository repo, TtsEngineRegistry engineRegistry, VoicePool voicePool, AudioDeviceEnumerator deviceEnumerator, UserRepository userRepo, Func<IReadOnlyList<UserRecord>> getAllUsers, IAppLogger? logger = null, IDialogService? dialogs = null)
     {
         _repo = repo;
         _engineRegistry = engineRegistry;
@@ -227,6 +230,7 @@ public class VoiceAliasListViewModel : BaseViewModel
         _deviceEnumerator = deviceEnumerator;
         _userRepo = userRepo;
         _logger = logger;
+        _dialogs = dialogs ?? new DialogService();
 
         AddAliasCommand = new RelayCommand(AddAlias, () => !string.IsNullOrWhiteSpace(DetailName));
         DeleteAliasCommand = new RelayCommand(DeleteAlias, () => SelectedAlias != null);
@@ -425,7 +429,7 @@ public class VoiceAliasListViewModel : BaseViewModel
     private void DeleteAlias()
     {
         if (_selectedAlias == null) return;
-        if (MessageBox.Show($"Delete alias '{_selectedAlias.Name}'?", "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+        if (_dialogs.Confirm($"Delete alias '{_selectedAlias.Name}'?", "Confirm"))
         {
             _repo.Delete(_selectedAlias.Id);
             Refresh();
@@ -503,6 +507,38 @@ public class VoiceAliasListViewModel : BaseViewModel
         _repo.Upsert(_selectedAlias);
         AliasVoices.Clear();
         SelectedVoice = null;
+    }
+
+    private DispatcherTimer? _userRefreshTimer;
+
+    public void NotifyUserActivity(string twitchId)
+    {
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            if (_userRefreshTimer != null) return;
+            if (_allDbUsers.Any(u => u.TwitchId == twitchId)) return;
+
+            _userRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+            _userRefreshTimer.Tick += (_, _) =>
+            {
+                _userRefreshTimer?.Stop();
+                _userRefreshTimer = null;
+                RefreshAvailableUsers();
+            };
+            _userRefreshTimer.Start();
+        });
+    }
+
+    private void RefreshAvailableUsers()
+    {
+        _allDbUsers = _userRepo.GetAll().OrderBy(u => u.Username).ToList();
+        ApplyUserFilter();
+    }
+
+    public void Dispose()
+    {
+        _userRefreshTimer?.Stop();
+        _userRefreshTimer = null;
     }
 
     private void ApplyUserFilter()

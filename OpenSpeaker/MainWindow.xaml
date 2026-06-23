@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:OpenSpeaker.ViewModels"
         xmlns:controls="clr-namespace:OpenSpeaker.Controls"
+        xmlns:views="clr-namespace:OpenSpeaker.Views"
         Title="OpenSpeaker" Height="750" Width="1280"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
@@ -70,8 +71,8 @@
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding QueueStatus.IsPaused}" Value="True">
                                         <Setter Property="Command" Value="{Binding QueueStatus.ResumeCommand}"/>
-                                        <Setter Property="Content" Value="{StaticResource Btn.Resume}"/>
-                                        <Setter Property="ToolTip" Value="{StaticResource Tip.ResumeQueue}"/>
+                                        <Setter Property="Content" Value="{DynamicResource Btn.Resume}"/>
+                                        <Setter Property="ToolTip" Value="{DynamicResource Tip.ResumeQueue}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -128,36 +129,7 @@
 
             <!-- ═══════════════ PROCESSING ═══════════════ -->
             <TabItem Header="{DynamicResource Tab.Processing}">
-                <Grid Margin="12">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="8"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <GroupBox Header="{StaticResource Section.Queue}" Grid.Row="0">
-                        <ListBox ItemsSource="{Binding Processing.QueueItems}" BorderThickness="0"
-                                 Background="Transparent">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Display}" FontFamily="Segoe UI" FontSize="12"/>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </GroupBox>
-
-                    <GroupBox Header="{StaticResource Section.Processed}" Grid.Row="2">
-                        <ListBox ItemsSource="{Binding Processing.ProcessedItems}"
-                                 SelectedItem="{Binding Processing.SelectedProcessed}"
-                                 BorderThickness="0" Background="Transparent">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Display}" FontFamily="Segoe UI" FontSize="12"/>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </GroupBox>
-                </Grid>
+                <views:ProcessingView DataContext="{Binding Processing}"/>
             </TabItem>
 
             <!-- ═══════════════ USERS ═══════════════ -->
@@ -264,9 +236,15 @@
                                 <DataGrid ItemsSource="{Binding Users.SelectedUser.PastVoices}" Height="150"
                                           BorderThickness="0">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{StaticResource Col.LastUsed}" Binding="{Binding LastUsed, StringFormat='dd/MM/yyyy HH:mm:ss'}" Width="180"/>
-                                        <DataGridTextColumn Header="{StaticResource Col.Engine}" Binding="{Binding EngineId}" Width="100"/>
-                                        <DataGridTextColumn Header="{StaticResource Col.VoiceId}" Binding="{Binding VoiceId}" Width="*"/>
+                                        <DataGridTextColumn Binding="{Binding LastUsed, StringFormat='dd/MM/yyyy HH:mm:ss'}" Width="180">
+                                            <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.LastUsed}"/></DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding EngineId}" Width="100">
+                                            <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Engine}"/></DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding VoiceId}" Width="*">
+                                            <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.VoiceId}"/></DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </GroupBox>
@@ -359,9 +337,15 @@
                         <DataGrid ItemsSource="{Binding Events.Messages}"
                                   SelectedItem="{Binding Events.SelectedMessage}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{StaticResource Col.Weight}" Binding="{Binding Weight}" Width="60"/>
-                                <DataGridTextColumn Header="{StaticResource Col.Enabled}" Binding="{Binding Enabled}" Width="60"/>
-                                <DataGridTextColumn Header="{StaticResource Col.Message}" Binding="{Binding Template}" Width="*"/>
+                                <DataGridTextColumn Binding="{Binding Weight}" Width="60">
+                                    <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Weight}"/></DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding Enabled}" Width="60">
+                                    <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Enabled}"/></DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding Template}" Width="*">
+                                    <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Message}"/></DataGridTextColumn.Header>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>
@@ -425,10 +409,17 @@
                               SelectedItem="{Binding CustomCommands.SelectedCommand}"
                               PreviewMouseLeftButtonDown="CommandsDataGrid_PreviewMouseLeftButtonDown">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="{StaticResource Col.Command}" Binding="{Binding Trigger}" Width="Auto"/>
-                            <DataGridTextColumn Header="{StaticResource Col.VoiceAlias}" Binding="{Binding VoiceAliasName}" Width="*"/>
-                            <DataGridTextColumn Header="{StaticResource Col.Permissions}" Binding="{Binding PermissionsSummary}" Width="Auto" IsReadOnly="True"/>
-                            <DataGridTemplateColumn Header="{StaticResource Col.Enabled}" Width="Auto">
+                            <DataGridTextColumn Binding="{Binding Trigger}" Width="Auto">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Command}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding VoiceAliasName}" Width="*">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.VoiceAlias}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding PermissionsSummary}" Width="Auto" IsReadOnly="True">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Permissions}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Width="Auto">
+                                <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col.Enabled}"/></DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"
@@ -536,11 +527,21 @@
                     <DataGrid Grid.Row="1" ItemsSource="{Binding ChannelRewards.Rewards}"
                               SelectedItem="{Binding ChannelRewards.SelectedReward}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="{StaticResource Col.RewardName}" Binding="{Binding Title}" Width="*"/>
-                            <DataGridTextColumn Header="{StaticResource Col.Cost}" Binding="{Binding Cost}" Width="80"/>
-                            <DataGridTextColumn Header="{StaticResource Col.Ignored}" Binding="{Binding IsIgnored}" Width="70"/>
-                            <DataGridTextColumn Header="{StaticResource Col.SayInput}" Binding="{Binding SayInput}" Width="Auto"/>
-                            <DataGridTextColumn Header="{StaticResource Col.VoiceAlias}" Binding="{Binding VoiceAliasName}" Width="120"/>
+                            <DataGridTextColumn Binding="{Binding Title}" Width="*">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.RewardName}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Cost}" Width="80">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Cost}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding IsIgnored}" Width="70">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Ignored}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding SayInput}" Width="Auto">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.SayInput}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding VoiceAliasName}" Width="120">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.VoiceAlias}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
 
@@ -560,9 +561,15 @@
                                 <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding ChannelRewards.Messages}"
                                           SelectedItem="{Binding ChannelRewards.SelectedMessage}" Height="100">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{StaticResource Col.Weight}" Binding="{Binding Weight}" Width="60"/>
-                                        <DataGridTextColumn Header="{StaticResource Col.Enabled}" Binding="{Binding Enabled}" Width="60"/>
-                                        <DataGridTextColumn Header="{StaticResource Col.Message}" Binding="{Binding Template}" Width="*"/>
+                                        <DataGridTextColumn Binding="{Binding Weight}" Width="60">
+                                            <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Weight}"/></DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Enabled}" Width="60">
+                                            <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Enabled}"/></DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Template}" Width="*">
+                                            <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Message}"/></DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <Grid Margin="0,8,0,0">
@@ -777,15 +784,19 @@
                                                     <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
                                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.DefaultVoiceAlias}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
-                                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding GeneralSettings.DefaultVoiceAlias}"
-                                                         ToolTip="{DynamicResource Tip.DefaultVoiceAlias}"/>
+                                                <ComboBox Grid.Row="0" Grid.Column="1"
+                                                          ItemsSource="{Binding GeneralSettings.AvailableAliases}"
+                                                          SelectedItem="{Binding GeneralSettings.DefaultVoiceAlias}"
+                                                          ToolTip="{DynamicResource Tip.DefaultVoiceAlias}"/>
                                                 <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
                                                           Content="{DynamicResource Chk.UseHighlightVoice}"
                                                           IsChecked="{Binding GeneralSettings.UseHighlightVoice}"
                                                           ToolTip="{DynamicResource Tip.UseHighlightVoice}"/>
                                                 <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.HighlightVoiceAlias}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
-                                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding GeneralSettings.HighlightVoiceAlias}"
-                                                         ToolTip="{DynamicResource Tip.HighlightVoiceAlias}"/>
+                                                <ComboBox Grid.Row="4" Grid.Column="1"
+                                                          ItemsSource="{Binding GeneralSettings.AvailableAliases}"
+                                                          SelectedItem="{Binding GeneralSettings.HighlightVoiceAlias}"
+                                                          ToolTip="{DynamicResource Tip.HighlightVoiceAlias}"/>
                                             </Grid>
                                         </GroupBox>
                                     </StackPanel>
@@ -936,10 +947,18 @@
                                             <DataGrid ItemsSource="{Binding VoiceGate.Profiles}"
                                                       SelectedItem="{Binding VoiceGate.SelectedProfile}" Height="120">
                                                 <DataGrid.Columns>
-                                                    <DataGridTextColumn Header="{StaticResource Col.Name}" Binding="{Binding Name}" Width="*"/>
-                                                    <DataGridTextColumn Header="{StaticResource Col.Device}" Binding="{Binding DeviceId}" Width="130"/>
-                                                    <DataGridTextColumn Header="{StaticResource Col.Threshold}" Binding="{Binding ThresholdDb}" Width="90"/>
-                                                    <DataGridTextColumn Header="{StaticResource Col.TimeoutMs}" Binding="{Binding TimeoutMs}" Width="90"/>
+                                                    <DataGridTextColumn Binding="{Binding Name}" Width="*">
+                                                        <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Name}"/></DataGridTextColumn.Header>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTextColumn Binding="{Binding DeviceId}" Width="130">
+                                                        <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Device}"/></DataGridTextColumn.Header>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTextColumn Binding="{Binding ThresholdDb}" Width="90">
+                                                        <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Threshold}"/></DataGridTextColumn.Header>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTextColumn Binding="{Binding TimeoutMs}" Width="90">
+                                                        <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.TimeoutMs}"/></DataGridTextColumn.Header>
+                                                    </DataGridTextColumn>
                                                 </DataGrid.Columns>
                                             </DataGrid>
                                         </DockPanel>
@@ -1161,8 +1180,9 @@
                                                 <CheckBox Content="{DynamicResource Lbl.HighlightVoiceAliasSuffix}" IsChecked="{Binding SpeakingOptions.UseHighlightVoice}"
                                                           VerticalAlignment="Center" Margin="0,0,6,0"
                                                           ToolTip="{DynamicResource Tip.UseHighlightVoice2}"/>
-                                                <TextBox Text="{Binding SpeakingOptions.HighlightVoiceAlias}" Width="120"
-                                                         ToolTip="{DynamicResource Tip.HighlightVoiceAliasInput}"/>
+                                                <ComboBox ItemsSource="{Binding SpeakingOptions.AvailableAliases}"
+                                                          SelectedItem="{Binding SpeakingOptions.HighlightVoiceAlias}" Width="120"
+                                                          ToolTip="{DynamicResource Tip.HighlightVoiceAliasInput}"/>
                                             </StackPanel>
                                             <CheckBox Content="{DynamicResource Chk.OnlySayUsernameIfDifferent}" IsChecked="{Binding SpeakingOptions.OnlySayUsernameIfDifferent}"
                                                       Margin="0,0,0,8" ToolTip="{DynamicResource Tip.OnlySayUsernameIfDifferent}"/>
@@ -1454,8 +1474,11 @@
                                       SelectionChanged="FiltersDataGrid_SelectionChanged"
                                       PreviewMouseLeftButtonDown="FiltersDataGrid_PreviewMouseLeftButtonDown">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="{StaticResource Col.Mode}" Binding="{Binding Mode}" Width="Auto"/>
-                                    <DataGridCheckBoxColumn Header="{StaticResource Col.Regex}" Binding="{Binding IsRegex}" Width="Auto">
+                                    <DataGridTextColumn Binding="{Binding Mode}" Width="Auto">
+                                        <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Mode}"/></DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+                                    <DataGridCheckBoxColumn Binding="{Binding IsRegex}" Width="Auto">
+                                        <DataGridCheckBoxColumn.Header><TextBlock Text="{DynamicResource Col.Regex}"/></DataGridCheckBoxColumn.Header>
                                         <DataGridCheckBoxColumn.ElementStyle>
                                             <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
                                         </DataGridCheckBoxColumn.ElementStyle>
@@ -1471,7 +1494,8 @@
                                             <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
                                         </DataGridCheckBoxColumn.EditingElementStyle>
                                     </DataGridCheckBoxColumn>
-                                    <DataGridCheckBoxColumn Header="{StaticResource Col.On}" Binding="{Binding Enabled}" Width="Auto">
+                                    <DataGridCheckBoxColumn Binding="{Binding Enabled}" Width="Auto">
+                                        <DataGridCheckBoxColumn.Header><TextBlock Text="{DynamicResource Col.On}"/></DataGridCheckBoxColumn.Header>
                                         <DataGridCheckBoxColumn.ElementStyle>
                                             <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
                                         </DataGridCheckBoxColumn.ElementStyle>
@@ -1479,8 +1503,12 @@
                                             <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
                                         </DataGridCheckBoxColumn.EditingElementStyle>
                                     </DataGridCheckBoxColumn>
-                                    <DataGridTextColumn Header="{StaticResource Col.Pattern}" Binding="{Binding Pattern}" Width="*"/>
-                                    <DataGridTextColumn Header="{StaticResource Col.ReplaceWith}" Binding="{Binding Replacement}" Width="*"/>
+                                    <DataGridTextColumn Binding="{Binding Pattern}" Width="*">
+                                        <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Pattern}"/></DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Binding="{Binding Replacement}" Width="*">
+                                        <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.ReplaceWith}"/></DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
@@ -1685,12 +1713,14 @@
                                                   PreviewMouseLeftButtonDown="AliasVoicesDataGrid_PreviewMouseLeftButtonDown">
                                             <DataGrid.ContextMenu>
                                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                    <MenuItem Header="{StaticResource Btn.Remove}" Command="{Binding VoiceAliases.RemoveVoiceCommand}"/>
-                                                    <MenuItem Header="{StaticResource Btn.RemoveAll}" Command="{Binding VoiceAliases.RemoveAllVoicesCommand}"/>
+                                                    <MenuItem Header="{DynamicResource Btn.Remove}" Command="{Binding VoiceAliases.RemoveVoiceCommand}"/>
+                                                    <MenuItem Header="{DynamicResource Btn.RemoveAll}" Command="{Binding VoiceAliases.RemoveAllVoicesCommand}"/>
                                                 </ContextMenu>
                                             </DataGrid.ContextMenu>
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{StaticResource Col.Name}" Binding="{Binding Name}" Width="*"/>
+                                                <DataGridTextColumn Binding="{Binding Name}" Width="*">
+                                                    <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Name}"/></DataGridTextColumn.Header>
+                                                </DataGridTextColumn>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </DockPanel>

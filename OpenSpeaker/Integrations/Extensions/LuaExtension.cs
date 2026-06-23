@@ -31,6 +31,7 @@ public class LuaExtension : IDisposable
     private readonly SemaphoreSlim _stateLock = new(1, 1);
     private readonly HttpClient _http = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Task<byte[]>> _asyncJobs = new();
+    private readonly CancellationTokenSource _disposeCts = new();
     private readonly Dictionary<string, Dictionary<string, string>> _authByEngine = new();
     private readonly List<LuaTtsEngine> _speechEngines = new();
     private List<ExtSettingField> _settingFields = new();
@@ -286,7 +287,7 @@ public class LuaExtension : IDisposable
             var url = ctx.GetArgument<string>(0);
             var headers = GetOptionalTable(ctx, 1);
             var jobId = Guid.NewGuid().ToString("N");
-            _asyncJobs[jobId] = HttpGetBytesRawAsync(url, headers, CancellationToken.None);
+            _asyncJobs[jobId] = HttpGetBytesRawAsync(url, headers, _disposeCts.Token);
             return new(ctx.Return(jobId));
         });
         httpTable["post_bytes_async"] = new LuaFunction((ctx, ct) =>
@@ -296,7 +297,7 @@ public class LuaExtension : IDisposable
             var contentType = ctx.HasArgument(2) ? ctx.GetArgument<string>(2) : "application/json";
             var headers = GetOptionalTable(ctx, 3);
             var jobId = Guid.NewGuid().ToString("N");
-            _asyncJobs[jobId] = HttpPostBytesRawAsync(url, body, contentType, headers, CancellationToken.None);
+            _asyncJobs[jobId] = HttpPostBytesRawAsync(url, body, contentType, headers, _disposeCts.Token);
             return new(ctx.Return(jobId));
         });
         state.Environment["http"] = httpTable;
@@ -703,7 +704,12 @@ public class LuaExtension : IDisposable
 
     public void Dispose()
     {
+        _disposeCts.Cancel();
+        try { Task.WaitAll(_asyncJobs.Values.ToArray(), TimeSpan.FromSeconds(2)); } catch { }
+        try { _stateLock.Wait(TimeSpan.FromSeconds(2)); } catch { }
+        _asyncJobs.Clear();
         _http.Dispose();
         _stateLock.Dispose();
+        _disposeCts.Dispose();
     }
 }

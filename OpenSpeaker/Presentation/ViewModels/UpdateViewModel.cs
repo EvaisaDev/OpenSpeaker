@@ -15,11 +15,13 @@ public class UpdateViewModel : BaseViewModel
     public string UpdateButtonText { get => _updateButtonText; set => SetField(ref _updateButtonText, value); }
 
     private UpdateService.UpdateInfo? _info;
+    private readonly IDialogService _dialogs;
 
     public AsyncRelayCommand UpdateCommand { get; }
 
-    public UpdateViewModel()
+    public UpdateViewModel(IDialogService? dialogs = null)
     {
+        _dialogs = dialogs ?? new DialogService();
         VersionText = "v" + UpdateService.CurrentVersion;
         UpdateCommand = new AsyncRelayCommand(ApplyAsync, () => IsUpdateAvailable);
     }
@@ -36,10 +38,9 @@ public class UpdateViewModel : BaseViewModel
         if (_promptShown) return;
         _promptShown = true;
 
-        var result = MessageBox.Show(
-            $"A new version of OpenSpeaker is available.\n\nCurrent: v{info.CurrentVersion}\nLatest: v{info.LatestVersion}\n\nUpdate now? The app will download the new version and restart.",
-            "Update Available", MessageBoxButton.YesNo, MessageBoxImage.Information);
-        if (result == MessageBoxResult.Yes)
+        if (_dialogs.Confirm(
+                $"A new version of OpenSpeaker is available.\n\nCurrent: v{info.CurrentVersion}\nLatest: v{info.LatestVersion}\n\nUpdate now? The app will download the new version and restart.",
+                "Update Available"))
             await ApplyAsync();
     }
 
@@ -52,8 +53,7 @@ public class UpdateViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Update failed:\n\n{ex.Message}", "Update",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogs.ShowError($"Update failed:\n\n{ex.Message}", "Update");
         }
     }
 }

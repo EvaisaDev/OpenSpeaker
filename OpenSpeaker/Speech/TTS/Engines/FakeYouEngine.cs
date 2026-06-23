@@ -105,12 +105,7 @@ public class FakeYouEngine : ITtsEngine
 
         var wavBytes = await _http.GetByteArrayAsync(StorageBase + wavPath);
 
-        using var ms        = new MemoryStream(wavBytes);
-        using var reader    = new WaveFileReader(ms);
-        using var pcmStream = WaveFormatConversionStream.CreatePcmStream(reader);
-        using var pcmMs     = new MemoryStream();
-        await pcmStream.CopyToAsync(pcmMs);
-        return new AudioData { Samples = pcmMs.ToArray(), Format = pcmStream.WaveFormat };
+        return await AudioDecoder.DecodeAsync(wavBytes, "wav");
     }
 
     public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()

@@ -11,7 +11,7 @@ public class MessageSanitizer
     private readonly PrefixChecker _prefixChecker;
     private readonly RegexReplacer _regexReplacer;
     private readonly SettingsRepository _settingsRepo;
-    private readonly DatabaseContext _db;
+    private readonly RegexReplacementRepository _regexRepo;
     private readonly IAppLogger? _logger;
 
     public MessageSanitizer(
@@ -19,14 +19,14 @@ public class MessageSanitizer
         PrefixChecker prefixChecker,
         RegexReplacer regexReplacer,
         SettingsRepository settingsRepo,
-        DatabaseContext db,
+        RegexReplacementRepository regexRepo,
         IAppLogger? logger = null)
     {
         _emoteStripper = emoteStripper;
         _prefixChecker = prefixChecker;
         _regexReplacer = regexReplacer;
         _settingsRepo = settingsRepo;
-        _db = db;
+        _regexRepo = regexRepo;
         _logger = logger;
     }
 
@@ -70,7 +70,7 @@ public class MessageSanitizer
 
         if (applyFilters)
         {
-            var filters = _db.RegexReplacements.FindAll().ToList();
+            var filters = _regexRepo.GetAll();
             foreach (var f in filters.Where(x => x.Enabled).OrderBy(x => x.Order))
             {
                 var before = message;

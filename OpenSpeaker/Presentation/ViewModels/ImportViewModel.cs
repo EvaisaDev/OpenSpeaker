@@ -8,6 +8,7 @@ public class ImportViewModel : BaseViewModel
 {
     private readonly SpeakerBotImporter _importer;
     private readonly ExtensionManager _extensions;
+    private readonly IDialogService _dialogs;
     public Action? OnComplete { get; set; }
 
     private string _folderPath = string.Empty;
@@ -16,22 +17,19 @@ public class ImportViewModel : BaseViewModel
     public RelayCommand BrowseFolderCommand { get; }
     public AsyncRelayCommand ImportCommand { get; }
 
-    public ImportViewModel(SpeakerBotImporter importer, ExtensionManager extensions)
+    public ImportViewModel(SpeakerBotImporter importer, ExtensionManager extensions, IDialogService? dialogs = null)
     {
         _importer = importer;
         _extensions = extensions;
+        _dialogs = dialogs ?? new DialogService();
         BrowseFolderCommand = new RelayCommand(BrowseFolder);
         ImportCommand = new AsyncRelayCommand(RunImport, () => !string.IsNullOrWhiteSpace(FolderPath));
     }
 
     private void BrowseFolder()
     {
-        var dialog = new System.Windows.Forms.FolderBrowserDialog
-        {
-            Description = "Select your Speaker.bot install folder"
-        };
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            FolderPath = dialog.SelectedPath;
+        var path = _dialogs.PickFolder("Select your Speaker.bot install folder");
+        if (path != null) FolderPath = path;
     }
 
     private async Task RunImport()

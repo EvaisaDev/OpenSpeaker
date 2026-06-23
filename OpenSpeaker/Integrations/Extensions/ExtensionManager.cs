@@ -9,7 +9,7 @@ public class ExtensionManager : IDisposable
 {
     private readonly DatabaseContext _db;
     private readonly IAppLogger? _logger;
-    private readonly List<LuaExtension> _extensions = new();
+    private volatile List<LuaExtension> _extensions = new();
 
     public static string ExtensionsDirectory =>
         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "extensions");
@@ -28,17 +28,19 @@ public class ExtensionManager : IDisposable
 
     public void Reload()
     {
-        foreach (var e in _extensions) e.Dispose();
-        _extensions.Clear();
+        var old = _extensions;
         LoadAll();
+        foreach (var e in old) e.Dispose();
     }
 
     private void LoadAll()
     {
+        var loaded = new List<LuaExtension>();
         _logger?.Info($"[ExtensionManager] LoadAll called, directory: {ExtensionsDirectory}");
         if (!Directory.Exists(ExtensionsDirectory))
         {
             _logger?.Warn($"[ExtensionManager] Extensions directory does not exist: {ExtensionsDirectory}");
+            _extensions = loaded;
             return;
         }
 
@@ -62,7 +64,7 @@ public class ExtensionManager : IDisposable
                 var saved = _db.ExtensionSettings.FindOne(s => s.ExtensionId == ext.ExtensionId);
                 if (saved?.Values is { Count: > 0 })
                     ext.SetSettings(saved.Values);
-                _extensions.Add(ext);
+                loaded.Add(ext);
             }
             catch (Exception ex)
             {
@@ -70,6 +72,7 @@ public class ExtensionManager : IDisposable
             }
         }
 
+        _extensions = loaded;
         _logger?.Info($"[ExtensionManager] LoadAll complete, total speech engines registered: [{string.Join(", ", SpeechEngines.Select(e => e.EngineId))}]");
     }
 
@@ -87,7 +90,8 @@ public class ExtensionManager : IDisposable
 
     public async Task<string> ProcessMessageAsync(MessageFilterContext ctx, string message)
     {
-        foreach (var ext in _extensions.Where(e => e.HasMessageFilter))
+        var snapshot = _extensions;
+        foreach (var ext in snapshot.Where(e => e.HasMessageFilter))
             message = await ext.ProcessMessageAsync(ctx, message);
         return message;
     }
@@ -114,7 +118,8 @@ public class ExtensionManager : IDisposable
 
     public void Dispose()
     {
-        foreach (var e in _extensions) e.Dispose();
-        _extensions.Clear();
+        var old = _extensions;
+        _extensions = new List<LuaExtension>();
+        foreach (var e in old) e.Dispose();
     }
 }

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Collections.Concurrent;
 using Google.Cloud.TextToSpeech.V1;
 using Grpc.Core;
 using NAudio.Wave;
@@ -17,7 +18,7 @@ public class GoogleCloudEngine : ITtsEngine
 
     private TextToSpeechClient? _client;
     private string _serviceAccountPath = string.Empty;
-    private readonly HashSet<string> _noPitchVoices = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, byte> _noPitchVoices = new(StringComparer.OrdinalIgnoreCase);
 
     public string EngineId => EngineIds.GoogleCloud;
     public bool IsConfigured => !string.IsNullOrEmpty(_serviceAccountPath) && File.Exists(_serviceAccountPath);
@@ -41,7 +42,7 @@ public class GoogleCloudEngine : ITtsEngine
         var languageCode = parts.Length > 1 ? parts[1] : "en-US";
 
         var pitch = parameters.Dbl("pitch", 0);
-        var supportsPitch = !_noPitchVoices.Contains(voiceName);
+        var supportsPitch = !_noPitchVoices.ContainsKey(voiceName);
 
         try
         {
@@ -49,7 +50,7 @@ public class GoogleCloudEngine : ITtsEngine
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument && ex.Status.Detail.Contains("pitch"))
         {
-            _noPitchVoices.Add(voiceName);
+            _noPitchVoices.TryAdd(voiceName, 0);
             return await SynthesizeInternalAsync(voiceName, languageCode, text, parameters, null);
         }
     }

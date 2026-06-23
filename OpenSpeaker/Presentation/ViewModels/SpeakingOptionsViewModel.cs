@@ -4,54 +4,59 @@ using OpenSpeaker.Models;
 using OpenSpeaker.Twitch;
 namespace OpenSpeaker.ViewModels;
 
-public class SpeakingOptionsViewModel : BaseViewModel
+public class SpeakingOptionsViewModel : SettingsViewModelBase
 {
-    private readonly SettingsRepository _settingsRepo;
     private readonly EmoteCacheService _emoteCache;
     private readonly ITwitchService _twitch;
-    private AppSettings _settings;
+    private readonly VoiceAliasRepository _aliasRepo;
 
-    public bool SayUsername { get => _settings.SayUsername; set { _settings.SayUsername = value; OnPropertyChanged(); Save(); } }
-    public string SayUsernamePrefix { get => _settings.SayUsernamePrefix; set { _settings.SayUsernamePrefix = value; OnPropertyChanged(); Save(); } }
-    public bool StickyRandomVoice { get => _settings.StickyRandomVoice; set { _settings.StickyRandomVoice = value; OnPropertyChanged(); Save(); } }
-    public bool OnlySayUsernameIfDifferent { get => _settings.OnlySayUsernameIfDifferent; set { _settings.OnlySayUsernameIfDifferent = value; OnPropertyChanged(); Save(); } }
-    public bool ReplaceNameWithNickname { get => _settings.ReplaceNameWithNickname; set { _settings.ReplaceNameWithNickname = value; OnPropertyChanged(); Save(); } }
+    public ObservableCollection<string> AvailableAliases { get; } = new();
 
-    public bool UseHighlightVoice { get => _settings.UseHighlightVoice; set { _settings.UseHighlightVoice = value; OnPropertyChanged(); Save(); } }
-    public string HighlightVoiceAlias { get => _settings.HighlightVoiceAlias; set { _settings.HighlightVoiceAlias = value; OnPropertyChanged(); Save(); } }
+    public bool SayUsername { get => Settings.SayUsername; set => Set(s => s.SayUsername = value); }
+    public string SayUsernamePrefix { get => Settings.SayUsernamePrefix; set => Set(s => s.SayUsernamePrefix = value); }
+    public bool StickyRandomVoice { get => Settings.StickyRandomVoice; set => Set(s => s.StickyRandomVoice = value); }
+    public bool OnlySayUsernameIfDifferent { get => Settings.OnlySayUsernameIfDifferent; set => Set(s => s.OnlySayUsernameIfDifferent = value); }
+    public bool ReplaceNameWithNickname { get => Settings.ReplaceNameWithNickname; set => Set(s => s.ReplaceNameWithNickname = value); }
 
-    public bool StopOnMessageDeleted { get => _settings.StopOnMessageDeleted; set { _settings.StopOnMessageDeleted = value; OnPropertyChanged(); Save(); } }
-    public bool SkipOnMessageDeleted { get => _settings.SkipOnMessageDeleted; set { _settings.SkipOnMessageDeleted = value; OnPropertyChanged(); Save(); } }
-    public bool StopOnUserTimedOut { get => _settings.StopOnUserTimedOut; set { _settings.StopOnUserTimedOut = value; OnPropertyChanged(); Save(); } }
-    public bool SkipOnUserTimedOut { get => _settings.SkipOnUserTimedOut; set { _settings.SkipOnUserTimedOut = value; OnPropertyChanged(); Save(); } }
-    public bool StopOnUserBanned { get => _settings.StopOnUserBanned; set { _settings.StopOnUserBanned = value; OnPropertyChanged(); Save(); } }
-    public bool SkipOnUserBanned { get => _settings.SkipOnUserBanned; set { _settings.SkipOnUserBanned = value; OnPropertyChanged(); Save(); } }
-    public bool SilenceCommandOutput { get => _settings.SilenceCommandOutput; set { _settings.SilenceCommandOutput = value; OnPropertyChanged(); Save(); } }
+    public bool UseHighlightVoice { get => Settings.UseHighlightVoice; set => Set(s => s.UseHighlightVoice = value); }
+    public string HighlightVoiceAlias
+    {
+        get => string.IsNullOrEmpty(Settings.HighlightVoiceAlias) ? NoneAlias : Settings.HighlightVoiceAlias;
+        set => Set(s => s.HighlightVoiceAlias = value == NoneAlias ? string.Empty : value);
+    }
 
-    public bool AllowModerators { get => _settings.AllowModerators; set { _settings.AllowModerators = value; OnPropertyChanged(); Save(); } }
-    public bool AllowSubscribers { get => _settings.AllowSubscribers; set { _settings.AllowSubscribers = value; OnPropertyChanged(); Save(); } }
-    public bool AllowVIPs { get => _settings.AllowVIPs; set { _settings.AllowVIPs = value; OnPropertyChanged(); Save(); } }
-    public bool AllowRegulars { get => _settings.AllowRegulars; set { _settings.AllowRegulars = value; OnPropertyChanged(); Save(); } }
-    public bool AllowEveryone { get => _settings.AllowEveryone; set { _settings.AllowEveryone = value; OnPropertyChanged(); Save(); } }
+    public bool StopOnMessageDeleted { get => Settings.StopOnMessageDeleted; set => Set(s => s.StopOnMessageDeleted = value); }
+    public bool SkipOnMessageDeleted { get => Settings.SkipOnMessageDeleted; set => Set(s => s.SkipOnMessageDeleted = value); }
+    public bool StopOnUserTimedOut { get => Settings.StopOnUserTimedOut; set => Set(s => s.StopOnUserTimedOut = value); }
+    public bool SkipOnUserTimedOut { get => Settings.SkipOnUserTimedOut; set => Set(s => s.SkipOnUserTimedOut = value); }
+    public bool StopOnUserBanned { get => Settings.StopOnUserBanned; set => Set(s => s.StopOnUserBanned = value); }
+    public bool SkipOnUserBanned { get => Settings.SkipOnUserBanned; set => Set(s => s.SkipOnUserBanned = value); }
+    public bool SilenceCommandOutput { get => Settings.SilenceCommandOutput; set => Set(s => s.SilenceCommandOutput = value); }
 
-    public bool StripTwitchEmotes { get => _settings.StripTwitchEmotes; set { _settings.StripTwitchEmotes = value; OnPropertyChanged(); Save(); } }
-    public bool StripBttvEmotes { get => _settings.StripBttvEmotes; set { _settings.StripBttvEmotes = value; OnPropertyChanged(); Save(); } }
-    public bool StripFfzEmotes { get => _settings.StripFfzEmotes; set { _settings.StripFfzEmotes = value; OnPropertyChanged(); Save(); } }
-    public bool StripSevenTvEmotes { get => _settings.StripSevenTvEmotes; set { _settings.StripSevenTvEmotes = value; OnPropertyChanged(); Save(); } }
-    public bool StripCheermotes { get => _settings.StripCheermotes; set { _settings.StripCheermotes = value; OnPropertyChanged(); Save(); } }
-    public bool StripTwemoji { get => _settings.StripTwemoji; set { _settings.StripTwemoji = value; OnPropertyChanged(); Save(); } }
-    public bool AllowFirstEmote { get => _settings.AllowFirstEmote; set { _settings.AllowFirstEmote = value; OnPropertyChanged(); Save(); } }
+    public bool AllowModerators { get => Settings.AllowModerators; set => Set(s => s.AllowModerators = value); }
+    public bool AllowSubscribers { get => Settings.AllowSubscribers; set => Set(s => s.AllowSubscribers = value); }
+    public bool AllowVIPs { get => Settings.AllowVIPs; set => Set(s => s.AllowVIPs = value); }
+    public bool AllowRegulars { get => Settings.AllowRegulars; set => Set(s => s.AllowRegulars = value); }
+    public bool AllowEveryone { get => Settings.AllowEveryone; set => Set(s => s.AllowEveryone = value); }
 
-    public int CooldownSeconds { get => _settings.CooldownSeconds; set { _settings.CooldownSeconds = value; OnPropertyChanged(); Save(); } }
-    public int MaxWords { get => _settings.MaxWords; set { _settings.MaxWords = value; OnPropertyChanged(); Save(); } }
-    public int MaxChars { get => _settings.MaxChars; set { _settings.MaxChars = value; OnPropertyChanged(); Save(); } }
-    public bool WordLimitSymbolsAsSpaces { get => _settings.WordLimitSymbolsAsSpaces; set { _settings.WordLimitSymbolsAsSpaces = value; OnPropertyChanged(); Save(); } }
-    public string NotAllowedText { get => _settings.NotAllowedText; set { _settings.NotAllowedText = value; OnPropertyChanged(); Save(); } }
-    public string UrlFilterMode { get => _settings.UrlFilterMode; set { _settings.UrlFilterMode = value; OnPropertyChanged(); Save(); } }
+    public bool StripTwitchEmotes { get => Settings.StripTwitchEmotes; set => Set(s => s.StripTwitchEmotes = value); }
+    public bool StripBttvEmotes { get => Settings.StripBttvEmotes; set => Set(s => s.StripBttvEmotes = value); }
+    public bool StripFfzEmotes { get => Settings.StripFfzEmotes; set => Set(s => s.StripFfzEmotes = value); }
+    public bool StripSevenTvEmotes { get => Settings.StripSevenTvEmotes; set => Set(s => s.StripSevenTvEmotes = value); }
+    public bool StripCheermotes { get => Settings.StripCheermotes; set => Set(s => s.StripCheermotes = value); }
+    public bool StripTwemoji { get => Settings.StripTwemoji; set => Set(s => s.StripTwemoji = value); }
+    public bool AllowFirstEmote { get => Settings.AllowFirstEmote; set => Set(s => s.AllowFirstEmote = value); }
+
+    public int CooldownSeconds { get => Settings.CooldownSeconds; set => Set(s => s.CooldownSeconds = value); }
+    public int MaxWords { get => Settings.MaxWords; set => Set(s => s.MaxWords = value); }
+    public int MaxChars { get => Settings.MaxChars; set => Set(s => s.MaxChars = value); }
+    public bool WordLimitSymbolsAsSpaces { get => Settings.WordLimitSymbolsAsSpaces; set => Set(s => s.WordLimitSymbolsAsSpaces = value); }
+    public string NotAllowedText { get => Settings.NotAllowedText; set => Set(s => s.NotAllowedText = value); }
+    public string UrlFilterMode { get => Settings.UrlFilterMode; set => Set(s => s.UrlFilterMode = value); }
 
     public IEnumerable<string> UrlFilterModes { get; } = new[] { "Disabled", "Strip", "Block" };
 
-    public string Mode { get => _settings.Mode; set { _settings.Mode = value; OnPropertyChanged(); Save(); } }
+    public string Mode { get => Settings.Mode; set => Set(s => s.Mode = value); }
     public IEnumerable<string> AvailableModes { get; } = new[] { TtsModes.Everything, TtsModes.Command };
 
     public ObservableCollection<string> AllowedEmotes { get; } = new();
@@ -84,16 +89,17 @@ public class SpeakingOptionsViewModel : BaseViewModel
     public RelayCommand AddIgnoredPrefixCommand { get; }
     public RelayCommand DeleteIgnoredPrefixCommand { get; }
 
-    public SpeakingOptionsViewModel(SettingsRepository settingsRepo, EmoteCacheService emoteCache, ITwitchService twitch)
+    public SpeakingOptionsViewModel(SettingsRepository settingsRepo, EmoteCacheService emoteCache, ITwitchService twitch, VoiceAliasRepository aliasRepo)
+        : base(settingsRepo)
     {
-        _settingsRepo = settingsRepo;
         _emoteCache = emoteCache;
         _twitch = twitch;
-        _settings = settingsRepo.GetSettings();
+        _aliasRepo = aliasRepo;
+        RefreshAliases();
 
-        foreach (var e in _settings.AllowedEmotes) AllowedEmotes.Add(e);
-        foreach (var c in _settings.TtsCommands) TtsCommands.Add(c);
-        foreach (var p in _settings.IgnoredPrefixes) IgnoredPrefixes.Add(p);
+        foreach (var e in Settings.AllowedEmotes) AllowedEmotes.Add(e);
+        foreach (var c in Settings.TtsCommands) TtsCommands.Add(c);
+        foreach (var p in Settings.IgnoredPrefixes) IgnoredPrefixes.Add(p);
 
         RefreshEmotesCommand = new RelayCommand(RefreshEmotes);
         AddEmoteCommand = new RelayCommand(AddEmote, () => !string.IsNullOrWhiteSpace(NewAllowedEmote));
@@ -111,30 +117,38 @@ public class SpeakingOptionsViewModel : BaseViewModel
             await _emoteCache.RefreshAsync(id);
     }
 
-    public void Refresh()
+    public void RefreshAliases()
     {
-        _settings = _settingsRepo.GetSettings();
+        AvailableAliases.Clear();
+        AvailableAliases.Add(NoneAlias);
+        foreach (var a in _aliasRepo.GetAllSorted())
+            AvailableAliases.Add(a.Name);
+    }
+
+    public override void Refresh()
+    {
+        Settings = SettingsRepo.GetSettings();
         AllowedEmotes.Clear();
-        foreach (var e in _settings.AllowedEmotes) AllowedEmotes.Add(e);
+        foreach (var e in Settings.AllowedEmotes) AllowedEmotes.Add(e);
         TtsCommands.Clear();
-        foreach (var c in _settings.TtsCommands) TtsCommands.Add(c);
+        foreach (var c in Settings.TtsCommands) TtsCommands.Add(c);
         IgnoredPrefixes.Clear();
-        foreach (var p in _settings.IgnoredPrefixes) IgnoredPrefixes.Add(p);
+        foreach (var p in Settings.IgnoredPrefixes) IgnoredPrefixes.Add(p);
         OnPropertyChanged(string.Empty);
     }
 
-    private void Save()
+    protected override void Persist()
     {
-        _settings.AllowedEmotes = AllowedEmotes.ToList();
-        _settings.TtsCommands = TtsCommands.ToList();
-        _settings.IgnoredPrefixes = IgnoredPrefixes.ToList();
-        _settingsRepo.SaveSettings(_settings);
+        Settings.AllowedEmotes = AllowedEmotes.ToList();
+        Settings.TtsCommands = TtsCommands.ToList();
+        Settings.IgnoredPrefixes = IgnoredPrefixes.ToList();
+        base.Persist();
     }
 
-    private void AddEmote() { if (!string.IsNullOrWhiteSpace(NewAllowedEmote)) { AllowedEmotes.Add(NewAllowedEmote); NewAllowedEmote = string.Empty; Save(); } }
-    private void DeleteEmote() { if (SelectedAllowedEmote != null) { AllowedEmotes.Remove(SelectedAllowedEmote); SelectedAllowedEmote = null; Save(); } }
-    private void AddTtsCommand() { if (!string.IsNullOrWhiteSpace(NewTtsCommand)) { TtsCommands.Add(NewTtsCommand); NewTtsCommand = string.Empty; Save(); } }
-    private void DeleteTtsCommand() { if (SelectedTtsCommand != null) { TtsCommands.Remove(SelectedTtsCommand); SelectedTtsCommand = null; Save(); } }
-    private void AddIgnoredPrefix() { if (!string.IsNullOrWhiteSpace(NewIgnoredPrefix)) { IgnoredPrefixes.Add(NewIgnoredPrefix); NewIgnoredPrefix = string.Empty; Save(); } }
-    private void DeleteIgnoredPrefix() { if (SelectedIgnoredPrefix != null) { IgnoredPrefixes.Remove(SelectedIgnoredPrefix); SelectedIgnoredPrefix = null; Save(); } }
+    private void AddEmote() { if (!string.IsNullOrWhiteSpace(NewAllowedEmote)) { AllowedEmotes.Add(NewAllowedEmote); NewAllowedEmote = string.Empty; Persist(); } }
+    private void DeleteEmote() { if (SelectedAllowedEmote != null) { AllowedEmotes.Remove(SelectedAllowedEmote); SelectedAllowedEmote = null; Persist(); } }
+    private void AddTtsCommand() { if (!string.IsNullOrWhiteSpace(NewTtsCommand)) { TtsCommands.Add(NewTtsCommand); NewTtsCommand = string.Empty; Persist(); } }
+    private void DeleteTtsCommand() { if (SelectedTtsCommand != null) { TtsCommands.Remove(SelectedTtsCommand); SelectedTtsCommand = null; Persist(); } }
+    private void AddIgnoredPrefix() { if (!string.IsNullOrWhiteSpace(NewIgnoredPrefix)) { IgnoredPrefixes.Add(NewIgnoredPrefix); NewIgnoredPrefix = string.Empty; Persist(); } }
+    private void DeleteIgnoredPrefix() { if (SelectedIgnoredPrefix != null) { IgnoredPrefixes.Remove(SelectedIgnoredPrefix); SelectedIgnoredPrefix = null; Persist(); } }
 }

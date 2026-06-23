@@ -156,12 +156,14 @@ public class WebSocketServer : IDisposable
     {
         if (!IsRunning) return;
 
+        List<IWebSocketConnection> snapshot;
         lock (_connectionsLock)
         {
-            foreach (var c in _connections)
-                c.Close();
+            snapshot = new List<IWebSocketConnection>(_connections);
             _connections.Clear();
         }
+        foreach (var c in snapshot)
+            c.Close();
 
         _server?.Dispose();
         _server = null;

@@ -114,12 +114,7 @@ public class TtsMonsterEngine : ITtsEngine
     private async Task<AudioData> DownloadWav(string url)
     {
         var audioBytes = await _download.GetByteArrayAsync(url);
-        using var ms        = new MemoryStream(audioBytes);
-        using var reader    = new WaveFileReader(ms);
-        using var pcmStream = WaveFormatConversionStream.CreatePcmStream(reader);
-        using var pcmMs     = new MemoryStream();
-        await pcmStream.CopyToAsync(pcmMs);
-        return new AudioData { Samples = pcmMs.ToArray(), Format = pcmStream.WaveFormat };
+        return await AudioDecoder.DecodeAsync(audioBytes, "wav");
     }
 
     public async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync()

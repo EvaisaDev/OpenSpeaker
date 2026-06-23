@@ -92,6 +92,38 @@ public static class UpdateService
         }
     }
 
+    public static async Task<string?> GetReleaseNotesAsync(string version)
+    {
+        try
+        {
+            var client = HttpClientFactory.GetClient(GitHubClientName);
+            foreach (var tag in new[] { version, "v" + version })
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Get,
+                    $"https://api.github.com/repos/{Repo}/releases/tags/{tag}");
+                req.Headers.Add("Accept", "application/vnd.github+json");
+                using var resp = await client.SendAsync(req);
+                if (!resp.IsSuccessStatusCode) continue;
+
+                var json = await resp.Content.ReadAsStringAsync();
+                var release = JObject.Parse(json);
+                return ExtractChangelog((string?)release["body"]);
+            }
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? ExtractChangelog(string? body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return null;
+        var idx = body.IndexOf("## Changelog", StringComparison.OrdinalIgnoreCase);
+        return (idx >= 0 ? body.Substring(idx) : body).Trim();
+    }
+
     public static async Task ApplyAsync(UpdateInfo info)
     {
         if (info.DownloadUrl == null) return;

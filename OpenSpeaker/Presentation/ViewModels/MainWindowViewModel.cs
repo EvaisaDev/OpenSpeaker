@@ -109,7 +109,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
         SilenceTtsCommand = new AsyncRelayCommand(SilenceTtsAsync);
         GenericSpeakCommand = new AsyncRelayCommand(GenericSpeakAsync);
 
-        Update = new UpdateViewModel();
+        Update = new UpdateViewModel(boot.SettingsRepo);
         _ = Update.InitializeAsync();
     }
 

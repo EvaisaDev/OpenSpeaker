@@ -8,6 +8,7 @@ public interface IDialogService
     void ShowWarning(string message, string title);
     void ShowError(string message, string title);
     bool Confirm(string message, string title);
+    void ShowChangelog(string version, string markdown);
 }
 
 public class DialogService : IDialogService
@@ -37,4 +38,12 @@ public class DialogService : IDialogService
 
     public bool Confirm(string message, string title) =>
         System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.YesNo) == System.Windows.MessageBoxResult.Yes;
+
+    public void ShowChangelog(string version, string markdown)
+    {
+        var owner = System.Windows.Application.Current?.MainWindow;
+        var window = new OpenSpeaker.Views.ChangelogWindow(version, markdown);
+        if (owner != null && owner.IsVisible) window.Owner = owner;
+        window.Show();
+    }
 }

@@ -1,3 +1,4 @@
+using OpenSpeaker.Data;
 using OpenSpeaker.Services;
 namespace OpenSpeaker.ViewModels;
 
@@ -16,11 +17,13 @@ public class UpdateViewModel : BaseViewModel
 
     private UpdateService.UpdateInfo? _info;
     private readonly IDialogService _dialogs;
+    private readonly SettingsRepository? _settingsRepo;
 
     public AsyncRelayCommand UpdateCommand { get; }
 
-    public UpdateViewModel(IDialogService? dialogs = null)
+    public UpdateViewModel(SettingsRepository? settingsRepo = null, IDialogService? dialogs = null)
     {
+        _settingsRepo = settingsRepo;
         _dialogs = dialogs ?? new DialogService();
         VersionText = "v" + UpdateService.CurrentVersion;
         UpdateCommand = new AsyncRelayCommand(ApplyAsync, () => IsUpdateAvailable);
@@ -28,6 +31,8 @@ public class UpdateViewModel : BaseViewModel
 
     public async Task InitializeAsync()
     {
+        await ShowPostUpdateChangelogAsync();
+
         var info = await UpdateService.CheckAsync();
         _info = info;
         if (!info.IsAvailable) return;
@@ -42,6 +47,31 @@ public class UpdateViewModel : BaseViewModel
                 $"A new version of OpenSpeaker is available.\n\nCurrent: v{info.CurrentVersion}\nLatest: v{info.LatestVersion}\n\nUpdate now? The app will download the new version and restart.",
                 "Update Available"))
             await ApplyAsync();
+    }
+
+    private async Task ShowPostUpdateChangelogAsync()
+    {
+        if (_settingsRepo == null) return;
+
+        var settings = _settingsRepo.GetSettings();
+        var current = UpdateService.CurrentVersion;
+        var lastSeen = settings.LastSeenVersion;
+
+        if (string.IsNullOrEmpty(lastSeen))
+        {
+            settings.LastSeenVersion = current;
+            _settingsRepo.SaveSettings(settings);
+            return;
+        }
+
+        if (lastSeen == current) return;
+
+        var notes = await UpdateService.GetReleaseNotesAsync(current);
+        if (!string.IsNullOrWhiteSpace(notes))
+            _dialogs.ShowChangelog(current, notes);
+
+        settings.LastSeenVersion = current;
+        _settingsRepo.SaveSettings(settings);
     }
 
     private async Task ApplyAsync()

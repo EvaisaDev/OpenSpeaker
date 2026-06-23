@@ -79,4 +79,6 @@ public class AppSettings
     public string QueueMode { get; set; } = QueueModes.Sequential;
 
     public List<string> AllowedEmotes { get; set; } = new();
+
+    public string LastSeenVersion { get; set; } = string.Empty;
 }

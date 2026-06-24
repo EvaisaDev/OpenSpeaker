@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 namespace OpenSpeaker.TTS;
 
-public enum EngineParameterType { Slider, ComboBox }
+public enum EngineParameterType { Slider, ComboBox, SearchableVoice }
 
 public sealed class EngineParameterDef
 {
@@ -20,4 +20,7 @@ public sealed class EngineParameterDef
 
     public static EngineParameterDef Combo(string key, string label, IReadOnlyList<string> options, string def) =>
         new() { Key = key, Label = label, Type = EngineParameterType.ComboBox, Options = options, Default = def };
+
+    public static EngineParameterDef SearchableVoice(string key, string label) =>
+        new() { Key = key, Label = label, Type = EngineParameterType.SearchableVoice, Default = string.Empty };
 }

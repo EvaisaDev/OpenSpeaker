@@ -362,6 +362,8 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
             if (def.Type == EngineParameterType.ComboBox && def.Options != null && !def.Options.Contains(value))
                 value = def.Default;
             var row = new AliasParamRow { Def = def, Value = value };
+            if (def.Type == EngineParameterType.SearchableVoice && engine is IVoiceSearchEngine search)
+                row.AttachSearch(search);
             row.PropertyChanged += OnParamChanged;
             ParamRows.Add(row);
         }

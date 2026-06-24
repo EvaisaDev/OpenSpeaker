@@ -1680,6 +1680,25 @@
                                                             <ComboBox ItemsSource="{Binding Def.Options}" SelectedItem="{Binding Value}"
                                                                       Width="150" VerticalAlignment="Center"
                                                                       Visibility="{Binding IsComboBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                            <ComboBox Width="240" VerticalAlignment="Center" MaxDropDownHeight="300"
+                                                                      ItemsSource="{Binding VoiceOptions}" SelectedItem="{Binding SelectedVoiceOption}"
+                                                                      Tag="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                      Visibility="{Binding IsSearchableVoice, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                <ComboBox.ItemsPanel>
+                                                                    <ItemsPanelTemplate><VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling"/></ItemsPanelTemplate>
+                                                                </ComboBox.ItemsPanel>
+                                                                <ComboBox.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight">
+                                                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                                                            <TextBlock Text="  ·  by " Opacity="0.6"/>
+                                                                            <TextBlock Text="{Binding Author}" Opacity="0.6" FlowDirection="LeftToRight"/>
+                                                                            <TextBlock Text="   ♥ " Opacity="0.6"/>
+                                                                            <TextBlock Text="{Binding LikeCount}" Opacity="0.6"/>
+                                                                        </StackPanel>
+                                                                    </DataTemplate>
+                                                                </ComboBox.ItemTemplate>
+                                                            </ComboBox>
                                                         </StackPanel>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>

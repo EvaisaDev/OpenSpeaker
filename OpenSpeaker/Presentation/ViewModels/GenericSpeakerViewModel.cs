@@ -102,7 +102,12 @@ public class GenericSpeakerViewModel : BaseViewModel
         if (_selectedVoice == null) return;
         var engine = _engineRegistry.GetEngine(_selectedVoice.EngineId);
         foreach (var def in engine?.GetParameters() ?? Array.Empty<EngineParameterDef>())
-            ParamRows.Add(new AliasParamRow { Def = def, Value = def.Default });
+        {
+            var row = new AliasParamRow { Def = def, Value = def.Default };
+            if (def.Type == EngineParameterType.SearchableVoice && engine is IVoiceSearchEngine search)
+                row.AttachSearch(search);
+            ParamRows.Add(row);
+        }
     }
 
     private async Task SpeakAsync()

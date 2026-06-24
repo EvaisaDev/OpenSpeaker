@@ -10,6 +10,13 @@ public interface ITtsEngine : IDisposable
     IReadOnlyList<EngineParameterDef> GetParameters();
 }
 
+public interface IVoiceSearchEngine
+{
+    Task<IReadOnlyList<VoiceInfo>> TopVoicesAsync(int limit);
+    Task<IReadOnlyList<VoiceInfo>> SearchVoicesAsync(string query, int limit);
+    Task<VoiceInfo?> ResolveVoiceAsync(string id);
+}
+
 public class VoiceInfo
 {
     public string Id { get; init; } = string.Empty;
@@ -18,5 +25,7 @@ public class VoiceInfo
     public string Gender { get; init; } = string.Empty;
     public string EngineId { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
+    public string Author { get; init; } = string.Empty;
+    public int LikeCount { get; init; }
     public override string ToString() => !string.IsNullOrEmpty(DisplayName) ? DisplayName : Name;
 }

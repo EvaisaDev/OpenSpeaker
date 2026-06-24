@@ -40,8 +40,8 @@ public class ResembleEngine : HttpTtsEngine
             output_format = "mp3",
         });
 
-        var b64 = JObject.Parse(respText)["audio_data"]?.Value<string>()
-            ?? throw new InvalidOperationException($"Resemble TTS: no audio_data in response: {respText}");
+        var b64 = JObject.Parse(respText)["audio_content"]?.Value<string>()
+            ?? throw new InvalidOperationException($"Resemble TTS: no audio_content in response: {respText}");
 
         return await AudioDecoder.DecodeAsync(Convert.FromBase64String(b64));
     }

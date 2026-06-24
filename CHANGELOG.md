@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.8] - 2026-06-24
+
+### Documentation
+- update changelog for 0.3.7 ([`3746093`](https://github.com/EvaisaDev/OpenSpeaker/commit/3746093))
+
+### Other
+- better fish tts handling! ([`8b91073`](https://github.com/EvaisaDev/OpenSpeaker/commit/8b91073))
+  - Fish Audio voices are now handled differently
+     - Instead of loading all the voices (impossible task), we do not preload any fish audio voices and instead have a separate dropdown for selecting a voice and searching their database.
+
 ## [0.3.7] - 2026-06-24
 
 ### Documentation
@@ -42,6 +52,7 @@
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

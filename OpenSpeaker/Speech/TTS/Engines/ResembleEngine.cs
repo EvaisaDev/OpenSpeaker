@@ -54,7 +54,7 @@ public class ResembleEngine : HttpTtsEngine
             (obj, items, cursor) =>
             {
                 var page = cursor == null ? 1 : int.Parse(cursor);
-                return page < (obj["num_pages"]?.Value<int>() ?? 1) ? (page + 1).ToString() : null;
+                return page < (obj["num_pages"]?.Value<int?>() ?? 1) ? (page + 1).ToString() : null;
             },
             v =>
             {

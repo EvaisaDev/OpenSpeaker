@@ -28,31 +28,32 @@ public abstract class HttpTtsEngine : ITtsEngine
 
     protected abstract void ApplyAuth(HttpRequestMessage request);
 
-    protected async Task<byte[]> PostJsonForBytesAsync(string path, object body)
+    protected async Task<byte[]> PostJsonForBytesAsync(string path, object body, Action<HttpRequestMessage>? configureRequest = null)
     {
-        var response = await SendJsonAsync(path, body);
+        var response = await SendJsonAsync(path, body, configureRequest);
         var bytes = await response.Content.ReadAsByteArrayAsync();
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException($"{EngineId} TTS failed ({(int)response.StatusCode}): {Encoding.UTF8.GetString(bytes)}");
         return bytes;
     }
 
-    protected async Task<string> PostJsonForStringAsync(string path, object body)
+    protected async Task<string> PostJsonForStringAsync(string path, object body, Action<HttpRequestMessage>? configureRequest = null)
     {
-        var response = await SendJsonAsync(path, body);
+        var response = await SendJsonAsync(path, body, configureRequest);
         var text = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException($"{EngineId} TTS failed ({(int)response.StatusCode}): {text}");
         return text;
     }
 
-    private async Task<HttpResponseMessage> SendJsonAsync(string path, object body)
+    private async Task<HttpResponseMessage> SendJsonAsync(string path, object body, Action<HttpRequestMessage>? configureRequest = null)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, path)
         {
             Content = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json"),
         };
         ApplyAuth(request);
+        configureRequest?.Invoke(request);
         return await Http.SendAsync(request);
     }
 

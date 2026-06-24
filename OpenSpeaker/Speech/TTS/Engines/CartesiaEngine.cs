@@ -56,7 +56,7 @@ public class CartesiaEngine : HttpTtsEngine
         return await FetchAllPagesAsync(
             cursor => cursor == null ? "/voices?limit=100" : $"/voices?limit=100&starting_after={cursor}",
             obj => obj["data"] as JArray ?? new JArray(),
-            (obj, items, cursor) => (obj["has_more"]?.Value<bool>() ?? false)
+            (obj, items, cursor) => (obj["has_more"]?.Value<bool?>() ?? false)
                 ? items.Last()["id"]?.Value<string>()
                 : null,
             v =>

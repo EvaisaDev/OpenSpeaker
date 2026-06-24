@@ -10,7 +10,9 @@ public class FishAudioEngine : HttpTtsEngine
     private static readonly IReadOnlyList<EngineParameterDef> Schema = new[]
     {
         EngineParameterDef.Slider("speed", "Speed", 0.5, 2.0, 0.05, 1.0),
-        EngineParameterDef.Combo("model", "Model", ["s2-pro", "s1"], "s2-pro"),
+        EngineParameterDef.Combo("model", "Model",
+            ["s2.1-pro", "s2.1-pro-free", "s2-pro", "s1"],
+            "s2.1-pro"),
     };
 
     public FishAudioEngine(IAppLogger? logger = null)
@@ -27,17 +29,16 @@ public class FishAudioEngine : HttpTtsEngine
         if (!IsConfigured || string.IsNullOrWhiteSpace(text)) return AudioData.Empty;
 
         var speed = parameters.Dbl("speed", 1.0);
-        var model = parameters.Str("model", "s2-pro");
+        var model = parameters.Str("model", "s2.1-pro");
 
         var bytes = await PostJsonForBytesAsync("/v1/tts", new
         {
             text,
             reference_id = voiceId,
             format       = "mp3",
-            model,
             prosody      = new { speed },
             latency      = "normal",
-        });
+        }, req => req.Headers.TryAddWithoutValidation("model", model));
         return await AudioDecoder.DecodeAsync(bytes);
     }
 
@@ -48,7 +49,7 @@ public class FishAudioEngine : HttpTtsEngine
         return await FetchAllPagesAsync(
             cursor => $"/model?page_size=50&page_number={cursor ?? "1"}&sort_by=task_count",
             obj => obj["items"] as JArray ?? new JArray(),
-            (obj, items, cursor) => (obj["has_more"]?.Value<bool>() ?? false)
+            (obj, items, cursor) => (obj["has_more"]?.Value<bool?>() ?? false)
                 ? ((cursor == null ? 1 : int.Parse(cursor)) + 1).ToString()
                 : null,
             item =>

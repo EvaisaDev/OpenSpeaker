@@ -17,6 +17,8 @@ Supports the following engines out of the box:
 - CereProc Web Services
 - Uberduck
 - TikTok TTS (through a proxy, not sure if functional)
+
+All of these are recent additions and untested!:
 - FakeYou
 - Fish Audio
 - Inworld TTS

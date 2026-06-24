@@ -20,7 +20,7 @@ public class TtsEngineFactory
         new(EngineIds.CereProc,    "CereProc Web Services", _ => new CereProcEngine()),
         new(EngineIds.UberDuck,    "Uberduck",              _ => new UberDuckEngine()),
         new(EngineIds.TikTok,      "TikTok TTS",            _ => new TikTokEngine()),
-        new(EngineIds.FakeYou,     "FakeYou",               _ => new FakeYouEngine()),
+       // new(EngineIds.FakeYou,     "FakeYou",               _ => new FakeYouEngine()),
         new(EngineIds.FishAudio,   "Fish Audio",            log => new FishAudioEngine(log)),
         new(EngineIds.Inworld,     "Inworld TTS",           log => new InworldEngine(log)),
         new(EngineIds.Resemble,    "Resemble AI",           log => new ResembleEngine(log)),

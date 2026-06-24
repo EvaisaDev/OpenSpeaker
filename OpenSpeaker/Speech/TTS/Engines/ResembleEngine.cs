@@ -11,8 +11,8 @@ public class ResembleEngine : HttpTtsEngine
     private static readonly IReadOnlyList<EngineParameterDef> Schema = new[]
     {
         EngineParameterDef.Combo("model", "Model",
-            ["chatterbox-turbo", "chatterbox", "chatterbox-multilingual"],
-            "chatterbox-turbo"),
+            ["auto", "chatterbox-turbo", "chatterbox", "chatterbox-multilingual"],
+            "auto"),
     };
 
     private readonly HttpClient _apiHttp = HttpClientFactory.GetClient("resemble-app", "https://app.resemble.ai");
@@ -30,15 +30,13 @@ public class ResembleEngine : HttpTtsEngine
     {
         if (!IsConfigured || string.IsNullOrWhiteSpace(text)) return AudioData.Empty;
 
-        var model = parameters.Str("model", "chatterbox-turbo");
+        var model = parameters.Str("model", "auto");
 
-        var respText = await PostJsonForStringAsync("/synthesize", new
-        {
-            voice_uuid    = voiceId,
-            data          = text,
-            model,
-            output_format = "mp3",
-        });
+        object body = string.Equals(model, "auto", StringComparison.OrdinalIgnoreCase)
+            ? new { voice_uuid = voiceId, data = text, output_format = "mp3" }
+            : new { voice_uuid = voiceId, data = text, model, output_format = "mp3" };
+
+        var respText = await PostJsonForStringAsync("/synthesize", body);
 
         var b64 = JObject.Parse(respText)["audio_content"]?.Value<string>()
             ?? throw new InvalidOperationException($"Resemble TTS: no audio_content in response: {respText}");

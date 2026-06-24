@@ -358,7 +358,10 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         ParamRows.Clear();
         foreach (var def in schema)
         {
-            var row = new AliasParamRow { Def = def, Value = saved.Str(def.Key, def.Default) };
+            var value = saved.Str(def.Key, def.Default);
+            if (def.Type == EngineParameterType.ComboBox && def.Options != null && !def.Options.Contains(value))
+                value = def.Default;
+            var row = new AliasParamRow { Def = def, Value = value };
             row.PropertyChanged += OnParamChanged;
             ParamRows.Add(row);
         }

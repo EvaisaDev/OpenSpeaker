@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.TTS.Engines;
 
+/*
 public class FakeYouEngine : ITtsEngine
 {
     private const string BaseUrl     = "https://api.fakeyou.com";
@@ -138,3 +139,4 @@ public class FakeYouEngine : ITtsEngine
 
     public void Dispose() => _http.Dispose();
 }
+*/

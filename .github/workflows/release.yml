@@ -72,8 +72,14 @@ jobs:
           if (-not $env:MINISIGN_KEY) { Write-Host 'No MINISIGN_KEY secret set, skipping signing.'; exit 0 }
           choco install minisign -y --no-progress | Out-Null
           $key = Join-Path $env:RUNNER_TEMP 'minisign.key'
-          $bytes = [Convert]::FromBase64String(($env:MINISIGN_KEY -replace '\s', ''))
-          [IO.File]::WriteAllBytes($key, $bytes)
+          $raw = ($env:MINISIGN_KEY -replace '\s', '')
+          $decoded = $null
+          try { $decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($raw)) } catch {}
+          if ($decoded -and $decoded.StartsWith('untrusted comment:')) {
+            [IO.File]::WriteAllText($key, $decoded)
+          } else {
+            [IO.File]::WriteAllText($key, "untrusted comment: minisign encrypted secret key`n" + $raw + "`n")
+          }
           minisign -S -s $key -m "${{ steps.package.outputs.portable }}"
           minisign -S -s $key -m "${{ steps.package.outputs.standalone }}"
 

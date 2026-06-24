@@ -11,6 +11,7 @@ public static class UpdateService
 {
     private const string Repo = "EvaisaDev/OpenSpeaker";
     private const string GitHubClientName = "github";
+    private const string MinisignPublicKey = "RWT2qXcQDsFygHAMIjrWoNbRnmG4XoFe9dl6t27cpmfxrkp27Dkz9WB3";
 
     public record UpdateInfo(
         bool IsAvailable,
@@ -18,7 +19,8 @@ public static class UpdateService
         string LatestVersion,
         string? DownloadUrl,
         string? AssetName,
-        string ReleaseUrl);
+        string ReleaseUrl,
+        string? SignatureUrl = null);
 
     public static string CurrentVersion
     {
@@ -83,8 +85,22 @@ public static class UpdateService
                 }
             }
 
+            string? sigUrl = null;
+            if (assetName != null && release["assets"] is JArray sigAssets)
+            {
+                var sigName = assetName + ".minisig";
+                foreach (var a in sigAssets)
+                {
+                    if (string.Equals((string?)a["name"], sigName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        sigUrl = (string?)a["browser_download_url"];
+                        break;
+                    }
+                }
+            }
+
             var available = url != null && IsNewer(latest, current);
-            return new UpdateInfo(available, current, latest, url, assetName, releaseUrl);
+            return new UpdateInfo(available, current, latest, url, assetName, releaseUrl, sigUrl);
         }
         catch
         {
@@ -142,6 +158,8 @@ public static class UpdateService
             await resp.Content.CopyToAsync(fs);
         }
 
+        await VerifySignatureAsync(client, info, zipPath);
+
         ZipFile.ExtractToDirectory(zipPath, staging, true);
 
         var scriptPath = Path.Combine(root, "apply_update.ps1");
@@ -175,6 +193,24 @@ public static class UpdateService
         Process.Start(psi);
 
         Application.Current.Shutdown();
+    }
+
+    private static async Task VerifySignatureAsync(HttpClient client, UpdateInfo info, string zipPath)
+    {
+        if (string.IsNullOrWhiteSpace(MinisignPublicKey)) return;
+
+        if (info.SignatureUrl == null)
+            throw new InvalidOperationException("This update is not signed. Refusing to install for safety.");
+
+        string sigContent;
+        using (var resp = await client.GetAsync(info.SignatureUrl))
+        {
+            resp.EnsureSuccessStatusCode();
+            sigContent = await resp.Content.ReadAsStringAsync();
+        }
+
+        if (!Minisign.VerifyFile(zipPath, sigContent, MinisignPublicKey))
+            throw new InvalidOperationException("Update signature verification failed. The download may be corrupted or tampered with.");
     }
 
     private static bool IsStandaloneInstall()

@@ -63,6 +63,19 @@ jobs:
           "portable=$portableZip" >> $env:GITHUB_OUTPUT
           "standalone=$standaloneZip" >> $env:GITHUB_OUTPUT
 
+      - name: Sign artifacts (minisign)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
+        run: |
+          if (-not $env:MINISIGN_KEY) { Write-Host 'No MINISIGN_KEY secret set, skipping signing.'; exit 0 }
+          choco install minisign -y --no-progress | Out-Null
+          $key = Join-Path $env:RUNNER_TEMP 'minisign.key'
+          Set-Content -Path $key -Value $env:MINISIGN_KEY -Encoding ascii
+          minisign -S -s $key -m "${{ steps.package.outputs.portable }}"
+          minisign -S -s $key -m "${{ steps.package.outputs.standalone }}"
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -79,6 +92,8 @@ jobs:
           files: |
             ${{ steps.package.outputs.portable }}
             ${{ steps.package.outputs.standalone }}
+            ${{ steps.package.outputs.portable }}.minisig
+            ${{ steps.package.outputs.standalone }}.minisig
           body_path: release-body-final.md
 
       - name: Update CHANGELOG.md
@@ -96,5 +111,5 @@ jobs:
           git add CHANGELOG.md
           git diff --cached --quiet
           if ($LASTEXITCODE -eq 0) { Write-Host 'No changelog changes.'; exit 0 }
-          git commit -m "docs: update changelog for ${{ steps.version.outputs.version }} [skip ci]"
+          git commit -m "docs: update changelog for ${{ steps.version.outputs.version }}"
           git push origin main

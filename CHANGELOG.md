@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.9] - 2026-06-25
+
+### Documentation
+- update changelog for 0.3.8 ([`23704a3`](https://github.com/EvaisaDev/OpenSpeaker/commit/23704a3))
+
+### Other
+- Small patch ([`05d0b98`](https://github.com/EvaisaDev/OpenSpeaker/commit/05d0b98))
+  - Fixed the voice volume slider.
+  - Allow voice slider to go up to 200% volume
+  - Allow pressing delete or backspace to remove a voice from an alias
+
 ## [0.3.8] - 2026-06-24
 
 ### Documentation
@@ -52,6 +63,7 @@
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

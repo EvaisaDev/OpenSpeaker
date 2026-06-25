@@ -87,7 +87,7 @@ public class MessageSanitizer
 
         if (settings.MaxWords > 0)
         {
-            var afterWords = TruncateWords(message, settings.MaxWords, settings.WordLimitSymbolsAsSpaces);
+            var afterWords = TruncateWords(message, settings.MaxWords, settings.WordLimitSymbolsAsSpaces, settings.WordLimitSymbols);
             if (afterWords != message) _logger?.Info($"SANITIZE :: AfterWordLimit({settings.MaxWords})='{afterWords}'");
             message = afterWords;
         }
@@ -100,11 +100,12 @@ public class MessageSanitizer
         return message.Trim();
     }
 
-    private static string TruncateWords(string text, int maxWords, bool symbolsAsSpaces)
+    private static string TruncateWords(string text, int maxWords, bool symbolsAsSpaces, string symbols)
     {
-        var words = symbolsAsSpaces
-            ? Regex.Split(text, @"[^a-zA-Z0-9]+").Where(w => w.Length > 0)
-            : text.Split(' ', StringSplitOptions.RemoveEmptyEntries).AsEnumerable();
+        var separators = new List<char> { ' ' };
+        if (symbolsAsSpaces && !string.IsNullOrEmpty(symbols))
+            separators.AddRange(symbols.Where(c => !char.IsWhiteSpace(c)));
+        var words = text.Split(separators.ToArray(), StringSplitOptions.RemoveEmptyEntries);
         return string.Join(" ", words.Take(maxWords));
     }
 }

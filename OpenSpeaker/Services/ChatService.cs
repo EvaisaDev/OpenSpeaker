@@ -45,22 +45,29 @@ public class ChatService
     {
         _logger?.Info($"CHAT :: Message from {e.Username}: {e.Message}");
         _userService.TouchLastActiveAsync(e.UserId, e.Username).Forget(_logger, "TouchLastActive");
-        if (await _builtIn.HandleAsync(e.UserId, e.Username, e.Roles, e.Message)) { _logger?.Info("CHAT :: Handled as built-in command"); return; }
-        if (await _custom.HandleAsync(e.UserId, e.Username, e.Roles, e.Message)) { _logger?.Info("CHAT :: Handled as custom command"); return; }
+
+        // Twitch prepends "@parentuser " to the body of reply messages. Strip that leading
+        // mention so command and ignore-prefix matching see the actual message text. The
+        // original (with mention) is still what gets spoken in Everything mode.
+        var matchMessage = e.IsReply ? Text.MentionStripper.StripLeadingMention(e.Message) : e.Message;
+        if (matchMessage != e.Message) _logger?.Info($"CHAT :: Reply mention stripped for matching → '{matchMessage}'");
+
+        if (await _builtIn.HandleAsync(e.UserId, e.Username, e.Roles, matchMessage)) { _logger?.Info("CHAT :: Handled as built-in command"); return; }
+        if (await _custom.HandleAsync(e.UserId, e.Username, e.Roles, matchMessage)) { _logger?.Info("CHAT :: Handled as custom command"); return; }
 
         var settings = _settingsRepo.GetSettings();
         _logger?.Info($"CHAT :: Mode={settings.Mode} Enabled={settings.Enabled}");
         if (settings.Mode == TtsModes.Everything)
         {
-            await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, e.Message, e.Roles, isHighlight: e.IsHighlight, isSubscriber: e.IsSubscriber, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
+            await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, e.Message, e.Roles, isReply: e.IsReply, isHighlight: e.IsHighlight, isSubscriber: e.IsSubscriber, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
         }
         else if (settings.Mode == TtsModes.Command)
         {
             foreach (var cmd in settings.TtsCommands)
             {
-                if (e.Message.StartsWith(cmd, StringComparison.OrdinalIgnoreCase))
+                if (matchMessage.StartsWith(cmd, StringComparison.OrdinalIgnoreCase))
                 {
-                    var text = e.Message.Substring(cmd.Length).Trim();
+                    var text = matchMessage.Substring(cmd.Length).Trim();
                     if (!string.IsNullOrEmpty(text))
                         await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, text, e.Roles, isCommand: true, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
                     break;

@@ -383,7 +383,8 @@
     <sys:String x:Key="Tip.ReplaceNameWithNickname">Speak the user's nickname instead of their Twitch username if one is set.</sys:String>
     <sys:String x:Key="Tip.CooldownSeconds">Minimum seconds between TTS reads for the same user. Set 0 to disable.</sys:String>
     <sys:String x:Key="Tip.MaxWords">Maximum word count before a message is truncated. Set 0 for no limit.</sys:String>
-    <sys:String x:Key="Tip.TreatSymbolsAsSpaces">Count symbols as word separators when applying the max words limit.</sys:String>
+    <sys:String x:Key="Tip.TreatSymbolsAsSpaces">Count the listed symbols as word separators when applying the max words limit.</sys:String>
+    <sys:String x:Key="Tip.WordLimitSymbols">Symbols to treat as word separators (no spaces between them), e.g. -_</sys:String>
     <sys:String x:Key="Tip.MaxChars">Maximum character count before a message is truncated. Set 0 for no limit.</sys:String>
     <sys:String x:Key="Tip.UrlFilterMode">How to handle URLs: Disabled, Remove (strip them), or Skip (drop the message).</sys:String>
     <sys:String x:Key="Tip.NotAllowedText">Message sent to chat when a user tries TTS but lacks permission.</sys:String>

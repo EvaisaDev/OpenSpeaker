@@ -1207,6 +1207,10 @@
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="8"/>
                                                 <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Cooldown}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
@@ -1218,22 +1222,27 @@
                                             <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
                                                 <TextBox Text="{Binding SpeakingOptions.MaxWords}" Width="60"
                                                          ToolTip="{DynamicResource Tip.MaxWords}"/>
-                                                <CheckBox Content="{DynamicResource Chk.TreatSymbolsAsSpaces}" IsChecked="{Binding SpeakingOptions.WordLimitSymbolsAsSpaces}"
-                                                          VerticalAlignment="Center" Margin="12,0,0,0"
-                                                          ToolTip="{DynamicResource Tip.TreatSymbolsAsSpaces}"/>
                                             </StackPanel>
                                             <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.MaxChars}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
                                                 <TextBox Text="{Binding SpeakingOptions.MaxChars}" Width="60"
                                                          ToolTip="{DynamicResource Tip.MaxChars}"/>
                                             </StackPanel>
-                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.UrlFilter}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
-                                            <ComboBox Grid.Row="6" Grid.Column="1"
+                                            <CheckBox x:Name="TreatSymbolsAsSpacesCheck" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
+                                                      Content="{DynamicResource Chk.TreatSymbolsAsSpaces}" IsChecked="{Binding SpeakingOptions.WordLimitSymbolsAsSpaces}"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip="{DynamicResource Tip.TreatSymbolsAsSpaces}"/>
+                                            <TextBox Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2"
+                                                     Text="{Binding SpeakingOptions.WordLimitSymbols}"
+                                                     IsEnabled="{Binding IsChecked, ElementName=TreatSymbolsAsSpacesCheck}"
+                                                     ToolTip="{DynamicResource Tip.WordLimitSymbols}"/>
+                                            <TextBlock Grid.Row="10" Grid.Column="0" Text="{DynamicResource Lbl.UrlFilter}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Row="10" Grid.Column="1"
                                                       ItemsSource="{Binding SpeakingOptions.UrlFilterModes}"
                                                       SelectedItem="{Binding SpeakingOptions.UrlFilterMode}"
                                                       ToolTip="{DynamicResource Tip.UrlFilterMode}"/>
-                                            <TextBlock Grid.Row="8" Grid.Column="0" Text="{DynamicResource Lbl.NotAllowedText}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
-                                            <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding SpeakingOptions.NotAllowedText}"
+                                            <TextBlock Grid.Row="12" Grid.Column="0" Text="{DynamicResource Lbl.NotAllowedText}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Row="12" Grid.Column="1" Text="{Binding SpeakingOptions.NotAllowedText}"
                                                      ToolTip="{DynamicResource Tip.NotAllowedText}"/>
                                         </Grid>
                                     </GroupBox>

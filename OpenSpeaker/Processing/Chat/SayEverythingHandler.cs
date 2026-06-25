@@ -48,13 +48,17 @@ public class SayEverythingHandler
         _logger = logger;
     }
 
-    public async Task HandleAsync(string twitchId, string username, string displayName, string message, List<string> roles, bool isCommand = false, bool isHighlight = false, bool isSubscriber = false, IReadOnlyList<string>? messageEmotes = null, IReadOnlyList<string>? messageCheermotes = null)
+    public async Task HandleAsync(string twitchId, string username, string displayName, string message, List<string> roles, bool isCommand = false, bool isReply = false, bool isHighlight = false, bool isSubscriber = false, IReadOnlyList<string>? messageEmotes = null, IReadOnlyList<string>? messageCheermotes = null)
     {
         _logger?.Info($"SAY :: HandleAsync {username}: {message} [isCommand={isCommand}]");
         var settings = _settingsRepo.GetSettings();
         if (!settings.Enabled) { _logger?.Info("SAY :: Dropped - bot disabled"); return; }
 
-        if (_sanitizer.IsIgnoredPrefix(message)) { _logger?.Info($"SAY :: Dropped - ignored prefix"); return; }
+        // On replies Twitch prepends "@parentuser " to the body; ignore that leading mention
+        // when matching ignore-prefixes so a command isn't smuggled past the filter. The full
+        // message (with mention) is still what gets spoken below.
+        var prefixCheckMessage = isReply ? MentionStripper.StripLeadingMention(message) : message;
+        if (_sanitizer.IsIgnoredPrefix(prefixCheckMessage)) { _logger?.Info($"SAY :: Dropped - ignored prefix"); return; }
 
         var user = await _userService.GetOrCreateAsync(twitchId, username);
         _logger?.Info($"SAY :: User lookup: TwitchId={twitchId} Username={user.Username} IsIgnored={user.IsIgnored} IsForced={user.IsForced} IsRegular={user.IsRegular} IsSubscribed={user.IsSubscribed} Role={user.Role}");

@@ -65,6 +65,7 @@ public class AppSettings
     public int MaxWords { get; set; } = 0;
     public int MaxChars { get; set; } = 0;
     public bool WordLimitSymbolsAsSpaces { get; set; } = false;
+    public string WordLimitSymbols { get; set; } = "-_";
     public string NotAllowedText { get; set; } = "You're not cool enough to have a voice";
     public string UrlFilterMode { get; set; } = "Disabled";
 

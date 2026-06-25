@@ -222,6 +222,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
             Roles = roles,
             IsSubscriber = msg.IsSubscriber,
             IsHighlight = msg.MessageType == "channel_points_highlighted",
+            IsReply = msg.Reply != null,
             MessageEmotes = messageEmotes,
             MessageCheermotes = messageCheermotes,
         });

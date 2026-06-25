@@ -108,7 +108,19 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
     public string TestMessage { get => _testMessage; set => SetField(ref _testMessage, value); }
 
     private int _testVolume = 100;
-    public int TestVolume { get => _testVolume; set => SetField(ref _testVolume, value); }
+    public int TestVolume
+    {
+        get => _testVolume;
+        set
+        {
+            if (!SetField(ref _testVolume, value)) return;
+            if (_selectedAlias != null && _selectedAlias.Volume != value)
+            {
+                _selectedAlias.Volume = value;
+                _repo.Upsert(_selectedAlias);
+            }
+        }
+    }
 
     private string _newAliasName = string.Empty;
     public string NewAliasName { get => _newAliasName; set => SetField(ref _newAliasName, value); }
@@ -609,8 +621,9 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         var audio = await engine.SynthesizeAsync(TestMessage, voiceId, synthParams);
         if (!audio.IsEmpty)
         {
+            audio = Audio.AudioGain.Apply(audio, TestVolume);
             var player = new Audio.NAudioPlayer();
-            await player.PlayAsync(audio, alias.OutputDeviceId, TestVolume);
+            await player.PlayAsync(audio, alias.OutputDeviceId, 100);
         }
     }
 }

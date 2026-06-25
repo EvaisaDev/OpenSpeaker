@@ -63,6 +63,8 @@ public class TtsSynthesizer
             _logger?.Info($"QUEUE :: Synthesis done. IsEmpty={audio.IsEmpty}");
             if (audio.IsEmpty) return null;
 
+            audio = AudioGain.Apply(audio, resolved.Volume);
+
             string? savedPath = null;
             if (settings.SaveTts && !string.IsNullOrEmpty(settings.SaveTtsFolder))
             {

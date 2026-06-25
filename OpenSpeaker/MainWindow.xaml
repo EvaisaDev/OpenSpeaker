@@ -1643,7 +1643,7 @@
                                             <DockPanel Grid.Row="0" Grid.Column="0">
                                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
                                                     <TextBlock Text="{DynamicResource Lbl.Volume}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                    <controls:NumericSlider Minimum="0" Maximum="100" Value="{Binding VoiceAliases.TestVolume}"
+                                                    <controls:NumericSlider Minimum="0" Maximum="200" Value="{Binding VoiceAliases.TestVolume}"
                                                             SliderWidth="80" Suffix="%"
                                                             ToolTip="{DynamicResource Tip.VoiceAliasVolume}"/>
                                                 </StackPanel>
@@ -1730,6 +1730,10 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   BorderThickness="1" BorderBrush="{DynamicResource BorderBrush0}"
                                                   PreviewMouseLeftButtonDown="AliasVoicesDataGrid_PreviewMouseLeftButtonDown">
+                                            <DataGrid.InputBindings>
+                                                <KeyBinding Key="Delete" Command="{Binding VoiceAliases.RemoveVoiceCommand}"/>
+                                                <KeyBinding Key="Back" Command="{Binding VoiceAliases.RemoveVoiceCommand}"/>
+                                            </DataGrid.InputBindings>
                                             <DataGrid.ContextMenu>
                                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                     <MenuItem Header="{DynamicResource Btn.Remove}" Command="{Binding VoiceAliases.RemoveVoiceCommand}"/>

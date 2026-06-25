@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.10] - 2026-06-25
+
+### Documentation
+- update changelog for 0.3.9 ([`d9587f6`](https://github.com/EvaisaDev/OpenSpeaker/commit/d9587f6))
+
+### Other
+- Multiple small changes ([`42d4105`](https://github.com/EvaisaDev/OpenSpeaker/commit/42d4105))
+  - Treat symbols as spaces setting now lets you define a list of symbols to split by.
+  - Command prefixes are now detected in replies.
+  - Commands are no longer spoken out loud if they were in a reply.
+- make free the default model ([`d27097d`](https://github.com/EvaisaDev/OpenSpeaker/commit/d27097d))
+  - Mash the free model the default for fish audio!
+
 ## [0.3.9] - 2026-06-25
 
 ### Documentation
@@ -63,6 +76,7 @@
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

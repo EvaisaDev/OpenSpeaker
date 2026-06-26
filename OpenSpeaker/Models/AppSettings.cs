@@ -49,6 +49,7 @@ public class AppSettings
 
     public List<string> TtsCommands { get; set; } = new() { "!tts", "!say" };
     public string BuiltInCommandName { get; set; } = "!tts";
+    public List<BuiltInCommandConfig> BuiltInCommands { get; set; } = new();
     public List<string> IgnoredPrefixes { get; set; } = new() { "!", "/" };
 
     public bool EventsEnabled { get; set; } = true;

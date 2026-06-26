@@ -46,9 +46,6 @@ public class ChatService
         _logger?.Info($"CHAT :: Message from {e.Username}: {e.Message}");
         _userService.TouchLastActiveAsync(e.UserId, e.Username).Forget(_logger, "TouchLastActive");
 
-        // Twitch prepends "@parentuser " to the body of reply messages. Strip that leading
-        // mention so command and ignore-prefix matching see the actual message text. The
-        // original (with mention) is still what gets spoken in Everything mode.
         var matchMessage = e.IsReply ? Text.MentionStripper.StripLeadingMention(e.Message) : e.Message;
         if (matchMessage != e.Message) _logger?.Info($"CHAT :: Reply mention stripped for matching → '{matchMessage}'");
 

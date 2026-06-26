@@ -38,166 +38,203 @@ public class BuiltInCommandHandler : IChatCommandHandler
         _voicePool = voicePool;
     }
 
-    private async Task Reply(AppSettings settings, string message)
+    private async Task Reply(AppSettings settings, BuiltInCommandConfig cfg, Dictionary<string, string>? values = null)
     {
-        if (!settings.SilenceCommandOutput)
-            await _twitch.SendChatMessageAsync(message);
+        if (settings.SilenceCommandOutput) return;
+        var text = RenderReply(cfg.Reply, values);
+        if (!string.IsNullOrWhiteSpace(text))
+            await _twitch.SendChatMessageAsync(text);
     }
+
+    private static string RenderReply(string template, Dictionary<string, string>? values)
+    {
+        if (string.IsNullOrEmpty(template) || values == null) return template ?? string.Empty;
+        var text = template;
+        foreach (var (key, value) in values)
+            text = text.Replace("{" + key + "}", value, StringComparison.OrdinalIgnoreCase);
+        return text;
+    }
+
+    private static IEnumerable<string> SplitKeywords(string keyword) =>
+        keyword.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+               .Where(k => k.Length > 0);
+
+    private static bool IsAllowed(BuiltInCommandConfig cfg, List<string> roles) =>
+        roles.Contains(UserRoles.Broadcaster) || cfg.AllowedRoles.Any(roles.Contains);
 
     public async Task<bool> HandleAsync(string twitchId, string username, List<string> roles, string rawMessage)
     {
         var settings = _settingsRepo.GetSettings();
-        var cmdName = settings.BuiltInCommandName;
 
-        if (!rawMessage.StartsWith(cmdName, StringComparison.OrdinalIgnoreCase))
+        if (!rawMessage.StartsWith(settings.BuiltInCommandName, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        var isMod = roles.Contains(UserRoles.Moderator) || roles.Contains(UserRoles.Broadcaster);
-        var rest = rawMessage.Substring(cmdName.Length).Trim();
-        var parts = rest.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        if (parts.Length == 0)
+        var rest = rawMessage.Substring(settings.BuiltInCommandName.Length).Trim();
+        if (rest.Length == 0)
             return true;
 
-        var sub = parts[0].ToLower();
+        var candidates = BuiltInCommandCatalog.Resolve(settings)
+            .Where(c => c.Enabled)
+            .SelectMany(c => SplitKeywords(c.Keyword).Select(kw => (cfg: c, kw)))
+            .OrderByDescending(x => x.kw.Length);
 
-        switch (sub)
+        BuiltInCommandConfig? match = null;
+        string[] args = Array.Empty<string>();
+        foreach (var (cfg, kw) in candidates)
         {
-            case "pause" when isMod:
+            if (rest.Equals(kw, StringComparison.OrdinalIgnoreCase))
+            {
+                match = cfg;
+                args = Array.Empty<string>();
+                break;
+            }
+            if (rest.StartsWith(kw + " ", StringComparison.OrdinalIgnoreCase))
+            {
+                match = cfg;
+                args = rest.Substring(kw.Length).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                break;
+            }
+        }
+
+        if (match == null)
+            return false;
+
+        var selfReset = match.Id == "random_reset" && (args.Length == 0 || args[0].Equals(username, StringComparison.OrdinalIgnoreCase));
+        if (!IsAllowed(match, roles) && !selfReset)
+            return true;
+
+        await Execute(match.Id, match, settings, twitchId, username, args);
+        return true;
+    }
+
+    private async Task Execute(string id, BuiltInCommandConfig cfg, AppSettings settings, string twitchId, string username, string[] args)
+    {
+        switch (id)
+        {
+            case "pause":
                 _queue.Pause();
-                await Reply(settings, "TTS paused.");
-                return true;
+                await Reply(settings, cfg);
+                break;
 
-            case "resume" when isMod:
+            case "resume":
                 _queue.Resume();
-                await Reply(settings, "TTS resumed.");
-                return true;
+                await Reply(settings, cfg);
+                break;
 
-            case "clear" when isMod:
+            case "clear":
                 _queue.Clear();
-                await Reply(settings, "TTS queue cleared.");
-                return true;
+                await Reply(settings, cfg);
+                break;
 
-            case "stop" when isMod:
+            case "stop":
                 _queue.Stop();
-                await Reply(settings, "TTS stopped.");
-                return true;
+                await Reply(settings, cfg);
+                break;
 
-            case "mode" when isMod && parts.Length > 1:
-                var mode = parts[1].ToLower() == "all" ? TtsModes.Everything : TtsModes.Command;
-                _settingsRepo.Update(s => s.Mode = mode);
-                await Reply(settings, $"TTS mode set to {(mode == TtsModes.Everything ? "all" : "command")}.");
-                return true;
+            case "mode":
+                if (args.Length == 0) break;
+                var modeAll = args[0].Equals("all", StringComparison.OrdinalIgnoreCase);
+                _settingsRepo.Update(s => s.Mode = modeAll ? TtsModes.Everything : TtsModes.Command);
+                await Reply(settings, cfg, new() { ["mode"] = modeAll ? "all" : "command" });
+                break;
 
-            case "on" when isMod:
-            case "enable" when isMod:
+            case "enable":
                 _settingsRepo.Update(s => s.Enabled = true);
-                await Reply(settings, "TTS enabled.");
-                return true;
+                await Reply(settings, cfg);
+                break;
 
-            case "off" when isMod:
-            case "disable" when isMod:
+            case "disable":
                 _settingsRepo.Update(s => s.Enabled = false);
-                await Reply(settings, "TTS disabled.");
-                return true;
+                await Reply(settings, cfg);
+                break;
 
-            case "events" when isMod && parts.Length > 1:
-                var eventsEnabled = parts[1].ToLower() == "on";
-                _settingsRepo.Update(s => s.EventsEnabled = eventsEnabled);
-                await Reply(settings, $"TTS events {(eventsEnabled ? "enabled" : "disabled")}.");
-                return true;
+            case "events":
+                if (args.Length == 0) break;
+                var eventsOn = args[0].Equals("on", StringComparison.OrdinalIgnoreCase);
+                _settingsRepo.Update(s => s.EventsEnabled = eventsOn);
+                await Reply(settings, cfg, new() { ["state"] = eventsOn ? "enabled" : "disabled" });
+                break;
 
-            case "ignore" when isMod && parts.Length > 2:
-                var ignoreMode = parts[1].ToLower();
-                var ignoreUser = parts[2];
-                await _userService.SetIgnoredAsync(ignoreUser, ignoreMode == "add");
-                await Reply(settings, $"{ignoreUser} {(ignoreMode == "add" ? "added to" : "removed from")} ignore list.");
-                return true;
+            case "ignore":
+                if (args.Length < 2) break;
+                var ignoreAdd = args[0].Equals("add", StringComparison.OrdinalIgnoreCase);
+                await _userService.SetIgnoredAsync(args[1], ignoreAdd);
+                await Reply(settings, cfg, new() { ["user"] = args[1], ["action"] = ignoreAdd ? "added to" : "removed from" });
+                break;
 
             case "ignored":
-                var ignoredUsers = _userRepo.GetIgnored();
-                if (ignoredUsers.Count == 0)
-                    await _twitch.SendChatMessageAsync("No ignored users.");
-                else
-                    await _twitch.SendChatMessageAsync($"Ignored: {string.Join(", ", ignoredUsers.Select(u => u.Username))}");
-                return true;
-
-            case "reg" when isMod && parts.Length > 2:
-                var regMode = parts[1].ToLower();
-                var regUser = parts[2];
-                await _userService.SetRegularAsync(regUser, regMode == "add");
-                await Reply(settings, $"{regUser} {(regMode == "add" ? "added as" : "removed as")} regular.");
-                return true;
-
-            case "random" when parts.Length > 1 && parts[1].ToLower() == "reset":
-                var resetUser = parts.Length > 2 ? parts[2] : username;
-                if (isMod || resetUser.Equals(username, StringComparison.OrdinalIgnoreCase))
+                var ignored = _userRepo.GetIgnored();
+                await Reply(settings, cfg, new()
                 {
-                    await _userService.ResetRandomVoiceAsync(resetUser);
-                    await Reply(settings, $"{resetUser}'s random voice has been reset.");
-                }
-                return true;
+                    ["users"] = ignored.Count == 0 ? "none" : string.Join(", ", ignored.Select(u => u.Username)),
+                    ["count"] = ignored.Count.ToString(),
+                });
+                break;
 
-            case "set" when isMod && parts.Length > 2:
-                var setMethod = parts[1].ToLower();
-                if (setMethod == "nickname" && parts.Length > 3)
-                {
-                    await _userService.SetNicknameAsync(parts[2], parts[3]);
-                    await Reply(settings, $"{parts[2]}'s nickname set to {parts[3]}.");
-                    return true;
-                }
-                if (setMethod == "sticky" && parts.Length > 2)
-                {
-                    var sticky = parts[2].ToLower() == "on";
-                    _settingsRepo.Update(s => s.StickyRandomVoice = sticky);
-                    await Reply(settings, $"Sticky random voice {(sticky ? "enabled" : "disabled")}.");
-                    return true;
-                }
-                return true;
+            case "reg":
+                if (args.Length < 2) break;
+                var regAdd = args[0].Equals("add", StringComparison.OrdinalIgnoreCase);
+                await _userService.SetRegularAsync(args[1], regAdd);
+                await Reply(settings, cfg, new() { ["user"] = args[1], ["action"] = regAdd ? "added as" : "removed as" });
+                break;
 
-            case "assign" when isMod && parts.Length > 2 && parts[1].ToLower() == "last":
+            case "random_reset":
+                var resetUser = args.Length > 0 ? args[0] : username;
+                await _userService.ResetRandomVoiceAsync(resetUser);
+                await Reply(settings, cfg, new() { ["user"] = resetUser });
+                break;
+
+            case "set_nickname":
+                if (args.Length < 2) break;
+                await _userService.SetNicknameAsync(args[0], args[1]);
+                await Reply(settings, cfg, new() { ["user"] = args[0], ["value"] = args[1] });
+                break;
+
+            case "set_sticky":
+                if (args.Length == 0) break;
+                var stickyOn = args[0].Equals("on", StringComparison.OrdinalIgnoreCase);
+                _settingsRepo.Update(s => s.StickyRandomVoice = stickyOn);
+                await Reply(settings, cfg, new() { ["state"] = stickyOn ? "enabled" : "disabled" });
+                break;
+
+            case "assign_last":
+                if (args.Length == 0) break;
                 var (lastVoiceId, lastEngineId) = _queue.LastUsedVoice;
                 if (!string.IsNullOrEmpty(lastVoiceId))
                 {
-                    await _userService.AssignLastVoiceAsync(parts[2], lastVoiceId, lastEngineId);
-                    await Reply(settings, $"Assigned last used voice to {parts[2]}.");
+                    await _userService.AssignLastVoiceAsync(args[0], lastVoiceId, lastEngineId);
+                    await Reply(settings, cfg, new() { ["user"] = args[0] });
                 }
-                return true;
+                break;
 
             case "status":
-                await _twitch.SendChatMessageAsync(
-                    $"OpenSpeaker: {(settings.Enabled ? "enabled" : "disabled")}, mode: {settings.Mode}, queue: {_queue.Count} item(s).");
-                return true;
+                await Reply(settings, cfg, new()
+                {
+                    ["enabled"] = settings.Enabled ? "enabled" : "disabled",
+                    ["mode"] = settings.Mode,
+                    ["queue"] = _queue.Count.ToString(),
+                });
+                break;
 
             case "voices":
-                var cachedVoices = await _voicePool.GetAllAsync();
-                if (cachedVoices.Count == 0)
-                    await _twitch.SendChatMessageAsync("No voices loaded yet.");
-                else
-                {
-                    var summary = cachedVoices
-                        .GroupBy(v => v.EngineId)
-                        .Select(g => $"{_engineRegistry.GetDisplayName(g.Key)}: {g.Count()}")
-                        .ToList();
-                    await _twitch.SendChatMessageAsync($"Voices ({cachedVoices.Count} total) - {string.Join(", ", summary)}");
-                }
-                return true;
+                var voices = await _voicePool.GetAllAsync();
+                var summary = voices.Count == 0
+                    ? "none"
+                    : string.Join(", ", voices.GroupBy(v => v.EngineId).Select(g => $"{_engineRegistry.GetDisplayName(g.Key)}: {g.Count()}"));
+                await Reply(settings, cfg, new() { ["count"] = voices.Count.ToString(), ["summary"] = summary });
+                break;
 
             case "commands":
                 var cmds = _customCommandRepo.GetAll().Where(c => c.Enabled).ToList();
-                if (cmds.Count == 0)
-                    await _twitch.SendChatMessageAsync("No custom commands configured.");
-                else
-                    await _twitch.SendChatMessageAsync($"Commands: {string.Join(", ", cmds.Select(c => c.Trigger))}");
-                return true;
+                await Reply(settings, cfg, new()
+                {
+                    ["list"] = cmds.Count == 0 ? "none" : string.Join(", ", cmds.Select(c => c.Trigger)),
+                });
+                break;
 
             case "about":
-            case "aboot":
-                await _twitch.SendChatMessageAsync($"OpenSpeaker, Instance: {settings.InstanceName}");
-                return true;
-
-            default:
-                return false;
+                await Reply(settings, cfg, new() { ["instance"] = settings.InstanceName });
+                break;
         }
     }
 }

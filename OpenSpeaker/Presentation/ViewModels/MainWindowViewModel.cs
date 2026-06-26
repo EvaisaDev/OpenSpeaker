@@ -13,6 +13,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
     public UsersViewModel Users { get; }
     public EventsViewModel Events { get; }
     public CustomCommandsViewModel CustomCommands { get; }
+    public BuiltInCommandsViewModel BuiltInCommands { get; }
     public ChannelRewardsViewModel ChannelRewards { get; }
     public QueueStatusViewModel QueueStatus { get; }
     public GeneralSettingsViewModel GeneralSettings { get; }
@@ -61,6 +62,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
         Users = new UsersViewModel(boot.UserRepo, boot.AliasRepo);
         Events = new EventsViewModel(boot.EventConfigRepo, boot.SettingsRepo, boot.AliasRepo);
         CustomCommands = new CustomCommandsViewModel(boot.CustomCommandRepo, boot.AliasRepo);
+        BuiltInCommands = new BuiltInCommandsViewModel(boot.SettingsRepo);
         ChannelRewards = new ChannelRewardsViewModel(boot.ChannelRewardRepo, boot.TwitchAuth, boot.AliasRepo);
         QueueStatus = new QueueStatusViewModel(boot.Queue);
         GeneralSettings = new GeneralSettingsViewModel(boot.SettingsRepo, boot.DeviceEnumerator, boot.AliasRepo);
@@ -91,6 +93,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
                 Events.Refresh();
                 ChannelRewards.Refresh();
                 CustomCommands.Refresh();
+                BuiltInCommands.Refresh();
                 Replacement.Refresh();
                 IgnoredVoices.Refresh();
                 GeneralSettings.Refresh();

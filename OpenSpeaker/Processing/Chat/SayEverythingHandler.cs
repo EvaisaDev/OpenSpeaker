@@ -54,9 +54,6 @@ public class SayEverythingHandler
         var settings = _settingsRepo.GetSettings();
         if (!settings.Enabled) { _logger?.Info("SAY :: Dropped - bot disabled"); return; }
 
-        // On replies Twitch prepends "@parentuser " to the body; ignore that leading mention
-        // when matching ignore-prefixes so a command isn't smuggled past the filter. The full
-        // message (with mention) is still what gets spoken below.
         var prefixCheckMessage = isReply ? MentionStripper.StripLeadingMention(message) : message;
         if (_sanitizer.IsIgnoredPrefix(prefixCheckMessage)) { _logger?.Info($"SAY :: Dropped - ignored prefix"); return; }
 

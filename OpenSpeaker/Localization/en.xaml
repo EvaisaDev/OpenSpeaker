@@ -42,6 +42,7 @@
     <sys:String x:Key="Tab.Users">Users</sys:String>
     <sys:String x:Key="Tab.Events">Events</sys:String>
     <sys:String x:Key="Tab.Commands">Commands</sys:String>
+    <sys:String x:Key="Tab.BuiltinCommands">Built-in Commands</sys:String>
     <sys:String x:Key="Tab.Rewards">Rewards</sys:String>
     <sys:String x:Key="Tab.Settings">Settings</sys:String>
     <sys:String x:Key="Tab.General">General</sys:String>
@@ -75,6 +76,9 @@
     <sys:String x:Key="Section.DefaultAliases">DEFAULT ALIASES</sys:String>
     <sys:String x:Key="Section.Account">ACCOUNT</sys:String>
     <sys:String x:Key="Section.Services">SERVICES</sys:String>
+    <sys:String x:Key="Section.BotAccount">BOT ACCOUNT (OPTIONAL)</sys:String>
+    <sys:String x:Key="Lbl.BotAccountHint">Optionally log in a separate bot account to send command replies in chat. If not connected, replies are sent from your main account. The bot account must be a moderator in your channel.</sys:String>
+    <sys:String x:Key="Lbl.BotAccountSubtitle">Used only for chat replies</sys:String>
     <sys:String x:Key="Section.AudioDeviceToMonitor">AUDIO DEVICE TO MONITOR</sys:String>
     <sys:String x:Key="Section.Profiles">PROFILES</sys:String>
     <sys:String x:Key="Section.Engines">ENGINES</sys:String>
@@ -107,6 +111,7 @@
     <sys:String x:Key="Col.Ignored">Ignored</sys:String>
     <sys:String x:Key="Col.SayInput">Say Input</sys:String>
     <sys:String x:Key="Col.Command">Command</sys:String>
+    <sys:String x:Key="Col.Keyword">Keyword</sys:String>
     <sys:String x:Key="Col.Permissions">Permissions</sys:String>
     <sys:String x:Key="Col.Name">Name</sys:String>
     <sys:String x:Key="Col.Device">Device</sys:String>
@@ -133,6 +138,9 @@
     <sys:String x:Key="Lbl.MinViewers">Min viewers:</sys:String>
     <sys:String x:Key="Lbl.MinBits">Min bits:</sys:String>
     <sys:String x:Key="Lbl.Command">Command</sys:String>
+    <sys:String x:Key="Lbl.Keyword">Keyword</sys:String>
+    <sys:String x:Key="Tip.BuiltinKeyword">The chat keyword(s) that trigger this command, after the command prefix. Separate multiple keywords with commas, e.g. "on, enable".</sys:String>
+    <sys:String x:Key="Lbl.Reply">Reply</sys:String>
     <sys:String x:Key="Lbl.Name">Name</sys:String>
     <sys:String x:Key="Lbl.LogLevel">Log Level:</sys:String>
     <sys:String x:Key="Lbl.Language">Language:</sys:String>
@@ -342,6 +350,8 @@
 
     <!-- Accounts -->
     <sys:String x:Key="Tip.TwitchLogin">Connect your Twitch account via browser OAuth authentication.</sys:String>
+    <sys:String x:Key="Tip.BotLogin">Connect a separate bot account (used only to send command replies). Log into the bot account in the browser when prompted.</sys:String>
+    <sys:String x:Key="Tip.BotLogout">Disconnect the bot account. Command replies will fall back to your main account.</sys:String>
     <sys:String x:Key="Tip.TwitchLogout">Disconnect from Twitch but keep credentials stored for later.</sys:String>
     <sys:String x:Key="Tip.TwitchForget">Permanently remove all stored Twitch credentials.</sys:String>
     <sys:String x:Key="Tip.ChatClientToggle">Start or stop the IRC chat connection for reading messages.</sys:String>

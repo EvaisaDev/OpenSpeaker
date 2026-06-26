@@ -7,10 +7,13 @@ namespace OpenSpeaker.Views;
 public partial class TwitchAuthWindow : Window
 {
     private readonly TwitchAuthService _auth;
+    private readonly bool _isBot;
     private HttpListener? _listener;
     private const string ClientId = "o5xlrf6yir2hda9wste7lz92mu9i5w";
     private const string RedirectUri = "http://localhost:7681/callback";
-    private const string Scopes = "channel:read:subscriptions channel:read:redemptions bits:read moderator:read:followers user:read:chat";
+    private const string Scopes = "channel:read:subscriptions channel:read:redemptions bits:read moderator:read:followers user:read:chat user:write:chat";
+
+    private const string BotScopes = "user:write:chat user:bot";
 
     private static readonly string CallbackHtml = """
         <!DOCTYPE html><html><head><title>OpenSpeaker Auth</title></head>
@@ -31,10 +34,11 @@ public partial class TwitchAuthWindow : Window
         </body></html>
         """;
 
-    public TwitchAuthWindow(TwitchAuthService auth)
+    public TwitchAuthWindow(TwitchAuthService auth, bool isBot = false)
     {
         InitializeComponent();
         _auth = auth;
+        _isBot = isBot;
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -47,7 +51,9 @@ public partial class TwitchAuthWindow : Window
             _listener.Prefixes.Add("http://localhost:7681/");
             _listener.Start();
             _ = ListenAsync();
-            var authUrl = $"https://id.twitch.tv/oauth2/authorize?client_id={ClientId}&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=token&scope={Uri.EscapeDataString(Scopes)}";
+            var scopes = _isBot ? BotScopes : Scopes;
+            var forceVerify = _isBot ? "&force_verify=true" : string.Empty;
+            var authUrl = $"https://id.twitch.tv/oauth2/authorize?client_id={ClientId}&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=token&scope={Uri.EscapeDataString(scopes)}{forceVerify}";
             Process.Start(new ProcessStartInfo(authUrl) { UseShellExecute = true });
         }
         catch (Exception ex) { StatusText.Text = $"Error: {ex.Message}"; }
@@ -99,7 +105,7 @@ public partial class TwitchAuthWindow : Window
             var json = await response.Content.ReadAsStringAsync();
             var obj = Newtonsoft.Json.Linq.JObject.Parse(json);
             var user = obj["data"]?[0];
-            _auth.SaveAccount(new OpenSpeaker.Models.TwitchAccountInfo
+            var account = new OpenSpeaker.Models.TwitchAccountInfo
             {
                 AccessToken = token,
                 UserId = (string?)user?["id"] ?? string.Empty,
@@ -108,7 +114,9 @@ public partial class TwitchAuthWindow : Window
                 BroadcasterType = (string?)user?["broadcaster_type"] ?? string.Empty,
                 ProfileImageUrl = (string?)user?["profile_image_url"] ?? string.Empty,
                 ClientId = ClientId
-            });
+            };
+            if (_isBot) _auth.SaveBotAccount(account);
+            else _auth.SaveAccount(account);
             Dispatcher.Invoke(Close);
         }
         catch (Exception ex) { Dispatcher.Invoke(() => StatusText.Text = $"Error: {ex.Message}"); }

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.11] - 2026-06-26
+
+### Documentation
+- update changelog for 0.3.10 ([`5378928`](https://github.com/EvaisaDev/OpenSpeaker/commit/5378928))
+
+### Other
+- Update :3 ([`9366499`](https://github.com/EvaisaDev/OpenSpeaker/commit/9366499))
+  - Added bot account login for if you want command replies to be sent by a bot account.
+  - Fixed lead moderators not counting as mods. (thanks for the dogshit API twitch)
+  - Added new menu for changing the built-in commands and their permissions.
+  - Fixed command replies (probably)
+
 ## [0.3.10] - 2026-06-25
 
 ### Documentation
@@ -76,6 +88,7 @@
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

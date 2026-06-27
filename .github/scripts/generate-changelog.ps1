@@ -53,6 +53,7 @@ foreach ($record in $records) {
     $subject = if ($parts.Count -gt 1) { $parts[1].Trim() } else { '' }
     $body = if ($parts.Count -gt 2) { $parts[2] } else { '' }
     if (-not $sha) { continue }
+    if ($subject -match '^docs(\([^)]*\))?:\s*update changelog') { continue }
 
     $section = 'Other'
     $entry = $subject

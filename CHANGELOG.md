@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.12] - 2026-06-30
+
+### Other
+- Small update ([`28c7cb9`](https://github.com/EvaisaDev/OpenSpeaker/commit/28c7cb9))
+  - Added ability to remove voice aliases with right click
+  - Added check to prevent duplicate voice alias names.
+- Update generate-changelog.ps1 ([`9e00953`](https://github.com/EvaisaDev/OpenSpeaker/commit/9e00953))
+
 ## [0.3.11] - 2026-06-26
 
 ### Documentation
@@ -88,6 +96,7 @@
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

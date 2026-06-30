@@ -1652,6 +1652,17 @@
                                          ItemsSource="{Binding VoiceAliases.Aliases}"
                                          SelectedItem="{Binding VoiceAliases.SelectedAlias}"
                                          BorderThickness="0" Background="Transparent" Padding="4">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                            <EventSetter Event="PreviewMouseRightButtonDown" Handler="AliasItem_PreviewMouseRightButtonDown"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="{DynamicResource Btn.Delete}"
+                                                      Command="{Binding PlacementTarget.DataContext.VoiceAliases.DeleteAliasCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                        </ContextMenu>
+                                    </ListBox.ContextMenu>
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Name}" Padding="4,2"/>

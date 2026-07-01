@@ -1,3 +1,5 @@
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/I3I53VGOL)
+
 > [!IMPORTANT]
 > The **portable** build will not start without the **.NET 8 Desktop Runtime**. If you run `OpenSpeaker.exe` and nothing happens, or you get a prompt asking you to install .NET, [install the runtime](https://dotnet.microsoft.com/download/dotnet/8.0), or just use the **standalone** build instead.
 

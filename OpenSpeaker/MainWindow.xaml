@@ -103,6 +103,7 @@
                     <ListBox ItemsSource="{Binding EventLog.Entries}"
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              ScrollViewer.CanContentScroll="True"
+                             VirtualizingPanel.ScrollUnit="Pixel"
                              BorderThickness="0" Background="{DynamicResource Bg1}"
                              FontFamily="Consolas" FontSize="12">
                         <ListBox.ItemTemplate>
@@ -508,6 +509,76 @@
                 </Grid>
             </TabItem>
 
+            <TabItem Header="{DynamicResource Tab.BuiltinCommands}">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <DataGrid Grid.Row="0" AutoGenerateColumns="False" CanUserAddRows="False"
+                              ItemsSource="{Binding BuiltInCommands.Commands}"
+                              SelectedItem="{Binding BuiltInCommands.SelectedCommand}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding Id}" Width="Auto" IsReadOnly="True">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Command}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Keyword}" Width="*" IsReadOnly="True">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Keyword}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding PermissionsSummary}" Width="Auto" IsReadOnly="True">
+                                <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Permissions}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Width="Auto">
+                                <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col.Enabled}"/></DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Command="{Binding DataContext.BuiltInCommands.ToggleEnabledCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  CommandParameter="{Binding}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="1" Background="{DynamicResource Bg2}"
+                            BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
+                            CornerRadius="5" Padding="12,10" Margin="0,10,0,0"
+                            IsEnabled="{Binding BuiltInCommands.IsEditing}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding BuiltInCommands.DescriptionText}" Style="{DynamicResource MutedText}"
+                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="{DynamicResource Lbl.Keyword}" Style="{DynamicResource MutedText}"
+                                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBox Text="{Binding BuiltInCommands.EditKeyword, UpdateSourceTrigger=PropertyChanged}"
+                                         Width="220" VerticalAlignment="Center"
+                                         ToolTip="{DynamicResource Tip.BuiltinKeyword}"/>
+                            </StackPanel>
+                            <TextBlock Text="{DynamicResource Lbl.Reply}" Style="{DynamicResource MutedText}" Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding BuiltInCommands.EditReply, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding BuiltInCommands.PlaceholderHint}" Style="{DynamicResource MutedText}"
+                                       FontSize="11" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <CheckBox Content="{DynamicResource Chk.Mods}" IsChecked="{Binding BuiltInCommands.AllowModerators}" Margin="0,0,12,0"/>
+                                <CheckBox Content="{DynamicResource Chk.Subs}" IsChecked="{Binding BuiltInCommands.AllowSubscribers}" Margin="0,0,12,0"/>
+                                <CheckBox Content="{DynamicResource Chk.VIPs}" IsChecked="{Binding BuiltInCommands.AllowVIPs}" Margin="0,0,12,0"/>
+                                <CheckBox Content="{DynamicResource Chk.Regulars}" IsChecked="{Binding BuiltInCommands.AllowRegulars}" Margin="0,0,12,0"/>
+                                <CheckBox Content="{DynamicResource Chk.Everyone}" IsChecked="{Binding BuiltInCommands.AllowEveryone}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="{DynamicResource Btn.Save}" Command="{Binding BuiltInCommands.SaveCommand}"
+                                        Style="{DynamicResource AccentButton}" Margin="0,0,6,0"/>
+                                <Button Content="{DynamicResource Btn.Reset}" Command="{Binding BuiltInCommands.ResetCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
             <!-- ═══════════════ CHANNEL REWARDS ═══════════════ -->
             <TabItem Header="{DynamicResource Tab.Rewards}">
                 <Grid Margin="12">
@@ -832,8 +903,13 @@
                                         <ColumnDefinition Width="12"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="12"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                                    <GroupBox Grid.Column="0" Header="{StaticResource Section.Account}">
+                                    <GroupBox Grid.Row="0" Grid.Column="0" Header="{StaticResource Section.Account}">
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                                 <Border Width="48" Height="48" CornerRadius="24"
@@ -863,7 +939,7 @@
                                         </StackPanel>
                                     </GroupBox>
 
-                                    <GroupBox Grid.Column="2" Header="{StaticResource Section.Services}">
+                                    <GroupBox Grid.Row="0" Grid.Column="2" Header="{StaticResource Section.Services}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="90"/>
@@ -883,6 +959,35 @@
                                                     Command="{Binding Accounts.EventSubToggleCommand}" HorizontalAlignment="Left"
                                                     ToolTip="{DynamicResource Tip.EventSubToggle}"/>
                                         </Grid>
+                                    </GroupBox>
+
+                                    <GroupBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Header="{DynamicResource Section.BotAccount}">
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource Lbl.BotAccountHint}" Style="{DynamicResource MutedText}"
+                                                       TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                                <Border Width="48" Height="48" CornerRadius="24"
+                                                        Background="{DynamicResource Bg4}" Margin="0,0,12,0"
+                                                        ClipToBounds="True">
+                                                    <Grid>
+                                                        <TextBlock Text="B" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   FontSize="18" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+                                                        <Image Source="{Binding Accounts.BotAvatarUrl}" Stretch="UniformToFill"/>
+                                                    </Grid>
+                                                </Border>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Accounts.BotLogin}" FontSize="15" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{DynamicResource Lbl.BotAccountSubtitle}" Style="{DynamicResource MutedText}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="{DynamicResource Btn.Login}" Command="{Binding Accounts.BotConnectCommand}"
+                                                        Style="{DynamicResource AccentButton}" Margin="0,0,8,0"
+                                                        ToolTip="{DynamicResource Tip.BotLogin}"/>
+                                                <Button Content="{DynamicResource Btn.Logout}" Command="{Binding Accounts.BotLogoutCommand}"
+                                                        ToolTip="{DynamicResource Tip.BotLogout}"/>
+                                            </StackPanel>
+                                        </StackPanel>
                                     </GroupBox>
                                 </Grid>
                             </TabItem>
@@ -1207,6 +1312,10 @@
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="8"/>
                                                 <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl.Cooldown}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
@@ -1218,22 +1327,27 @@
                                             <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
                                                 <TextBox Text="{Binding SpeakingOptions.MaxWords}" Width="60"
                                                          ToolTip="{DynamicResource Tip.MaxWords}"/>
-                                                <CheckBox Content="{DynamicResource Chk.TreatSymbolsAsSpaces}" IsChecked="{Binding SpeakingOptions.WordLimitSymbolsAsSpaces}"
-                                                          VerticalAlignment="Center" Margin="12,0,0,0"
-                                                          ToolTip="{DynamicResource Tip.TreatSymbolsAsSpaces}"/>
                                             </StackPanel>
                                             <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.MaxChars}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
                                                 <TextBox Text="{Binding SpeakingOptions.MaxChars}" Width="60"
                                                          ToolTip="{DynamicResource Tip.MaxChars}"/>
                                             </StackPanel>
-                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.UrlFilter}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
-                                            <ComboBox Grid.Row="6" Grid.Column="1"
+                                            <CheckBox x:Name="TreatSymbolsAsSpacesCheck" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
+                                                      Content="{DynamicResource Chk.TreatSymbolsAsSpaces}" IsChecked="{Binding SpeakingOptions.WordLimitSymbolsAsSpaces}"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip="{DynamicResource Tip.TreatSymbolsAsSpaces}"/>
+                                            <TextBox Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2"
+                                                     Text="{Binding SpeakingOptions.WordLimitSymbols}"
+                                                     IsEnabled="{Binding IsChecked, ElementName=TreatSymbolsAsSpacesCheck}"
+                                                     ToolTip="{DynamicResource Tip.WordLimitSymbols}"/>
+                                            <TextBlock Grid.Row="10" Grid.Column="0" Text="{DynamicResource Lbl.UrlFilter}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Row="10" Grid.Column="1"
                                                       ItemsSource="{Binding SpeakingOptions.UrlFilterModes}"
                                                       SelectedItem="{Binding SpeakingOptions.UrlFilterMode}"
                                                       ToolTip="{DynamicResource Tip.UrlFilterMode}"/>
-                                            <TextBlock Grid.Row="8" Grid.Column="0" Text="{DynamicResource Lbl.NotAllowedText}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
-                                            <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding SpeakingOptions.NotAllowedText}"
+                                            <TextBlock Grid.Row="12" Grid.Column="0" Text="{DynamicResource Lbl.NotAllowedText}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Row="12" Grid.Column="1" Text="{Binding SpeakingOptions.NotAllowedText}"
                                                      ToolTip="{DynamicResource Tip.NotAllowedText}"/>
                                         </Grid>
                                     </GroupBox>
@@ -1538,6 +1652,17 @@
                                          ItemsSource="{Binding VoiceAliases.Aliases}"
                                          SelectedItem="{Binding VoiceAliases.SelectedAlias}"
                                          BorderThickness="0" Background="Transparent" Padding="4">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                            <EventSetter Event="PreviewMouseRightButtonDown" Handler="AliasItem_PreviewMouseRightButtonDown"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="{DynamicResource Btn.Delete}"
+                                                      Command="{Binding PlacementTarget.DataContext.VoiceAliases.DeleteAliasCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                        </ContextMenu>
+                                    </ListBox.ContextMenu>
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Name}" Padding="4,2"/>

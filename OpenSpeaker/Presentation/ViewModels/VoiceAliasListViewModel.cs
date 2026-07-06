@@ -271,8 +271,23 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
 
     public void Refresh()
     {
+        RemoveDuplicateAliases();
         _allAliases = _repo.GetAllSorted().ToList();
         ApplyAliasFilter();
+    }
+
+    private void RemoveDuplicateAliases()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var removed = 0;
+        foreach (var a in _repo.GetAllSorted().ToList())
+        {
+            var name = a.Name?.Trim() ?? string.Empty;
+            if (seen.Add(name)) continue;
+            _repo.Delete(a.Id);
+            removed++;
+        }
+        if (removed > 0) _logger?.Info($"ALIAS :: Removed {removed} duplicate alias(es), kept the first of each name");
     }
 
     private void ApplyAliasFilter()
@@ -434,13 +449,26 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         });
     }
 
+    private bool IsDuplicateName(string name, VoiceAlias? exclude)
+    {
+        return _allAliases.Any(a => !ReferenceEquals(a, exclude)
+            && (exclude == null || a.Id != exclude.Id)
+            && string.Equals(a.Name?.Trim(), name, StringComparison.OrdinalIgnoreCase));
+    }
+
     private void AddAlias()
     {
         if (string.IsNullOrWhiteSpace(DetailName)) return;
-        var alias = new VoiceAlias { Name = DetailName };
+        var name = DetailName.Trim();
+        if (IsDuplicateName(name, null))
+        {
+            _dialogs.ShowWarning($"An alias named '{name}' already exists.", "Duplicate alias");
+            return;
+        }
+        var alias = new VoiceAlias { Name = name };
         _repo.Upsert(alias);
         Refresh();
-        SelectedAlias = Aliases.FirstOrDefault(a => a.Name == DetailName);
+        SelectedAlias = Aliases.FirstOrDefault(a => a.Name == name);
     }
 
     private void DeleteAlias()
@@ -457,16 +485,28 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
     private void Rename()
     {
         if (_selectedAlias == null || string.IsNullOrWhiteSpace(DetailName)) return;
-        _selectedAlias.Name = DetailName;
+        var name = DetailName.Trim();
+        if (IsDuplicateName(name, _selectedAlias))
+        {
+            _dialogs.ShowWarning($"An alias named '{name}' already exists.", "Duplicate alias");
+            return;
+        }
+        _selectedAlias.Name = name;
         _repo.Upsert(_selectedAlias);
         Refresh();
-        SelectedAlias = Aliases.FirstOrDefault(a => a.Name == DetailName);
+        SelectedAlias = Aliases.FirstOrDefault(a => a.Name == name);
     }
 
     private void SaveAliasDetail()
     {
         if (_selectedAlias == null) return;
-        _selectedAlias.Name = DetailName;
+        var name = DetailName.Trim();
+        if (IsDuplicateName(name, _selectedAlias))
+        {
+            _dialogs.ShowWarning($"An alias named '{name}' already exists.", "Duplicate alias");
+            return;
+        }
+        _selectedAlias.Name = name;
         _selectedAlias.EngineId = DetailEngineId;
         _selectedAlias.VoiceId = SelectedVoice?.Id ?? _selectedAlias.VoiceId;
         _selectedAlias.Volume = TestVolume;

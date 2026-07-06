@@ -49,6 +49,7 @@ public class AppSettings
 
     public List<string> TtsCommands { get; set; } = new() { "!tts", "!say" };
     public string BuiltInCommandName { get; set; } = "!tts";
+    public List<BuiltInCommandConfig> BuiltInCommands { get; set; } = new();
     public List<string> IgnoredPrefixes { get; set; } = new() { "!", "/" };
 
     public bool EventsEnabled { get; set; } = true;
@@ -65,6 +66,7 @@ public class AppSettings
     public int MaxWords { get; set; } = 0;
     public int MaxChars { get; set; } = 0;
     public bool WordLimitSymbolsAsSpaces { get; set; } = false;
+    public string WordLimitSymbols { get; set; } = "-_";
     public string NotAllowedText { get; set; } = "You're not cool enough to have a voice";
     public string UrlFilterMode { get; set; } = "Disabled";
 

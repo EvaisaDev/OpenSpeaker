@@ -98,7 +98,7 @@ public class LuaExtension : IDisposable
         _logger?.Info($"[{ExtensionId}] SetAuth called: engineId={engineId} configJson={configJson ?? "(null)"}");
         if (string.IsNullOrEmpty(configJson) || configJson == "{}")
         {
-            _logger?.Warn($"[{ExtensionId}] SetAuth: config is empty or default '{{}}', skipping — auth will NOT be set for {engineId}");
+            _logger?.Warn($"[{ExtensionId}] SetAuth: config is empty or default '{{}}', skipping, auth will NOT be set for {engineId}");
             return;
         }
         try

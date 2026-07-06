@@ -153,6 +153,11 @@ public partial class MainWindow : Window
         grid.UnselectAll();
     }
 
+    private void AliasItem_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ListBoxItem item) item.IsSelected = true;
+    }
+
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
     {
         var settings = _boot.SettingsRepo.GetSettings();

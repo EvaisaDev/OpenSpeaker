@@ -84,21 +84,29 @@ public class TwitchEventSubService : ITwitchService, IDisposable
 
     public async Task SendChatMessageAsync(string message)
     {
-        var accessToken = _auth.GetAccessToken();
-        var clientId = _auth.GetClientId();
         var broadcasterId = BroadcasterId;
-        if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(broadcasterId)) return;
+
+        var sender = _auth.HasBotAccount() ? _auth.GetBotAccount() : _auth.GetAccount();
+        var accessToken = sender?.AccessToken;
+        var clientId = sender?.ClientId;
+        var senderId = sender?.UserId;
+        if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(senderId) || string.IsNullOrEmpty(broadcasterId)) return;
         try
         {
             var http = OpenSpeaker.Infrastructure.Http.HttpClientFactory.GetClient("twitch-helix");
-            var body = System.Text.Json.JsonSerializer.Serialize(new { broadcaster_id = broadcasterId, sender_id = broadcasterId, message });
+            var body = System.Text.Json.JsonSerializer.Serialize(new { broadcaster_id = broadcasterId, sender_id = senderId, message });
             var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, "https://api.twitch.tv/helix/chat/messages")
             {
                 Content = new System.Net.Http.StringContent(body, System.Text.Encoding.UTF8, "application/json")
             };
             req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
             req.Headers.Add("Client-Id", clientId);
-            await http.SendAsync(req);
+            var resp = await http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var respBody = await resp.Content.ReadAsStringAsync();
+                _logger?.Warn($"TWITCH :: Send chat message failed ({(int)resp.StatusCode}): {respBody}");
+            }
         }
         catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to send chat message: {ex.Message}"); }
     }
@@ -200,7 +208,9 @@ public class TwitchEventSubService : ITwitchService, IDisposable
     {
         var msg = e.Payload.Event;
         _logger?.Info($"TWITCH :: Raw chat message from {msg.ChatterUserLogin}: {msg.Message.Text}");
-        var roles = _permissionChecker.DetermineRoles(msg.IsBroadcaster, msg.IsModerator, msg.IsSubscriber, msg.IsVip);
+
+        var isLeadModerator = msg.Badges?.Any(b => string.Equals(b.SetId, "lead_moderator", StringComparison.OrdinalIgnoreCase)) == true;
+        var roles = _permissionChecker.DetermineRoles(msg.IsBroadcaster, msg.IsModerator || isLeadModerator, msg.IsSubscriber, msg.IsVip);
 
         var messageEmotes = msg.Message.Fragments?
             .Where(f => f.Type == "emote")
@@ -222,6 +232,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
             Roles = roles,
             IsSubscriber = msg.IsSubscriber,
             IsHighlight = msg.MessageType == "channel_points_highlighted",
+            IsReply = msg.Reply != null,
             MessageEmotes = messageEmotes,
             MessageCheermotes = messageCheermotes,
         });

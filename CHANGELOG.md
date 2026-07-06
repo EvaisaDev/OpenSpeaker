@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.13] - 2026-07-06
+
+### Other
+- Fix crash when spamming chat ([`8e9adea`](https://github.com/EvaisaDev/OpenSpeaker/commit/8e9adea))
+- fix ([`8a60caa`](https://github.com/EvaisaDev/OpenSpeaker/commit/8a60caa))
+- Add kofi button to release notes ([`560dc88`](https://github.com/EvaisaDev/OpenSpeaker/commit/560dc88))
+  Added a Ko-fi button
+- Update README.md ([`28fea5c`](https://github.com/EvaisaDev/OpenSpeaker/commit/28fea5c))
+
 ## [0.3.12] - 2026-06-30
 
 ### Other
@@ -96,6 +105,7 @@
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.3.12] - 2026-06-30
+
+### Other
+- Small update ([`28c7cb9`](https://github.com/EvaisaDev/OpenSpeaker/commit/28c7cb9))
+  - Added ability to remove voice aliases with right click
+  - Added check to prevent duplicate voice alias names.
+- Update generate-changelog.ps1 ([`9e00953`](https://github.com/EvaisaDev/OpenSpeaker/commit/9e00953))
+
+## [0.3.11] - 2026-06-26
+
+### Documentation
+- update changelog for 0.3.10 ([`5378928`](https://github.com/EvaisaDev/OpenSpeaker/commit/5378928))
+
+### Other
+- Update :3 ([`9366499`](https://github.com/EvaisaDev/OpenSpeaker/commit/9366499))
+  - Added bot account login for if you want command replies to be sent by a bot account.
+  - Fixed lead moderators not counting as mods. (thanks for the dogshit API twitch)
+  - Added new menu for changing the built-in commands and their permissions.
+  - Fixed command replies (probably)
+
+## [0.3.10] - 2026-06-25
+
+### Documentation
+- update changelog for 0.3.9 ([`d9587f6`](https://github.com/EvaisaDev/OpenSpeaker/commit/d9587f6))
+
+### Other
+- Multiple small changes ([`42d4105`](https://github.com/EvaisaDev/OpenSpeaker/commit/42d4105))
+  - Treat symbols as spaces setting now lets you define a list of symbols to split by.
+  - Command prefixes are now detected in replies.
+  - Commands are no longer spoken out loud if they were in a reply.
+- make free the default model ([`d27097d`](https://github.com/EvaisaDev/OpenSpeaker/commit/d27097d))
+  - Mash the free model the default for fish audio!
+
+## [0.3.9] - 2026-06-25
+
+### Documentation
+- update changelog for 0.3.8 ([`23704a3`](https://github.com/EvaisaDev/OpenSpeaker/commit/23704a3))
+
+### Other
+- Small patch ([`05d0b98`](https://github.com/EvaisaDev/OpenSpeaker/commit/05d0b98))
+  - Fixed the voice volume slider.
+  - Allow voice slider to go up to 200% volume
+  - Allow pressing delete or backspace to remove a voice from an alias
+
 ## [0.3.8] - 2026-06-24
 
 ### Documentation
@@ -52,6 +96,10 @@
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
+
+
+
 
 
 

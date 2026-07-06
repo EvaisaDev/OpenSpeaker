@@ -51,6 +51,7 @@ public class SpeakingOptionsViewModel : SettingsViewModelBase
     public int MaxWords { get => Settings.MaxWords; set => Set(s => s.MaxWords = value); }
     public int MaxChars { get => Settings.MaxChars; set => Set(s => s.MaxChars = value); }
     public bool WordLimitSymbolsAsSpaces { get => Settings.WordLimitSymbolsAsSpaces; set => Set(s => s.WordLimitSymbolsAsSpaces = value); }
+    public string WordLimitSymbols { get => Settings.WordLimitSymbols; set => Set(s => s.WordLimitSymbols = value); }
     public string NotAllowedText { get => Settings.NotAllowedText; set => Set(s => s.NotAllowedText = value); }
     public string UrlFilterMode { get => Settings.UrlFilterMode; set => Set(s => s.UrlFilterMode = value); }
 

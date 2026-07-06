@@ -46,6 +46,37 @@ public class TwitchAuthService
     public string? GetClientId() => GetAccount()?.ClientId;
     public string? GetProfileImageUrl() => GetAccount()?.ProfileImageUrl;
 
+    private TwitchAccountInfo? _cachedBot;
+
+    public TwitchAccountInfo? GetBotAccount()
+    {
+        lock (_lock)
+            return _cachedBot ??= _db.TwitchAccounts.FindById(2);
+    }
+
+    public void SaveBotAccount(TwitchAccountInfo info)
+    {
+        info.Id = 2;
+        _db.TwitchAccounts.Upsert(info);
+        lock (_lock) { _cachedBot = info; }
+    }
+
+    public void ClearBotAccount()
+    {
+        _db.TwitchAccounts.Delete(2);
+        lock (_lock) { _cachedBot = null; }
+    }
+
+    public bool HasBotAccount()
+    {
+        var account = GetBotAccount();
+        return account != null && !string.IsNullOrEmpty(account.AccessToken);
+    }
+
+    public string? GetBotLogin() => GetBotAccount()?.Login;
+    public string? GetBotDisplayName() => GetBotAccount()?.DisplayName;
+    public string? GetBotProfileImageUrl() => GetBotAccount()?.ProfileImageUrl;
+
     public TwitchLib.Api.TwitchAPI CreateApi()
     {
         var account = GetAccount();

@@ -1,4 +1,6 @@
-Todo: Write this bitch properly (I hate writing someone please do it for me thanks)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/I3I53VGOL)
+
+Todo: Write this thing properly (I hate writing someone please do it for me thanks)
 
 Basically this is a replacement for SpeakerBot with (mostly) full feature parity.  
 It has a way to migrate data directly from SpeakerBot to make moving over (mostly) seamless.  

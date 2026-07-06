@@ -16,11 +16,18 @@ public class AccountsViewModel : BaseViewModel
     public string ChatClientStatus => _twitchService?.IsChatConnected == true ? "Disconnect" : "Connect";
     public string EventSubStatus => _twitchService?.IsConnected == true ? "Disconnect" : "Connect";
 
+    // Optional secondary bot account, used only to send command replies in chat.
+    public bool IsBotConnected => _twitchAuth.HasBotAccount();
+    public string BotLogin => _twitchAuth.GetBotDisplayName() ?? _twitchAuth.GetBotLogin() ?? string.Empty;
+    public string? BotAvatarUrl => _twitchAuth.GetBotProfileImageUrl() is { Length: > 0 } s ? s : null;
+
     public AsyncRelayCommand TwitchConnectCommand { get; }
     public RelayCommand TwitchLogoutCommand { get; }
     public RelayCommand TwitchForgetCommand { get; }
     public AsyncRelayCommand ChatClientToggleCommand { get; }
     public AsyncRelayCommand EventSubToggleCommand { get; }
+    public AsyncRelayCommand BotConnectCommand { get; }
+    public RelayCommand BotLogoutCommand { get; }
 
     public AccountsViewModel(TwitchAuthService twitchAuth, SettingsRepository settingsRepo)
     {
@@ -32,6 +39,8 @@ public class AccountsViewModel : BaseViewModel
         TwitchForgetCommand = new RelayCommand(ForgetTwitch, () => IsTwitchConnected);
         ChatClientToggleCommand = new AsyncRelayCommand(ToggleChatClientAsync);
         EventSubToggleCommand = new AsyncRelayCommand(ToggleEventSubAsync);
+        BotConnectCommand = new AsyncRelayCommand(ConnectBotAsync, () => IsTwitchConnected);
+        BotLogoutCommand = new RelayCommand(LogoutBot, () => IsBotConnected);
     }
 
     public void SetTwitchService(ITwitchService service)
@@ -84,6 +93,27 @@ public class AccountsViewModel : BaseViewModel
             await _twitchService.ConnectAsync();
         OnPropertyChanged(nameof(EventSubStatus));
         OnPropertyChanged(nameof(ChatClientStatus));
+    }
+
+    private async Task ConnectBotAsync()
+    {
+        var window = new Views.TwitchAuthWindow(_twitchAuth, isBot: true);
+        window.ShowDialog();
+        NotifyBotChanged();
+        await Task.CompletedTask;
+    }
+
+    private void LogoutBot()
+    {
+        _twitchAuth.ClearBotAccount();
+        NotifyBotChanged();
+    }
+
+    private void NotifyBotChanged()
+    {
+        OnPropertyChanged(nameof(IsBotConnected));
+        OnPropertyChanged(nameof(BotLogin));
+        OnPropertyChanged(nameof(BotAvatarUrl));
     }
 
     private void NotifyTwitchChanged()

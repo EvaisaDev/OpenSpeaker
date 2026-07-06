@@ -15,7 +15,7 @@ public class FishAudioEngine : HttpTtsEngine, IVoiceSearchEngine
         EngineParameterDef.Slider("speed", "Speed", 0.5, 2.0, 0.05, 1.0),
         EngineParameterDef.Combo("model", "Model",
             ["s2.1-pro", "s2.1-pro-free", "s2-pro", "s1"],
-            "s2.1-pro"),
+            "s2.1-pro-free"),
         EngineParameterDef.SearchableVoice("voice", "Voice"),
     };
 
@@ -40,7 +40,7 @@ public class FishAudioEngine : HttpTtsEngine, IVoiceSearchEngine
         }
 
         var speed = parameters.Dbl("speed", 1.0);
-        var model = parameters.Str("model", "s2.1-pro");
+        var model = parameters.Str("model", "s2.1-pro-free");
 
         var bytes = await PostJsonForBytesAsync("/v1/tts", new
         {

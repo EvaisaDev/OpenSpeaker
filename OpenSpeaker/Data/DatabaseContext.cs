@@ -6,6 +6,7 @@ namespace OpenSpeaker.Data;
 public class DatabaseContext : IDisposable
 {
     private readonly LiteDatabase _db;
+    private readonly object _gate = new();
 
     public DatabaseContext(string dbPath)
     {
@@ -20,26 +21,29 @@ public class DatabaseContext : IDisposable
             settings.Insert(new AppSettings());
     }
 
-    public ILiteCollection<T> Collection<T>(string name) => _db.GetCollection<T>(name);
+    private ILiteCollection<T> Synchronized<T>(ILiteCollection<T> collection) =>
+        new SynchronizedLiteCollection<T>(collection, _gate);
 
-    public ILiteCollection<AppSettings> Settings => _db.GetCollection<AppSettings>("settings");
-    public ILiteCollection<VoiceAlias> VoiceAliases => _db.GetCollection<VoiceAlias>("aliases");
-    public ILiteCollection<UserRecord> Users => _db.GetCollection<UserRecord>("users");
-    public ILiteCollection<EventConfig> Events => _db.GetCollection<EventConfig>("events");
-    public ILiteCollection<CustomCommand> CustomCommands => _db.GetCollection<CustomCommand>("customcommands");
-    public ILiteCollection<IgnoreProfile> IgnoreProfiles => _db.GetCollection<IgnoreProfile>("ignoreprofiles");
-    public ILiteCollection<VoiceGateProfile> VoiceGateProfiles => _db.GetCollection<VoiceGateProfile>("voicegateprofiles");
-    public ILiteCollection<BadWordEntry> BadWords => _db.GetCollection<BadWordEntry>("badwords");
-    public ILiteCollection<RegexReplacement> RegexReplacements => _db.GetCollection<RegexReplacement>("regexreplacements");
-    public ILiteCollection<EngineConfig> EngineConfigs => _db.GetCollection<EngineConfig>("engineconfigs");
-    public ILiteCollection<TwitchAccountInfo> TwitchAccounts => _db.GetCollection<TwitchAccountInfo>("twitchaccounts");
-    public ILiteCollection<ChannelReward> ChannelRewards => _db.GetCollection<ChannelReward>("channelrewards");
-    public ILiteCollection<CustomApiDefinition> CustomApis => _db.GetCollection<CustomApiDefinition>("customapis");
-    public ILiteCollection<ExtensionConfig> ExtensionConfigs => _db.GetCollection<ExtensionConfig>("extensionconfigs");
-    public ILiteCollection<ExtensionSettings> ExtensionSettings => _db.GetCollection<ExtensionSettings>("extensionsettings");
+    public ILiteCollection<T> Collection<T>(string name) => Synchronized(_db.GetCollection<T>(name));
 
-    public ILiteCollection<BsonDocument> RawCollection(string name) => _db.GetCollection<BsonDocument>(name);
-    public void DropCollection(string name) => _db.DropCollection(name);
+    public ILiteCollection<AppSettings> Settings => Synchronized(_db.GetCollection<AppSettings>("settings"));
+    public ILiteCollection<VoiceAlias> VoiceAliases => Synchronized(_db.GetCollection<VoiceAlias>("aliases"));
+    public ILiteCollection<UserRecord> Users => Synchronized(_db.GetCollection<UserRecord>("users"));
+    public ILiteCollection<EventConfig> Events => Synchronized(_db.GetCollection<EventConfig>("events"));
+    public ILiteCollection<CustomCommand> CustomCommands => Synchronized(_db.GetCollection<CustomCommand>("customcommands"));
+    public ILiteCollection<IgnoreProfile> IgnoreProfiles => Synchronized(_db.GetCollection<IgnoreProfile>("ignoreprofiles"));
+    public ILiteCollection<VoiceGateProfile> VoiceGateProfiles => Synchronized(_db.GetCollection<VoiceGateProfile>("voicegateprofiles"));
+    public ILiteCollection<BadWordEntry> BadWords => Synchronized(_db.GetCollection<BadWordEntry>("badwords"));
+    public ILiteCollection<RegexReplacement> RegexReplacements => Synchronized(_db.GetCollection<RegexReplacement>("regexreplacements"));
+    public ILiteCollection<EngineConfig> EngineConfigs => Synchronized(_db.GetCollection<EngineConfig>("engineconfigs"));
+    public ILiteCollection<TwitchAccountInfo> TwitchAccounts => Synchronized(_db.GetCollection<TwitchAccountInfo>("twitchaccounts"));
+    public ILiteCollection<ChannelReward> ChannelRewards => Synchronized(_db.GetCollection<ChannelReward>("channelrewards"));
+    public ILiteCollection<CustomApiDefinition> CustomApis => Synchronized(_db.GetCollection<CustomApiDefinition>("customapis"));
+    public ILiteCollection<ExtensionConfig> ExtensionConfigs => Synchronized(_db.GetCollection<ExtensionConfig>("extensionconfigs"));
+    public ILiteCollection<ExtensionSettings> ExtensionSettings => Synchronized(_db.GetCollection<ExtensionSettings>("extensionsettings"));
 
-    public void Dispose() => _db.Dispose();
+    public ILiteCollection<BsonDocument> RawCollection(string name) => Synchronized(_db.GetCollection<BsonDocument>(name));
+    public void DropCollection(string name) { lock (_gate) _db.DropCollection(name); }
+
+    public void Dispose() { lock (_gate) _db.Dispose(); }
 }

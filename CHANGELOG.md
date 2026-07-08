@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0] - 2026-07-08
+
+### Other
+- Extension Rework ([`2aa7ca5`](https://github.com/EvaisaDev/OpenSpeaker/commit/2aa7ca5))
+  - Extensions now have a 16ms update loop, extensions can define `OnUpdate()` as a callback.
+  - Added chat.send(msg) API for extensions.
+  - dofile/loadfile/require are now relative to the extension folder and relative to the root folder so both `dofile("foo.lua")` and `dofile("extensions/extension1/foo.lua")` should work.
+  - Added keybind system, currently not used in the app but can be used by extensions.
+  - Added keybind setting type for extensions.
+  - Updated lua api docs
+
 ## [0.3.13] - 2026-07-06
 
 ### Other
@@ -105,6 +116,7 @@
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

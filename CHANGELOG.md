@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.2] - 2026-07-08
+
+### Other
+- Small lua api changes ([`b51fff6`](https://github.com/EvaisaDev/OpenSpeaker/commit/b51fff6))
+  - Added proper luadoc
+  - Updated lua api docs
+  - Added OnChat callback which runs BEFORE any filters.
+
 ## [0.4.1] - 2026-07-08
 
 _No notable changes._
@@ -120,6 +128,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

@@ -8,6 +8,26 @@ The standard Lua library is available. dofile(), loadfile() and require() resolv
 against your extension's own folder first, then the app folder, so an extension can split itself
 across several files in its own folder and pull them in by name.
 --------------------------
+Editor support
+--------------------------
+docs/library/openspeaker.lua declares every host global for the Lua language server (lua-ls, the
+one behind the VS Code "Lua" extension by sumneko). Point your editor at it and you get completion,
+signature help and type checking on http, keybind, chat, GetSetting and the callbacks below,
+instead of "Undefined global" warnings.
+
+extensions/.luarc.json already does this, so opening the extensions folder as your workspace works
+with no setup. If you open a single extension folder instead, copy the .luarc.json from
+extensions/example-speech-engine/ next to your main.lua.
+
+Annotate your callbacks to get the user table typed:
+--------------------------
+---@param user openspeaker.ChatUser
+---@param message string
+---@return string|nil
+function OnMessage(user, message)
+	return message
+end
+--------------------------
 Every extension needs an Extension() function, OpenSpeaker calls it on load to get metadata.
 id and name are required, description is optional.
 --------------------------
@@ -102,10 +122,27 @@ Return a string to replace the message, or "" to block it entirely.
 Returning nil (or erroring) passes the original message through unchanged, it does NOT block.
 If several extensions define OnMessage they are chained in load order, each one receiving the
 previous one's output.
+
+OnMessage only runs on messages that made it all the way to being spoken, after commands, ignored
+prefixes, permissions, cooldown and sanitizing have all had their say. The message you get is the
+sanitized text, and in command mode the command prefix is already stripped off. Use OnChat if you
+want to see everything.
 --------------------------
 function OnMessage(user, message)
 	if user.is_mod then return message end
 	return message:gsub("badword", "***")
+end
+--------------------------
+Optionally define OnChat to observe every chat message, including the ones OnMessage never sees:
+built-in commands, custom commands, messages with an ignored prefix, messages from users without
+permission, messages dropped by the cooldown, and everything else when the bot is off or in
+command mode. It fires before any of that filtering happens, on the raw unsanitized message.
+
+OnChat cannot change or block anything, its return value is ignored. Use OnMessage for that.
+user has the same fields as it does in OnMessage.
+--------------------------
+function OnChat(user, message)
+	log(user.username .. " said " .. message)
 end
 --------------------------
 Optionally define OnUpdate, called about 60 times per second while OpenSpeaker runs.

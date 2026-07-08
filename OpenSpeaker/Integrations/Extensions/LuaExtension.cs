@@ -46,6 +46,7 @@ public class LuaExtension : IDisposable
     public string DisplayName { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public bool HasMessageFilter { get; private set; }
+    public bool HasChatObserver { get; private set; }
     public bool HasUpdate { get; private set; }
     public bool HasKeybinds => _settingFields.Any(f => f.Type == "keybind");
     public bool NeedsTick => HasUpdate || HasKeybinds;
@@ -82,6 +83,7 @@ public class LuaExtension : IDisposable
         meta["description"].TryRead<string>(out var desc);
         ext.Description = desc ?? string.Empty;
         ext.HasMessageFilter = ext._state.Environment["OnMessage"].TryRead<LuaFunction>(out _);
+        ext.HasChatObserver = ext._state.Environment["OnChat"].TryRead<LuaFunction>(out _);
         ext.HasUpdate = ext._state.Environment["OnUpdate"].TryRead<LuaFunction>(out _);
         return ext;
     }
@@ -268,6 +270,18 @@ public class LuaExtension : IDisposable
             _logger?.Error($"[{ExtensionId}] GetVoices error: {ex.Message}");
             return Array.Empty<VoiceInfo>();
         }
+    }
+
+    internal async Task ObserveMessageAsync(MessageFilterContext ctx, string message)
+    {
+        await _stateLock.WaitAsync();
+        try
+        {
+            if (!_state.Environment["OnChat"].TryRead<LuaFunction>(out var fn)) return;
+            await _state.CallAsync(fn, new LuaValue[] { BuildUserTable(ctx), message });
+        }
+        catch (Exception ex) { _logger?.Error($"[{ExtensionId}] OnChat error: {ex.Message}"); }
+        finally { _stateLock.Release(); }
     }
 
     internal async Task<string> ProcessMessageAsync(MessageFilterContext ctx, string message)

@@ -132,6 +132,15 @@ public class ExtensionManager : IDisposable
 
     public bool HasMessageFilters => _extensions.Any(e => e.HasMessageFilter);
 
+    public bool HasChatObservers => _extensions.Any(e => e.HasChatObserver);
+
+    public async Task ObserveMessageAsync(MessageFilterContext ctx, string message)
+    {
+        var snapshot = _extensions;
+        foreach (var ext in snapshot.Where(e => e.HasChatObserver))
+            await ext.ObserveMessageAsync(ctx, message);
+    }
+
     public async Task<string> ProcessMessageAsync(MessageFilterContext ctx, string message)
     {
         var snapshot = _extensions;

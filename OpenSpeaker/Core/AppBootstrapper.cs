@@ -115,7 +115,7 @@ public class AppBootstrapper : IDisposable
         var voiceGateMonitor = new VoiceGateMonitor();
         VoiceGate = new VoiceGateService(voiceGateMonitor, Queue, Database);
 
-        var chatService = new ChatService(Twitch, builtIn, custom, sayEverything, UserService, SettingsRepo, Queue, Logger);
+        var chatService = new ChatService(Twitch, builtIn, custom, sayEverything, UserService, SettingsRepo, Queue, Extensions, Logger);
 
         var wsRouter = new WebSocketCommandRouter(Orchestrator, Queue, SettingsRepo, Database, VoiceGate);
         WsServer = new WebSocketServer(wsRouter, SettingsRepo, Logger);

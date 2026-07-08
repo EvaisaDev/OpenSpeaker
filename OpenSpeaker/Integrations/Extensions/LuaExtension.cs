@@ -6,6 +6,7 @@ using NAudio.Wave;
 using Newtonsoft.Json.Linq;
 using OpenSpeaker.Import;
 using OpenSpeaker.Infrastructure.Logging;
+using OpenSpeaker.Input;
 using OpenSpeaker.TTS;
 namespace OpenSpeaker.Extensions;
 
@@ -36,12 +37,18 @@ public class LuaExtension : IDisposable
     private readonly List<LuaTtsEngine> _speechEngines = new();
     private List<ExtSettingField> _settingFields = new();
     private Dictionary<string, string> _settingValues = new();
+    private Func<string, Task>? _chatSender;
+    private KeybindService? _keybinds;
     private IAppLogger? _logger;
+    private string _extensionDir = string.Empty;
 
     public string ExtensionId { get; private set; } = string.Empty;
     public string DisplayName { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public bool HasMessageFilter { get; private set; }
+    public bool HasUpdate { get; private set; }
+    public bool HasKeybinds => _settingFields.Any(f => f.Type == "keybind");
+    public bool NeedsTick => HasUpdate || HasKeybinds;
     public IReadOnlyList<LuaTtsEngine> SpeechEngines => _speechEngines;
     public IReadOnlyList<ExtSettingField> SettingFields => _settingFields;
     public IReadOnlyDictionary<string, string> MigrationVoiceRemap { get; private set; } = new Dictionary<string, string>();
@@ -57,7 +64,9 @@ public class LuaExtension : IDisposable
     {
         var ext = new LuaExtension();
         ext._logger = logger;
+        ext._extensionDir = Path.GetDirectoryName(Path.GetFullPath(luaFilePath)) ?? string.Empty;
         ext.RegisterApisOn(ext._state);
+        await ext.ConfigurePackagePathAsync();
         await ext._state.DoFileAsync(luaFilePath);
 
         var extFnVal = ext._state.Environment["Extension"];
@@ -73,10 +82,58 @@ public class LuaExtension : IDisposable
         meta["description"].TryRead<string>(out var desc);
         ext.Description = desc ?? string.Empty;
         ext.HasMessageFilter = ext._state.Environment["OnMessage"].TryRead<LuaFunction>(out _);
+        ext.HasUpdate = ext._state.Environment["OnUpdate"].TryRead<LuaFunction>(out _);
         return ext;
     }
 
+    private static string AppDir => AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
+
+    private async Task ConfigurePackagePathAsync()
+    {
+        var ext = _extensionDir.Replace('\\', '/');
+        var app = AppDir.Replace('\\', '/');
+        var path = $"{ext}/?.lua;{ext}/?/init.lua;{app}/?.lua;{app}/?/init.lua";
+        await _state.DoStringAsync($"package.path = {Quote(path)} .. ';' .. package.path");
+    }
+
+    private static string Quote(string s) => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+
+    private string ResolveScriptPath(string name)
+    {
+        if (Path.IsPathRooted(name)) return name;
+        var local = Path.Combine(_extensionDir, name);
+        if (File.Exists(local)) return local;
+        var app = Path.Combine(AppDir, name);
+        if (File.Exists(app)) return app;
+        return local;
+    }
+
     internal void SetSettings(Dictionary<string, string> values) => _settingValues = new Dictionary<string, string>(values);
+
+    internal void SetChatSender(Func<string, Task>? sender) => _chatSender = sender;
+
+    internal void SetKeybinds(KeybindService? keybinds) => _keybinds = keybinds;
+
+    private KeyChord ResolveKeybind(string? nameOrKey)
+    {
+        if (string.IsNullOrWhiteSpace(nameOrKey)) return KeyChord.Empty;
+        var field = _settingFields.FirstOrDefault(f => f.Key == nameOrKey);
+        return field is not null
+            ? KeyNameMap.ResolveChord(GetSettingValue(nameOrKey))
+            : KeyNameMap.ResolveChord(nameOrKey);
+    }
+
+    internal async Task UpdateAsync()
+    {
+        if (!await _stateLock.WaitAsync(0)) return;
+        try
+        {
+            if (!_state.Environment["OnUpdate"].TryRead<LuaFunction>(out var fn)) return;
+            await _state.CallAsync(fn, Array.Empty<LuaValue>());
+        }
+        catch (Exception ex) { _logger?.Error($"[{ExtensionId}] OnUpdate error: {ex.Message}"); }
+        finally { _stateLock.Release(); }
+    }
 
     private LuaValue ResolveSetting(ExtSettingField field)
     {
@@ -330,6 +387,62 @@ public class LuaExtension : IDisposable
             catch { return new(ctx.Return(string.Empty)); }
         });
         state.Environment["base64"] = b64Table;
+
+        var chatTable = new LuaTable();
+        chatTable["send"] = new LuaFunction(async (ctx, ct) =>
+        {
+            var message = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var sender = _chatSender;
+            if (sender is not null && !string.IsNullOrWhiteSpace(message))
+            {
+                try { await sender(message); }
+                catch (Exception ex) { _logger?.Error($"[{ExtensionId}] chat.send error: {ex.Message}"); }
+            }
+            return ctx.Return();
+        });
+        state.Environment["chat"] = chatTable;
+
+        var keybindTable = new LuaTable();
+        keybindTable["held"] = new LuaFunction((ctx, ct) =>
+        {
+            var chord = ResolveKeybind(ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : null);
+            return new(ctx.Return(_keybinds is not null && _keybinds.IsHeld(chord)));
+        });
+        keybindTable["pressed"] = new LuaFunction((ctx, ct) =>
+        {
+            var chord = ResolveKeybind(ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : null);
+            return new(ctx.Return(_keybinds is not null && _keybinds.WasPressed(chord)));
+        });
+        keybindTable["released"] = new LuaFunction((ctx, ct) =>
+        {
+            var chord = ResolveKeybind(ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : null);
+            return new(ctx.Return(_keybinds is not null && _keybinds.WasReleased(chord)));
+        });
+        state.Environment["keybind"] = keybindTable;
+
+        state.Environment["dofile"] = new LuaFunction(async (ctx, ct) =>
+        {
+            var path = ResolveScriptPath(ctx.GetArgument<string>(0));
+            ctx.State.Stack.PopUntil(ctx.ReturnFrameBase);
+            var closure = await ctx.State.LoadFileAsync(path, "bt", null, ct);
+            return await ctx.State.RunAsync(closure, ct);
+        });
+
+        state.Environment["loadfile"] = new LuaFunction(async (ctx, ct) =>
+        {
+            var path = ResolveScriptPath(ctx.GetArgument<string>(0));
+            var mode = ctx.HasArgument(1) ? ctx.GetArgument<string>(1) : "bt";
+            var env = ctx.ArgumentCount > 2 && ctx.GetArgument(2).TryRead<LuaTable>(out var envTable) ? envTable : null;
+            try
+            {
+                var closure = await ctx.State.LoadFileAsync(path, mode, env, ct);
+                return ctx.Return(closure);
+            }
+            catch (Exception ex)
+            {
+                return ctx.Return(LuaValue.Nil, ex.Message);
+            }
+        });
 
         state.Environment["RegisterSpeechEngine"] = new LuaFunction((ctx, ct) =>
         {

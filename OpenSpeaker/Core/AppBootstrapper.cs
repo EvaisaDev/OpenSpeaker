@@ -5,6 +5,7 @@ using OpenSpeaker.Data;
 using OpenSpeaker.Events;
 using OpenSpeaker.Extensions;
 using OpenSpeaker.Infrastructure.Logging;
+using OpenSpeaker.Input;
 using OpenSpeaker.Models;
 using OpenSpeaker.Queue;
 using OpenSpeaker.Services;
@@ -26,6 +27,7 @@ public class AppBootstrapper : IDisposable
     public CustomCommandRepository CustomCommandRepo { get; }
     public RegexReplacementRepository RegexReplacementRepo { get; }
     public ChannelRewardRepository ChannelRewardRepo { get; }
+    public KeybindService Keybinds { get; }
     public ExtensionManager Extensions { get; }
     public TtsEngineRegistry EngineRegistry { get; }
     public AudioDeviceEnumerator DeviceEnumerator { get; }
@@ -67,7 +69,8 @@ public class AppBootstrapper : IDisposable
         ChannelRewardRepo = new ChannelRewardRepository(Database);
         DeviceEnumerator = new AudioDeviceEnumerator(Logger);
 
-        Extensions = new ExtensionManager(Database, Logger);
+        Keybinds = new KeybindService(Logger);
+        Extensions = new ExtensionManager(Database, Keybinds, Logger);
         EngineRegistry = new TtsEngineRegistry(Database, Extensions, Logger);
         var audioPlayer = new NAudioPlayer();
         var wavSaver = new WavFileSaver();
@@ -92,6 +95,7 @@ public class AppBootstrapper : IDisposable
         EmoteCache = emoteCache;
         var twitchService = new TwitchEventSubService(TwitchAuth, emoteCache, Logger);
         Twitch = twitchService;
+        Extensions.SetChatSender(msg => Twitch.SendChatMessageAsync(msg));
 
         var messagePicker = new WeightedMessagePicker();
         var variableBuilder = new VariableBuilder();
@@ -125,6 +129,8 @@ public class AppBootstrapper : IDisposable
     {
         var settings = SettingsRepo.GetSettings();
 
+        Extensions.StartUpdateLoop();
+
         if (settings.WebSocketServer.AutoStart)
         {
             WsServer.Start();
@@ -154,6 +160,7 @@ public class AppBootstrapper : IDisposable
         _queueService.Dispose();
         EngineRegistry.Dispose();
         Extensions.Dispose();
+        Keybinds.Dispose();
         VoiceGate.Dispose();
         Database.Dispose();
     }

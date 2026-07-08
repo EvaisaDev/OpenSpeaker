@@ -2,14 +2,21 @@ using System.IO;
 using OpenSpeaker.Data;
 using OpenSpeaker.Import;
 using OpenSpeaker.Infrastructure.Logging;
+using OpenSpeaker.Input;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.Extensions;
 
 public class ExtensionManager : IDisposable
 {
+    private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(16);
+
     private readonly DatabaseContext _db;
+    private readonly KeybindService? _keybinds;
     private readonly IAppLogger? _logger;
     private volatile List<LuaExtension> _extensions = new();
+    private Func<string, Task>? _chatSender;
+    private CancellationTokenSource? _loopCts;
+    private Task? _loopTask;
 
     public static string ExtensionsDirectory =>
         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "extensions");
@@ -19,9 +26,10 @@ public class ExtensionManager : IDisposable
     public IEnumerable<LuaTtsEngine> SpeechEngines =>
         _extensions.SelectMany(e => e.SpeechEngines);
 
-    public ExtensionManager(DatabaseContext db, IAppLogger? logger = null)
+    public ExtensionManager(DatabaseContext db, KeybindService? keybinds = null, IAppLogger? logger = null)
     {
         _db = db;
+        _keybinds = keybinds;
         _logger = logger;
         LoadAll();
     }
@@ -31,6 +39,7 @@ public class ExtensionManager : IDisposable
         var old = _extensions;
         LoadAll();
         foreach (var e in old) e.Dispose();
+        StartUpdateLoop();
     }
 
     private void LoadAll()
@@ -72,8 +81,43 @@ public class ExtensionManager : IDisposable
             }
         }
 
+        foreach (var e in loaded) { e.SetChatSender(_chatSender); e.SetKeybinds(_keybinds); }
         _extensions = loaded;
         _logger?.Info($"[ExtensionManager] LoadAll complete, total speech engines registered: [{string.Join(", ", SpeechEngines.Select(e => e.EngineId))}]");
+    }
+
+    public void SetChatSender(Func<string, Task>? sender)
+    {
+        _chatSender = sender;
+        foreach (var e in _extensions) e.SetChatSender(sender);
+    }
+
+    public void StartUpdateLoop()
+    {
+        if (_loopCts != null) return;
+        if (!_extensions.Any(e => e.NeedsTick)) return;
+
+        _keybinds?.Install();
+        _loopCts = new CancellationTokenSource();
+        _loopTask = Task.Run(() => RunUpdateLoopAsync(_loopCts.Token));
+    }
+
+    private async Task RunUpdateLoopAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                _keybinds?.Tick();
+                foreach (var ext in _extensions)
+                    if (ext.HasUpdate)
+                        await ext.UpdateAsync();
+            }
+            catch (Exception ex) { _logger?.Error($"[ExtensionManager] Update loop error: {ex.Message}"); }
+
+            try { await Task.Delay(TickInterval, ct); }
+            catch (OperationCanceledException) { break; }
+        }
     }
 
     public void SaveSettings(string extensionId, Dictionary<string, string> values)
@@ -118,6 +162,11 @@ public class ExtensionManager : IDisposable
 
     public void Dispose()
     {
+        _loopCts?.Cancel();
+        try { _loopTask?.Wait(TimeSpan.FromSeconds(2)); } catch { }
+        _loopCts?.Dispose();
+        _loopCts = null;
+
         var old = _extensions;
         _extensions = new List<LuaExtension>();
         foreach (var e in old) e.Dispose();

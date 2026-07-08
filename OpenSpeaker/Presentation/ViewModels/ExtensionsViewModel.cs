@@ -20,10 +20,13 @@ public class SettingFieldViewModel : BaseViewModel
     public string Type { get; init; } = string.Empty;
     public IReadOnlyList<string> Options { get; init; } = Array.Empty<string>();
 
+    private bool _capturing;
+    private string _captureText = string.Empty;
+
     public string Value
     {
         get => _value;
-        set { if (SetField(ref _value, value)) OnPropertyChanged(nameof(BoolValue)); }
+        set { if (SetField(ref _value, value)) { OnPropertyChanged(nameof(BoolValue)); OnPropertyChanged(nameof(KeybindDisplay)); } }
     }
 
     public bool BoolValue
@@ -32,9 +35,27 @@ public class SettingFieldViewModel : BaseViewModel
         set { _value = value ? "true" : "false"; OnPropertyChanged(nameof(Value)); OnPropertyChanged(nameof(BoolValue)); }
     }
 
+    public bool IsCapturing
+    {
+        get => _capturing;
+        set { if (SetField(ref _capturing, value)) OnPropertyChanged(nameof(KeybindDisplay)); }
+    }
+
+    public string CaptureText
+    {
+        get => _captureText;
+        set { if (SetField(ref _captureText, value)) OnPropertyChanged(nameof(KeybindDisplay)); }
+    }
+
+    public string KeybindDisplay =>
+        IsCapturing
+            ? string.IsNullOrEmpty(_captureText) ? "Press keys..." : _captureText + "..."
+            : string.IsNullOrEmpty(_value) ? "(none)" : _value;
+
     public bool IsTextLike => Type is "text" or "number";
     public bool IsCheckbox => Type == "checkbox";
     public bool IsDropdown => Type == "dropdown";
+    public bool IsKeybind => Type == "keybind";
 }
 
 public class ExtensionItem : BaseViewModel

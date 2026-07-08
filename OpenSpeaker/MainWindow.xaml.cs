@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using OpenSpeaker.Core;
+using OpenSpeaker.Input;
 using OpenSpeaker.ViewModels;
 namespace OpenSpeaker;
 
@@ -156,6 +157,66 @@ public partial class MainWindow : Window
     private void AliasItem_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is ListBoxItem item) item.IsSelected = true;
+    }
+
+    private readonly List<Key> _keybindCapture = new();
+
+    private void KeybindButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { DataContext: SettingFieldViewModel vm } button)
+        {
+            _keybindCapture.Clear();
+            vm.CaptureText = string.Empty;
+            vm.IsCapturing = true;
+            button.Focus();
+        }
+    }
+
+    private void KeybindButton_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { DataContext: SettingFieldViewModel vm }) return;
+        if (!vm.IsCapturing) return;
+
+        e.Handled = true;
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+        if (key == Key.Escape) { EndCapture(vm); return; }
+        if (_keybindCapture.Count == 0 && key is Key.Back or Key.Delete)
+        {
+            vm.Value = string.Empty;
+            EndCapture(vm);
+            return;
+        }
+
+        if (!_keybindCapture.Contains(key)) _keybindCapture.Add(key);
+        vm.CaptureText = FormatCapture();
+    }
+
+    private void KeybindButton_PreviewKeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { DataContext: SettingFieldViewModel vm }) return;
+        if (!vm.IsCapturing || _keybindCapture.Count == 0) return;
+
+        e.Handled = true;
+        if (_keybindCapture.Any(Keyboard.IsKeyDown)) return;
+
+        vm.Value = FormatCapture();
+        EndCapture(vm);
+    }
+
+    private void KeybindButton_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { DataContext: SettingFieldViewModel vm })
+            EndCapture(vm);
+    }
+
+    private string FormatCapture() => string.Join("+", _keybindCapture.Select(KeyNameMap.Display).Distinct());
+
+    private void EndCapture(SettingFieldViewModel vm)
+    {
+        _keybindCapture.Clear();
+        vm.CaptureText = string.Empty;
+        vm.IsCapturing = false;
     }
 
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

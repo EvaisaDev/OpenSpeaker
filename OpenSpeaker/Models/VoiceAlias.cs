@@ -11,4 +11,5 @@ public class VoiceAlias
     public string EngineParamsJson { get; set; } = "{}";
     public string OutputDeviceId { get; set; } = string.Empty;
     public List<string> VoiceIds { get; set; } = new();
+    public bool LowercaseText { get; set; } = false;
 }

@@ -31,6 +31,7 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
 
     public static readonly VoiceInfo RandomVoiceSentinel = new() { Id = string.Empty, Name = "Random Voice" };
     public event EventHandler? VoicesLoaded;
+    public Action? OnAliasesChanged { get; set; }
 
     private List<VoiceInfo> _allSpeakVoices = new();
     private List<VoiceAlias> _allAliases = new();
@@ -104,6 +105,20 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         }
     }
 
+    private bool _detailLowercaseText;
+    public bool DetailLowercaseText
+    {
+        get => _detailLowercaseText;
+        set
+        {
+            if (SetField(ref _detailLowercaseText, value) && _selectedAlias != null)
+            {
+                _selectedAlias.LowercaseText = value;
+                _repo.Upsert(_selectedAlias);
+            }
+        }
+    }
+
     private string _testMessage = "This is a test message";
     public string TestMessage { get => _testMessage; set => SetField(ref _testMessage, value); }
 
@@ -165,6 +180,7 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
                         _selectedVoice = value;
                         OnPropertyChanged(nameof(SelectedVoice));
                         _repo.Upsert(_selectedAlias);
+                        OnAliasesChanged?.Invoke();
                     }
                 }
             }
@@ -191,6 +207,7 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
                 _selectedAlias.VoiceId = value.Id;
                 _selectedAlias.EngineId = _detailEngineId;
                 _repo.Upsert(_selectedAlias);
+                OnAliasesChanged?.Invoke();
             }
         }
     }
@@ -274,6 +291,13 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         RemoveDuplicateAliases();
         _allAliases = _repo.GetAllSorted().ToList();
         ApplyAliasFilter();
+        OnAliasesChanged?.Invoke();
+    }
+
+    public void SelectAliasById(LiteDB.ObjectId id)
+    {
+        if (!string.IsNullOrEmpty(AliasFilter)) AliasFilter = string.Empty;
+        SelectedAlias = _allAliases.FirstOrDefault(a => a.Id == id);
     }
 
     private void RemoveDuplicateAliases()
@@ -316,6 +340,8 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         _detailOutputDeviceId = deviceId;
         OnPropertyChanged(nameof(DetailOutputDeviceId));
         TestVolume = _selectedAlias.Volume;
+        _detailLowercaseText = _selectedAlias.LowercaseText;
+        OnPropertyChanged(nameof(DetailLowercaseText));
 
         VoiceInfo? FindVoice(string? id)
         {
@@ -401,6 +427,7 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         if (e.PropertyName != nameof(AliasParamRow.Value) || _selectedAlias == null) return;
         _selectedAlias.EngineParamsJson = SerializeParamRows();
         _repo.Upsert(_selectedAlias);
+        OnAliasesChanged?.Invoke();
     }
 
     private static string GetEngineDisplayName(string engineId) => engineId switch
@@ -511,6 +538,7 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         _selectedAlias.VoiceId = SelectedVoice?.Id ?? _selectedAlias.VoiceId;
         _selectedAlias.Volume = TestVolume;
         _selectedAlias.OutputDeviceId = DetailOutputDeviceId;
+        _selectedAlias.LowercaseText = DetailLowercaseText;
         _selectedAlias.EngineParamsJson = SerializeParamRows();
         _repo.Upsert(_selectedAlias);
         var savedName = _selectedAlias.Name;
@@ -542,6 +570,7 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
             }
             _repo.Upsert(_selectedAlias);
             AliasVoices.Add(TestSpeakVoice);
+            OnAliasesChanged?.Invoke();
         }
     }
 
@@ -554,6 +583,7 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         _repo.Upsert(_selectedAlias);
         AliasVoices.Remove(_selectedVoice);
         SelectedVoice = null;
+        OnAliasesChanged?.Invoke();
     }
 
     private void RemoveAllVoices()
@@ -564,6 +594,7 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         _repo.Upsert(_selectedAlias);
         AliasVoices.Clear();
         SelectedVoice = null;
+        OnAliasesChanged?.Invoke();
     }
 
     private DispatcherTimer? _userRefreshTimer;
@@ -646,6 +677,7 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
             AliasVoices.Add(TestSpeakVoice);
         }
         _repo.Upsert(_selectedAlias);
+        OnAliasesChanged?.Invoke();
     }
 
     private async Task TestSpeakAsync()
@@ -658,7 +690,8 @@ public class VoiceAliasListViewModel : BaseViewModel, IDisposable
         var voiceId = selectedVoice?.Id is { Length: > 0 } vid ? vid : alias.VoiceId;
         var paramDict = ParamRows.ToDictionary(r => r.Def.Key, r => r.Value);
         var synthParams = new SynthParams(paramDict);
-        var audio = await engine.SynthesizeAsync(TestMessage, voiceId, synthParams);
+        var testMessage = DetailLowercaseText ? TestMessage.ToLowerInvariant() : TestMessage;
+        var audio = await engine.SynthesizeAsync(testMessage, voiceId, synthParams);
         if (!audio.IsEmpty)
         {
             audio = Audio.AudioGain.Apply(audio, TestVolume);

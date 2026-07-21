@@ -159,6 +159,21 @@ public partial class MainWindow : Window
         if (sender is ListBoxItem item) item.IsSelected = true;
     }
 
+    private void EngineAliasItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not ListBoxItem { DataContext: AliasUsageItem item }) return;
+        if (DataContext is not MainWindowViewModel vm) return;
+
+        vm.VoiceAliases.SelectAliasById(item.Alias.Id);
+        MainTabControl.SelectedItem = VoiceAliasesTabItem;
+
+        Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () =>
+        {
+            if (vm.VoiceAliases.SelectedAlias != null)
+                AliasesListBox.ScrollIntoView(vm.VoiceAliases.SelectedAlias);
+        });
+    }
+
     private readonly List<Key> _keybindCapture = new();
 
     private void KeybindButton_Click(object sender, RoutedEventArgs e)

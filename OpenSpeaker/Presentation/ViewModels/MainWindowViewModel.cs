@@ -69,11 +69,18 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
         Accounts = new AccountsViewModel(boot.TwitchAuth, boot.SettingsRepo);
         Accounts.SetTwitchService(boot.Twitch);
         VoiceGate = new VoiceGateViewModel(boot.VoiceGate, boot.Database, boot.DeviceEnumerator);
-        SpeechEngines = new SpeechEnginesViewModel(boot.Database, boot.EngineRegistry, boot.VoicePool, boot.Extensions, boot.Logger);
+        SpeechEngines = new SpeechEnginesViewModel(boot.Database, boot.EngineRegistry, boot.VoicePool, boot.Extensions, boot.AliasRepo, boot.Logger);
         IgnoredVoices = new IgnoredVoicesViewModel(boot.Database, boot.VoicePool);
         SpeakingOptions = new SpeakingOptionsViewModel(boot.SettingsRepo, boot.EmoteCache, boot.Twitch, boot.AliasRepo);
         Replacement = new ReplacementViewModel(boot.RegexReplacementRepo, boot.SettingsRepo);
-        VoiceAliases = new VoiceAliasListViewModel(boot.AliasRepo, boot.EngineRegistry, boot.VoicePool, boot.DeviceEnumerator, boot.UserRepo, () => Users.AllUsers, boot.Logger);
+        VoiceAliases = new VoiceAliasListViewModel(boot.AliasRepo, boot.EngineRegistry, boot.VoicePool, boot.DeviceEnumerator, boot.UserRepo, () => Users.AllUsers, boot.Logger)
+        {
+            OnAliasesChanged = () =>
+            {
+                if (SpeechEngines.SelectedEngine != null)
+                    SpeechEngines.RefreshEngineAliases(SpeechEngines.SelectedEngine);
+            }
+        };
         WebSocketServer = new WebSocketServerViewModel(boot.WsServer, boot.SettingsRepo);
         UdpServer = new UdpServerViewModel(boot.UdpServer, boot.SettingsRepo);
         CustomApis = new CustomApiViewModel(boot.Database, boot.EngineRegistry);

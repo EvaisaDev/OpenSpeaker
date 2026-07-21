@@ -225,6 +225,7 @@
     <sys:String x:Key="Chk.Moderators">Moderators</sys:String>
     <sys:String x:Key="Chk.Subscribers">Subscribers</sys:String>
     <sys:String x:Key="Chk.SilenceCommandOutput">Silence Command Output</sys:String>
+    <sys:String x:Key="Chk.LowercaseText">Lowercase text before speaking</sys:String>
     <sys:String x:Key="Chk.IgnoreTwitchEmotes">Ignore Twitch Emotes</sys:String>
     <sys:String x:Key="Chk.IgnoreBttvEmotes">Ignore BTTV Emotes</sys:String>
     <sys:String x:Key="Chk.IgnoreFfzEmotes">Ignore FFZ Emotes</sys:String>
@@ -443,6 +444,7 @@
     <sys:String x:Key="Tip.VoiceAliasTestVoice">Select a voice to use with the Test Speak button.</sys:String>
     <sys:String x:Key="Tip.VoiceAliasTestMessage">Enter text to test-speak using the selected voice.</sys:String>
     <sys:String x:Key="Tip.VoiceAliasVolume">Volume level for test-speak playback.</sys:String>
+    <sys:String x:Key="Tip.LowercaseText">Convert text to lowercase before it is spoken by voices in this alias.</sys:String>
     <sys:String x:Key="Tip.SetDefaultVoice">Set this voice as the primary/default for the alias.</sys:String>
     <sys:String x:Key="Tip.AddVoiceToAlias">Add the selected voice to this alias's voice pool.</sys:String>
     <sys:String x:Key="Tip.TestSpeak">Speak the test message using the selected voice and parameters.</sys:String>

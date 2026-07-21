@@ -14,8 +14,18 @@ public class SpeechEngineItem : BaseViewModel
     public string EngineId { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
     public ObservableCollection<string> Voices { get; } = new();
+    public Dictionary<string, VoiceInfo> VoiceById { get; } = new();
     public string VoiceCount => $"{DisplayName} Voices ({Voices.Count})";
     public void RefreshVoiceCount() => OnPropertyChanged(nameof(VoiceCount));
+}
+
+public class AliasUsageItem : BaseViewModel
+{
+    public VoiceAlias Alias { get; init; } = null!;
+    public string Name { get; init; } = string.Empty;
+
+    private string _voiceLabel = string.Empty;
+    public string VoiceLabel { get => _voiceLabel; set => SetField(ref _voiceLabel, value); }
 }
 
 public class SpeechEnginesViewModel : BaseViewModel
@@ -24,6 +34,7 @@ public class SpeechEnginesViewModel : BaseViewModel
     private readonly TtsEngineRegistry _registry;
     private readonly VoicePool _voicePool;
     private readonly ExtensionManager _extensions;
+    private readonly VoiceAliasRepository _aliasRepo;
     private readonly IAppLogger? _logger;
     private readonly IDialogService _dialogs;
 
@@ -33,19 +44,40 @@ public class SpeechEnginesViewModel : BaseViewModel
     public SpeechEngineItem? SelectedEngine
     {
         get => _selectedEngine;
-        set { SetField(ref _selectedEngine, value); if (value != null) _ = LoadVoicesAsync(value); }
+        set
+        {
+            SetField(ref _selectedEngine, value);
+            if (value != null)
+            {
+                _ = LoadVoicesAsync(value);
+                _aliasSearchFilter = string.Empty;
+                OnPropertyChanged(nameof(AliasSearchFilter));
+                RefreshEngineAliases(value);
+            }
+        }
+    }
+
+    public ObservableCollection<AliasUsageItem> EngineAliases { get; } = new();
+    private List<AliasUsageItem> _allEngineAliases = new();
+
+    private string _aliasSearchFilter = string.Empty;
+    public string AliasSearchFilter
+    {
+        get => _aliasSearchFilter;
+        set { SetField(ref _aliasSearchFilter, value); ApplyAliasSearchFilter(); }
     }
 
     public AsyncRelayCommand ShowAddDialogCommand { get; }
     public RelayCommand RemoveCommand { get; }
     public RelayCommand ReloadCommand { get; }
 
-    public SpeechEnginesViewModel(DatabaseContext db, TtsEngineRegistry registry, VoicePool voicePool, ExtensionManager extensions, IAppLogger? logger = null, IDialogService? dialogs = null)
+    public SpeechEnginesViewModel(DatabaseContext db, TtsEngineRegistry registry, VoicePool voicePool, ExtensionManager extensions, VoiceAliasRepository aliasRepo, IAppLogger? logger = null, IDialogService? dialogs = null)
     {
         _db = db;
         _registry = registry;
         _voicePool = voicePool;
         _extensions = extensions;
+        _aliasRepo = aliasRepo;
         _logger = logger;
         _dialogs = dialogs ?? new DialogService();
 
@@ -112,10 +144,81 @@ public class SpeechEnginesViewModel : BaseViewModel
         Application.Current?.Dispatcher.BeginInvoke(() =>
         {
             item.Voices.Clear();
+            item.VoiceById.Clear();
             foreach (var v in voices)
+            {
                 item.Voices.Add($"{item.DisplayName} - {v.Name}");
+                item.VoiceById[v.Id] = v;
+            }
             item.RefreshVoiceCount();
+            if (ReferenceEquals(item, SelectedEngine))
+                RefreshEngineAliases(item);
         });
+    }
+
+    public void RefreshEngineAliases(SpeechEngineItem item)
+    {
+        var engine = _registry.GetEngine(item.EngineId);
+        var voiceParamKey = engine?.GetParameters().FirstOrDefault(p => p.Type == EngineParameterType.SearchableVoice)?.Key;
+
+        var aliases = _aliasRepo.GetAllSorted().Where(a => a.EngineId == item.EngineId).ToList();
+        var usageItems = aliases.Select(a => new AliasUsageItem
+        {
+            Alias = a,
+            Name = a.Name,
+            VoiceLabel = ResolveVoiceLabel(a, item, voiceParamKey)
+        }).ToList();
+
+        _allEngineAliases = usageItems;
+        ApplyAliasSearchFilter();
+
+        if (voiceParamKey != null && engine is IVoiceSearchEngine search)
+            _ = ResolveSearchableVoiceLabelsAsync(search, voiceParamKey, usageItems);
+    }
+
+    private static string ResolveVoiceLabel(VoiceAlias alias, SpeechEngineItem item, string? voiceParamKey)
+    {
+        if (voiceParamKey != null)
+        {
+            var voiceParam = SynthParams.FromJson(alias.EngineParamsJson).Str(voiceParamKey, string.Empty);
+            return string.IsNullOrEmpty(voiceParam) ? "No voice selected" : "Loading...";
+        }
+        if (string.IsNullOrEmpty(alias.VoiceId))
+            return "No voice selected";
+        return item.VoiceById.TryGetValue(alias.VoiceId, out var voice) ? voice.Name : alias.VoiceId;
+    }
+
+    private static async Task ResolveSearchableVoiceLabelsAsync(IVoiceSearchEngine search, string voiceParamKey, List<AliasUsageItem> items)
+    {
+        var cache = new Dictionary<string, string>();
+        foreach (var item in items)
+        {
+            var voiceParam = SynthParams.FromJson(item.Alias.EngineParamsJson).Str(voiceParamKey, string.Empty);
+            if (string.IsNullOrEmpty(voiceParam)) continue;
+
+            if (!cache.TryGetValue(voiceParam, out var label))
+            {
+                VoiceInfo? resolved;
+                try { resolved = await search.ResolveVoiceAsync(voiceParam); }
+                catch { resolved = null; }
+                label = resolved?.Name ?? voiceParam;
+                cache[voiceParam] = label;
+            }
+
+            var target = item;
+            var resolvedLabel = label;
+            Application.Current?.Dispatcher.BeginInvoke(() => target.VoiceLabel = resolvedLabel);
+        }
+    }
+
+    private void ApplyAliasSearchFilter()
+    {
+        var filtered = string.IsNullOrEmpty(_aliasSearchFilter)
+            ? _allEngineAliases
+            : _allEngineAliases.Where(a => a.Name.Contains(_aliasSearchFilter, StringComparison.OrdinalIgnoreCase));
+        EngineAliases.Clear();
+        foreach (var a in filtered)
+            EngineAliases.Add(a);
     }
 
     private void MarkEngineFailed(SpeechEngineItem item)

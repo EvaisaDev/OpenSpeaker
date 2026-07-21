@@ -3,7 +3,7 @@ using OpenSpeaker.Models;
 using OpenSpeaker.TTS;
 namespace OpenSpeaker.Queue;
 
-public record ResolvedVoice(ITtsEngine Engine, string VoiceId, SynthParams Params, string DeviceId, string AliasName, int Volume = 100);
+public record ResolvedVoice(ITtsEngine Engine, string VoiceId, SynthParams Params, string DeviceId, string AliasName, int Volume = 100, bool LowercaseText = false);
 
 public class VoiceResolver
 {
@@ -32,6 +32,6 @@ public class VoiceResolver
         var engine = _engineRegistry.GetEngine(alias.EngineId) ?? _engineRegistry.GetDefaultEngine();
         var deviceId = !string.IsNullOrEmpty(alias.OutputDeviceId) ? alias.OutputDeviceId : settings.AudioOutputDeviceId;
         var aliasName = !string.IsNullOrEmpty(alias.Name) ? alias.Name : item.VoiceAliasName;
-        return new ResolvedVoice(engine, alias.VoiceId, SynthParams.FromJson(alias.EngineParamsJson), deviceId, aliasName, alias.Volume);
+        return new ResolvedVoice(engine, alias.VoiceId, SynthParams.FromJson(alias.EngineParamsJson), deviceId, aliasName, alias.Volume, alias.LowercaseText);
     }
 }

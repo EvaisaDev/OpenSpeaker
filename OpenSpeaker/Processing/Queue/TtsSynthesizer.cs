@@ -59,7 +59,8 @@ public class TtsSynthesizer
 
         try
         {
-            var audio = await engine.SynthesizeAsync(item.Text, voiceId, synthParams);
+            var text = resolved.LowercaseText ? item.Text.ToLowerInvariant() : item.Text;
+            var audio = await engine.SynthesizeAsync(text, voiceId, synthParams);
             _logger?.Info($"QUEUE :: Synthesis done. IsEmpty={audio.IsEmpty}");
             if (audio.IsEmpty) return null;
 

@@ -87,7 +87,7 @@
         </Border>
 
         <!-- ── Main tab control ── -->
-        <TabControl Margin="0">
+        <TabControl x:Name="MainTabControl" Margin="0">
 
             <!-- ═══════════════ EVENT LOG ═══════════════ -->
             <TabItem Header="{DynamicResource Tab.EventLog}">
@@ -1131,19 +1131,53 @@
                                 </ListBox>
                             </DockPanel>
 
-                            <DockPanel Grid.Column="1" Margin="12,0,0,0">
-                                <TextBlock DockPanel.Dock="Top"
-                                           Text="{Binding SpeechEngines.SelectedEngine.VoiceCount}"
-                                           FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                <ListBox ItemsSource="{Binding SpeechEngines.SelectedEngine.Voices}"
-                                         BorderThickness="0" Background="{DynamicResource Bg2}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" Padding="4,2"/>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
+                            <Grid Grid.Column="1" Margin="12,0,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="1"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <DockPanel Grid.Row="0">
+                                    <TextBlock DockPanel.Dock="Top"
+                                               Text="{Binding SpeechEngines.SelectedEngine.VoiceCount}"
+                                               FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                    <ListBox ItemsSource="{Binding SpeechEngines.SelectedEngine.Voices}"
+                                             BorderThickness="0" Background="{DynamicResource Bg2}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" Padding="4,2"/>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </DockPanel>
+
+                                <Border Grid.Row="1" Background="{DynamicResource BorderBrush0}" Margin="0,8,0,8"/>
+
+                                <DockPanel Grid.Row="2">
+                                    <TextBox DockPanel.Dock="Top"
+                                             Tag="Search aliases..."
+                                             Margin="0,0,0,8"
+                                             Text="{Binding SpeechEngines.AliasSearchFilter, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <ListBox ItemsSource="{Binding SpeechEngines.EngineAliases}"
+                                             BorderThickness="0" Background="{DynamicResource Bg2}">
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                                <EventSetter Event="MouseDoubleClick" Handler="EngineAliasItem_MouseDoubleClick"/>
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" Margin="4,2">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text=" - " Style="{DynamicResource MutedText}"/>
+                                                    <TextBlock Text="{Binding VoiceLabel}" Style="{DynamicResource MutedText}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </DockPanel>
+                            </Grid>
                         </Grid>
                     </TabItem>
 
@@ -1629,7 +1663,7 @@
                     </TabItem>
 
                     <!-- ─── Voice Aliases ─── -->
-                    <TabItem Header="{DynamicResource Tab.VoiceAliases}">
+                    <TabItem x:Name="VoiceAliasesTabItem" Header="{DynamicResource Tab.VoiceAliases}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="180"/>
@@ -1648,7 +1682,7 @@
                                          Margin="8,8,8,4"
                                          Tag="Search aliases..."
                                          Text="{Binding VoiceAliases.AliasFilter, UpdateSourceTrigger=PropertyChanged}"/>
-                                <ListBox Grid.Row="1"
+                                <ListBox x:Name="AliasesListBox" Grid.Row="1"
                                          ItemsSource="{Binding VoiceAliases.Aliases}"
                                          SelectedItem="{Binding VoiceAliases.SelectedAlias}"
                                          BorderThickness="0" Background="Transparent" Padding="4">
@@ -1850,6 +1884,9 @@
                                                 </ComboBox.ItemTemplate>
                                             </ComboBox>
                                         </DockPanel>
+                                        <CheckBox DockPanel.Dock="Top" Content="{DynamicResource Chk.LowercaseText}"
+                                                  IsChecked="{Binding VoiceAliases.DetailLowercaseText}"
+                                                  Margin="0,0,0,4" ToolTip="{DynamicResource Tip.LowercaseText}"/>
                                         <DataGrid ItemsSource="{Binding VoiceAliases.AliasVoices}"
                                                   SelectedItem="{Binding VoiceAliases.SelectedVoice}"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"

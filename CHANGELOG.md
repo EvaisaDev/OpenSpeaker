@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3] - 2026-07-21
+
+### Other
+- Small updates ([`be3c36e`](https://github.com/EvaisaDev/OpenSpeaker/commit/be3c36e))
+  - Added option to convert all text to lowercase before speaking.
+  - Added ability to see a list of aliases which use a voice from a given voice engine. (in the speech engine list, under settings)
+
 ## [0.4.2] - 2026-07-08
 
 ### Other
@@ -128,6 +135,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

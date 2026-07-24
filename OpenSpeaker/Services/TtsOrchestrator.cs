@@ -19,7 +19,7 @@ public class TtsOrchestrator : ITtsOrchestrator
         _sanitizer = sanitizer;
     }
 
-    public async Task<string?> SpeakAsync(string text, string voiceAliasName, bool applyBadWordFilter = true, bool silent = false, bool delay = false)
+    public async Task<string?> SpeakAsync(string text, string voiceAliasName, bool applyBadWordFilter = true, bool silent = false, bool delay = false, Action<string>? onQueued = null)
     {
         var settings = _settingsRepo.GetSettings();
         if (!settings.Enabled) return null;
@@ -34,6 +34,7 @@ public class TtsOrchestrator : ITtsOrchestrator
             VoiceAliasName = voiceAliasName,
             IsSilent = silent
         };
+        onQueued?.Invoke(item.SpeechId);
 
         if (delay)
         {

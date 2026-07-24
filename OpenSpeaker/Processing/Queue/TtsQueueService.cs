@@ -20,7 +20,10 @@ public class TtsQueueService : ITtsQueue, IDisposable
     private readonly IAppLogger? _logger;
     private Task _pregenTail = Task.CompletedTask;
 
+    public event EventHandler<QueueItemEventArgs>? ItemQueued;
     public event EventHandler<QueueItemEventArgs>? ItemStarted;
+    public event EventHandler<QueueItemEventArgs>? ItemSynthesized;
+    public event EventHandler<QueueItemEventArgs>? ItemPlaying;
     public event EventHandler<QueueItemEventArgs>? ItemCompleted;
 
     public bool IsPaused => _paused;
@@ -93,7 +96,18 @@ public class TtsQueueService : ITtsQueue, IDisposable
             () => ItemStarted?.Invoke(this, new QueueItemEventArgs { Item = item }));
 
         if (result == null)
+        {
             ItemCompleted?.Invoke(this, new QueueItemEventArgs { Item = item });
+        }
+        else
+        {
+            ItemSynthesized?.Invoke(this, new QueueItemEventArgs
+            {
+                Item           = item,
+                OutputFilePath = result.SavedPath,
+                Duration       = result.Audio.Duration,
+            });
+        }
 
         return result;
     }
@@ -109,7 +123,15 @@ public class TtsQueueService : ITtsQueue, IDisposable
                 while (_paused && !_cts.IsCancellationRequested)
                     await Task.Delay(100);
                 if (!_cts.IsCancellationRequested)
+                {
+                    ItemPlaying?.Invoke(this, new QueueItemEventArgs
+                    {
+                        Item           = result.Item,
+                        OutputFilePath = result.SavedPath,
+                        Duration       = result.Audio.Duration,
+                    });
                     await _playback.PlayAsync(result.Item, result.Audio, result.DeviceId, settings.ApplicationVolume, playerOverride);
+                }
             }
 
             ItemCompleted?.Invoke(this, new QueueItemEventArgs
@@ -139,7 +161,11 @@ public class TtsQueueService : ITtsQueue, IDisposable
             playerOverride?.Dispose();
     }
 
-    public void Enqueue(TtsQueueItem item) => _queue.TryAdd(item);
+    public void Enqueue(TtsQueueItem item)
+    {
+        _queue.TryAdd(item);
+        ItemQueued?.Invoke(this, new QueueItemEventArgs { Item = item });
+    }
     public void Pause() { lock (_pauseLock) { _paused = true; } }
     public void Resume() { lock (_pauseLock) { _paused = false; } }
     public void Clear()

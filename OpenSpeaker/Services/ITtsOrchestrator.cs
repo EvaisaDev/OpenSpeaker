@@ -1,7 +1,7 @@
 namespace OpenSpeaker.Services;
 public interface ITtsOrchestrator
 {
-    Task<string?> SpeakAsync(string text, string voiceAliasName, bool applyBadWordFilter = true, bool silent = false, bool delay = false);
+    Task<string?> SpeakAsync(string text, string voiceAliasName, bool applyBadWordFilter = true, bool silent = false, bool delay = false, Action<string>? onQueued = null);
     void Pause();
     void Resume();
     void Clear();

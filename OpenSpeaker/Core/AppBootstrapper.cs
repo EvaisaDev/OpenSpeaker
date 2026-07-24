@@ -129,6 +129,11 @@ public class AppBootstrapper : IDisposable
         Queue.ItemStarted += (_, e) => BroadcastUtteranceEvent("UtteranceStarted", e.Item);
         Queue.ItemCompleted += (_, e) => BroadcastUtteranceEvent("UtteranceFinished", e.Item);
 
+        Queue.ItemQueued += (_, e) => BroadcastTtsLifecycleEvent("TextQueued", e.Item, null, TimeSpan.Zero);
+        Queue.ItemSynthesized += (_, e) => BroadcastTtsLifecycleEvent("EngineProcessed", e.Item, e.OutputFilePath, e.Duration);
+        Queue.ItemPlaying += (_, e) => BroadcastTtsLifecycleEvent("Playing", e.Item, e.OutputFilePath, e.Duration);
+        Queue.ItemCompleted += (_, e) => BroadcastTtsLifecycleEvent("Finished", e.Item, e.OutputFilePath, e.Duration);
+
         var udpRouter = new UdpCommandRouter(Orchestrator, Queue, UserService, SettingsRepo, VoiceGate, EventConfigRepo);
         UdpServer = new UdpServer(udpRouter, Logger);
     }
@@ -142,6 +147,31 @@ public class AppBootstrapper : IDisposable
             data = new { text = item.Text, username = item.Username, alias = item.VoiceAliasName }
         };
         EventsWsServer.Broadcast(JsonConvert.SerializeObject(payload));
+    }
+
+    private void BroadcastTtsLifecycleEvent(string type, TtsQueueItem item, string? filename, TimeSpan duration)
+    {
+        var alias = AliasRepo.GetByName(item.VoiceAliasName);
+        var data = new Dictionary<string, object?>();
+        if (!string.IsNullOrEmpty(filename) && (type == "EngineProcessed" || type == "Finished"))
+            data["filename"] = filename;
+        data["id"] = item.SpeechId;
+        data["timestamp"] = item.QueuedAt.ToString("O");
+        data["text"] = item.Text;
+        data["engineName"] = alias?.EngineId ?? string.Empty;
+        data["voiceName"] = alias?.VoiceId ?? string.Empty;
+        data["pitch"] = 1.0;
+        data["volume"] = (alias?.Volume ?? 100) / 100.0;
+        data["rate"] = 0.0;
+        data["duration"] = duration.TotalMilliseconds;
+
+        var payload = new
+        {
+            timeStamp = DateTime.Now.ToString("O"),
+            @event = new { source = "TextToSpeech", type },
+            data
+        };
+        WsServer.Broadcast(JsonConvert.SerializeObject(payload));
     }
 
     public async Task StartAsync()

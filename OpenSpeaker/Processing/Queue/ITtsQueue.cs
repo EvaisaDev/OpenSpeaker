@@ -12,6 +12,9 @@ public interface ITtsQueue
     void Stop();
     void StopUser(string userId);
     void SkipUser(string userId);
+    event EventHandler<QueueItemEventArgs> ItemQueued;
     event EventHandler<QueueItemEventArgs> ItemStarted;
+    event EventHandler<QueueItemEventArgs> ItemSynthesized;
+    event EventHandler<QueueItemEventArgs> ItemPlaying;
     event EventHandler<QueueItemEventArgs> ItemCompleted;
 }

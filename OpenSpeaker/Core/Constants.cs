@@ -1,8 +1,8 @@
 namespace OpenSpeaker.Core;
 public static class Constants
 {
-    public const int WebSocketPort = 7680;
-    public const int EventsWebSocketPort = 7681;
+    public const int WebSocketPort = 7580;
+    public const int EventsWebSocketPort = 7581;
     public const int UdpPort = 6669;
     public const string WebSocketEndpoint = "/";
     public const string WebSocketAddress = "127.0.0.1";

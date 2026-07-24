@@ -140,7 +140,7 @@ public class SbWebSocketSettings
 {
     [JsonPropertyName("autoStart")] public bool AutoStart { get; set; }
     [JsonPropertyName("address")] public string Address { get; set; } = "127.0.0.1";
-    [JsonPropertyName("port")] public int Port { get; set; } = 7680;
+    [JsonPropertyName("port")] public int Port { get; set; } = 7580;
     [JsonPropertyName("endpoint")] public string Endpoint { get; set; } = "/";
 }
 

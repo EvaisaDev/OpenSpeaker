@@ -1,6 +1,8 @@
 namespace OpenSpeaker.Models;
 public class TtsQueueItem
 {
+    public string SpeechId { get; set; } = Guid.NewGuid().ToString();
+    public DateTime QueuedAt { get; set; } = DateTime.UtcNow;
     public string Text { get; set; } = string.Empty;
     public string VoiceAliasName { get; set; } = string.Empty;
     public bool IsSilent { get; set; } = false;

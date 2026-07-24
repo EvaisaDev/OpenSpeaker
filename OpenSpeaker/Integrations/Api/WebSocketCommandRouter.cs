@@ -70,7 +70,7 @@ public class WebSocketCommandRouter
                         instanceId = infoSettings.InstanceId,
                         name = _identityName, // Legacy server keeps pretending to be Speaker.bot so Streamer.bot accepts it as a Speaker.bot integration.
                         version = _identityVersion,
-                        os = "unknown",
+                        os = "windows",
                         apiVersion = 2
                     });
 
@@ -104,9 +104,18 @@ public class WebSocketCommandRouter
                     var speakReq = request as SpeakRequest ?? new SpeakRequest { Id = request.Id, Request = request.Request };
                     var alias = _db.VoiceAliases.FindOne(a => a.Name == speakReq.Voice);
                     if (alias == null)
-                        return ApiResponse.Err(request.Id, $"Voice alias '{speakReq.Voice}' not found.");
-                    await _orchestrator.SpeakAsync(speakReq.Message, speakReq.Voice, speakReq.BadWordFilter, speakReq.Silent, speakReq.Delay);
-                    return ApiResponse.Ok(request.Id);
+                        return ApiResponse.Err(request.Id, "Voice alias not found");
+                    string? speechId = null;
+                    await _orchestrator.SpeakAsync(speakReq.Message, speakReq.Voice, speakReq.BadWordFilter, speakReq.Silent, delay: false, onQueued: id => speechId = id);
+                    return ApiResponse.WithResult(request.Id, new
+                    {
+                        speechId,
+                        text = speakReq.Message,
+                        voiceName = alias.VoiceId,
+                        pitch = 1.0,
+                        volume = 1.0,
+                        rate = 0.0
+                    });
 
                 case "stop":
                     _orchestrator.Stop();
@@ -162,7 +171,7 @@ public class WebSocketCommandRouter
 
                 case "getvoicegateprofiles":
                     var profiles = _db.VoiceGateProfiles.FindAll()
-                        .Select(MapProfile)
+                        .Select(p => new { id = p.Id.ToString(), name = p.Name })
                         .ToList();
                     return ApiResponse.WithResult(request.Id, new { profiles });
 

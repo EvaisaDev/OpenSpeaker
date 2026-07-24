@@ -918,7 +918,7 @@
                                                     <Grid>
                                                         <TextBlock Text="T" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    FontSize="18" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
-                                                        <Image Source="{Binding Accounts.TwitchAvatarUrl}" Stretch="UniformToFill"/>
+                                                        <Image Source="{Binding Accounts.TwitchAvatarUrl, TargetNullValue={x:Null}}" Stretch="UniformToFill"/>
                                                     </Grid>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
@@ -972,7 +972,7 @@
                                                     <Grid>
                                                         <TextBlock Text="B" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    FontSize="18" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
-                                                        <Image Source="{Binding Accounts.BotAvatarUrl}" Stretch="UniformToFill"/>
+                                                        <Image Source="{Binding Accounts.BotAvatarUrl, TargetNullValue={x:Null}}" Stretch="UniformToFill"/>
                                                     </Grid>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">

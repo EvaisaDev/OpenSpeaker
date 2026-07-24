@@ -54,7 +54,7 @@
     <sys:String x:Key="Tab.SpeakingOptions">Speaking Options</sys:String>
     <sys:String x:Key="Tab.Filters">Filters</sys:String>
     <sys:String x:Key="Tab.VoiceAliases">Voice Aliases</sys:String>
-    <sys:String x:Key="Tab.WebSocket">WebSocket</sys:String>
+    <sys:String x:Key="Tab.Servers">Servers</sys:String>
     <sys:String x:Key="Tab.CustomApis">Custom APIs</sys:String>
     <sys:String x:Key="Tab.Extensions">Extensions</sys:String>
 
@@ -97,6 +97,8 @@
     <sys:String x:Key="Section.Headers">HEADERS</sys:String>
     <sys:String x:Key="Section.Voices">VOICES</sys:String>
     <sys:String x:Key="Section.CustomApiServers">CUSTOM API SERVERS</sys:String>
+    <sys:String x:Key="Section.LegacySpeakerBotApi">Legacy Speaker.bot API</sys:String>
+    <sys:String x:Key="Section.EventsWebSocketServer">WebSocket Server</sys:String>
 
     <!-- Column headers -->
     <sys:String x:Key="Col.LastUsed">Last Used</sys:String>
@@ -458,6 +460,8 @@
     <sys:String x:Key="Tip.WsEndpoint">WebSocket endpoint path (e.g. /tts).</sys:String>
     <sys:String x:Key="Tip.StartWsServer">Start the WebSocket server with the current settings.</sys:String>
     <sys:String x:Key="Tip.StopWsServer">Stop the WebSocket server.</sys:String>
+    <sys:String x:Key="Tip.EventsWsDescription">OpenSpeaker websocket server, documentation pending :3</sys:String>
+    <sys:String x:Key="Tip.LegacyWsDescription">Emulates the Speaker.bot WebSocket API for feature parity with Speaker.bot. Used by Streamer.bot's built-in Speaker.bot integration to control TTS.</sys:String>
     <sys:String x:Key="Tip.SaveWsSettings">Save the WebSocket server settings.</sys:String>
 
     <!-- Custom APIs -->

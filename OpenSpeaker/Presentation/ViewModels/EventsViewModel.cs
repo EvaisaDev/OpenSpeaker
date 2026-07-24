@@ -77,17 +77,17 @@ public class EventsViewModel : SettingsViewModelBase
         set => Set(s => s.GlobalEventVoiceAlias = value);
     }
 
-    public bool FollowsEnabled { get => GetState(Models.EventTypes.Follow).Enabled; set { GetState(Models.EventTypes.Follow).Enabled = value; SaveEvent(Models.EventTypes.Follow); OnPropertyChanged(); } }
-    public bool SubscriptionsEnabled { get => GetState(Models.EventTypes.Sub).Enabled; set { GetState(Models.EventTypes.Sub).Enabled = value; SaveEvent(Models.EventTypes.Sub); OnPropertyChanged(); } }
-    public bool GiftBombsEnabled { get => GetState(Models.EventTypes.GiftBomb).Enabled; set { GetState(Models.EventTypes.GiftBomb).Enabled = value; SaveEvent(Models.EventTypes.GiftBomb); OnPropertyChanged(); } }
-    public bool RaidsEnabled { get => GetState(Models.EventTypes.Raid).Enabled; set { GetState(Models.EventTypes.Raid).Enabled = value; SaveEvent(Models.EventTypes.Raid); OnPropertyChanged(); } }
-    public bool CheersEnabled { get => GetState(Models.EventTypes.Cheer).Enabled; set { GetState(Models.EventTypes.Cheer).Enabled = value; SaveEvent(Models.EventTypes.Cheer); OnPropertyChanged(); } }
-    public bool HypeTrainsEnabled { get => GetState(Models.EventTypes.HypeTrain).Enabled; set { GetState(Models.EventTypes.HypeTrain).Enabled = value; SaveEvent(Models.EventTypes.HypeTrain); OnPropertyChanged(); } }
-    public bool GoalEnabled { get => GetState(Models.EventTypes.Goal).Enabled; set { GetState(Models.EventTypes.Goal).Enabled = value; SaveEvent(Models.EventTypes.Goal); OnPropertyChanged(); } }
-    public bool ChannelPointsEnabled { get => GetState(Models.EventTypes.ChannelPoint).Enabled; set { GetState(Models.EventTypes.ChannelPoint).Enabled = value; SaveEvent(Models.EventTypes.ChannelPoint); OnPropertyChanged(); } }
+    public bool FollowsEnabled { get => GetState(Models.EventTypes.Follow).Enabled; set { SetState(Models.EventTypes.Follow, s => s.Enabled = value); OnPropertyChanged(); } }
+    public bool SubscriptionsEnabled { get => GetState(Models.EventTypes.Sub).Enabled; set { SetState(Models.EventTypes.Sub, s => s.Enabled = value); OnPropertyChanged(); } }
+    public bool GiftBombsEnabled { get => GetState(Models.EventTypes.GiftBomb).Enabled; set { SetState(Models.EventTypes.GiftBomb, s => s.Enabled = value); OnPropertyChanged(); } }
+    public bool RaidsEnabled { get => GetState(Models.EventTypes.Raid).Enabled; set { SetState(Models.EventTypes.Raid, s => s.Enabled = value); OnPropertyChanged(); } }
+    public bool CheersEnabled { get => GetState(Models.EventTypes.Cheer).Enabled; set { SetState(Models.EventTypes.Cheer, s => s.Enabled = value); OnPropertyChanged(); } }
+    public bool HypeTrainsEnabled { get => GetState(Models.EventTypes.HypeTrain).Enabled; set { SetState(Models.EventTypes.HypeTrain, s => s.Enabled = value); OnPropertyChanged(); } }
+    public bool GoalEnabled { get => GetState(Models.EventTypes.Goal).Enabled; set { SetState(Models.EventTypes.Goal, s => s.Enabled = value); OnPropertyChanged(); } }
+    public bool ChannelPointsEnabled { get => GetState(Models.EventTypes.ChannelPoint).Enabled; set { SetState(Models.EventTypes.ChannelPoint, s => s.Enabled = value); OnPropertyChanged(); } }
 
-    public int MinRaidViewers { get => GetState(Models.EventTypes.Raid).MinRaidViewers; set { GetState(Models.EventTypes.Raid).MinRaidViewers = value; SaveEvent(Models.EventTypes.Raid); OnPropertyChanged(); } }
-    public int MinBits { get => GetState(Models.EventTypes.Cheer).MinBits; set { GetState(Models.EventTypes.Cheer).MinBits = value; SaveEvent(Models.EventTypes.Cheer); OnPropertyChanged(); } }
+    public int MinRaidViewers { get => GetState(Models.EventTypes.Raid).MinRaidViewers; set { SetState(Models.EventTypes.Raid, s => s.MinRaidViewers = value); OnPropertyChanged(); } }
+    public int MinBits { get => GetState(Models.EventTypes.Cheer).MinBits; set { SetState(Models.EventTypes.Cheer, s => s.MinBits = value); OnPropertyChanged(); } }
 
     public RelayCommand AddMessageCommand { get; }
     public RelayCommand DeleteMessageCommand { get; }
@@ -134,10 +134,12 @@ public class EventsViewModel : SettingsViewModelBase
         return cfg?.State ?? new EventState();
     }
 
-    private void SaveEvent(string type)
+    private void SetState(string type, Action<EventState> mutate)
     {
         var cfg = _repo.GetByEventType(type);
-        if (cfg != null) _repo.Upsert(cfg);
+        if (cfg == null) return;
+        mutate(cfg.State);
+        _repo.Upsert(cfg);
     }
 
     public override void Refresh()

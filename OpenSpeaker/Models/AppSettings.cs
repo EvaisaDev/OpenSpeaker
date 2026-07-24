@@ -56,6 +56,7 @@ public class AppSettings
     public string GlobalEventVoiceAlias { get; set; } = string.Empty;
 
     public WebSocketServerSettings WebSocketServer { get; set; } = new();
+    public EventsWebSocketServerSettings EventsWebSocketServer { get; set; } = new();
     public UdpServerSettings UdpServer { get; set; } = new();
     public double WindowLeft { get; set; } = 100;
     public double WindowTop { get; set; } = 100;

@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using OpenSpeaker.Data;
 using OpenSpeaker.Models;
 using OpenSpeaker.Queue;
@@ -13,6 +14,8 @@ public class WebSocketCommandRouter
     private readonly SettingsRepository _settingsRepo;
     private readonly DatabaseContext _db;
     private readonly VoiceGateService _voiceGate;
+    private readonly string _identityName;
+    private readonly string _identityVersion;
 
     public Action<string>? Broadcast { get; set; }
 
@@ -23,13 +26,32 @@ public class WebSocketCommandRouter
         "GetAliases", "GetState", "GetVoiceGateProfiles", "ActivateVoiceGateProfile"
     ];
 
-    public WebSocketCommandRouter(ITtsOrchestrator orchestrator, ITtsQueue queue, SettingsRepository settingsRepo, DatabaseContext db, VoiceGateService voiceGate)
+    public WebSocketCommandRouter(ITtsOrchestrator orchestrator, ITtsQueue queue, SettingsRepository settingsRepo, DatabaseContext db, VoiceGateService voiceGate, string? identityName = null, string? identityVersion = null)
     {
         _orchestrator = orchestrator;
         _queue = queue;
         _settingsRepo = settingsRepo;
         _db = db;
         _voiceGate = voiceGate;
+        _identityName = identityName ?? "Speaker.bot";
+        _identityVersion = identityVersion ?? "0.1.6";
+    }
+
+    public static BaseRequest ParseRequest(string message)
+    {
+        var obj = JObject.Parse(message);
+        var requestType = obj["request"]?.Value<string>()?.ToLower() ?? string.Empty;
+        var id = obj["id"]?.Value<string>() ?? string.Empty;
+
+        return requestType switch
+        {
+            "speak"                    => obj.ToObject<SpeakRequest>()!,
+            "mode"                     => obj.ToObject<ModeRequest>()!,
+            "events"                   => obj.ToObject<EventsRequest>()!,
+            "subscribe"                => obj.ToObject<SubscribeRequest>()!,
+            "activatevoicegateprofile" => obj.ToObject<VoiceGateProfileRequest>()!,
+            _                          => new BaseRequest { Id = id, Request = obj["request"]?.Value<string>() ?? string.Empty }
+        };
     }
 
     public async Task<ApiResponse> RouteAsync(BaseRequest request, string? userAgent = null)
@@ -46,8 +68,8 @@ public class WebSocketCommandRouter
                     return ApiResponse.WithResult(request.Id, new
                     {
                         instanceId = infoSettings.InstanceId,
-                        name = "Speaker.bot", // We gotta pretend we are fucking speakerbot otherwise streamerbot won't let us be a speaker.bot integration.
-                        version = "0.1.6",
+                        name = _identityName, // Legacy server keeps pretending to be Speaker.bot so Streamer.bot accepts it as a Speaker.bot integration.
+                        version = _identityVersion,
                         os = "unknown",
                         apiVersion = 2
                     });
@@ -177,6 +199,7 @@ public class WebSocketCommandRouter
         };
         Broadcast?.Invoke(JsonConvert.SerializeObject(payload));
     }
+
 
     private static object MapProfile(VoiceGateProfile p) => new
     {

@@ -1915,46 +1915,95 @@
                         </Grid>
                     </TabItem>
 
-                    <!-- ─── WebSocket Server ─── -->
-                    <TabItem Header="{DynamicResource Tab.WebSocket}">
-                        <StackPanel Margin="16" MaxWidth="400" HorizontalAlignment="Left">
-                            <GroupBox Header="{StaticResource Section.Settings}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="90"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="6"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="6"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="6"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                                              Content="{DynamicResource Chk.AutoStart}" IsChecked="{Binding WebSocketServer.AutoStart}"
-                                              ToolTip="{DynamicResource Tip.WsAutoStart}"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Address}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding WebSocketServer.Address}"
-                                             ToolTip="{DynamicResource Tip.WsAddress}"/>
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.Port}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding WebSocketServer.Port}"
-                                             ToolTip="{DynamicResource Tip.WsPort}"/>
-                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.Endpoint}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding WebSocketServer.Endpoint}"
-                                             ToolTip="{DynamicResource Tip.WsEndpoint}"/>
-                                </Grid>
+                    <!-- ─── Servers ─── -->
+                    <TabItem Header="{DynamicResource Tab.Servers}">
+                        <Grid Margin="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <GroupBox Grid.Column="0" Header="{DynamicResource Section.LegacySpeakerBotApi}" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Style="{DynamicResource MutedText}" Text="{DynamicResource Tip.LegacyWsDescription}"
+                                               TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="6"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="6"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="6"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                                  Content="{DynamicResource Chk.AutoStart}" IsChecked="{Binding WebSocketServer.AutoStart}"
+                                                  ToolTip="{DynamicResource Tip.WsAutoStart}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Address}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding WebSocketServer.Address}"
+                                                 ToolTip="{DynamicResource Tip.WsAddress}"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.Port}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding WebSocketServer.Port}"
+                                                 ToolTip="{DynamicResource Tip.WsPort}"/>
+                                        <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Lbl.Endpoint}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding WebSocketServer.Endpoint}"
+                                                 ToolTip="{DynamicResource Tip.WsEndpoint}"/>
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button Content="{DynamicResource Btn.StartServer}" Command="{Binding WebSocketServer.StartCommand}"
+                                                Style="{DynamicResource AccentButton}" Margin="0,0,8,0"
+                                                ToolTip="{DynamicResource Tip.StartWsServer}"/>
+                                        <Button Content="{DynamicResource Btn.StopServer}" Command="{Binding WebSocketServer.StopCommand}"
+                                                Margin="0,0,8,0" ToolTip="{DynamicResource Tip.StopWsServer}"/>
+                                    </StackPanel>
+                                </StackPanel>
                             </GroupBox>
-                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                <Button Content="{DynamicResource Btn.StartServer}" Command="{Binding WebSocketServer.StartCommand}"
-                                        Style="{DynamicResource AccentButton}" Margin="0,0,8,0"
-                                        ToolTip="{DynamicResource Tip.StartWsServer}"/>
-                                <Button Content="{DynamicResource Btn.StopServer}" Command="{Binding WebSocketServer.StopCommand}"
-                                        Margin="0,0,8,0" ToolTip="{DynamicResource Tip.StopWsServer}"/>
-                            </StackPanel>
-                            <GroupBox Header="UDP Server" Margin="0,16,0,0">
+
+                            <GroupBox Grid.Column="2" Header="{DynamicResource Section.EventsWebSocketServer}" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Style="{DynamicResource MutedText}" Text="{DynamicResource Tip.EventsWsDescription}"
+                                               TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="6"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="6"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                                  Content="{DynamicResource Chk.AutoStart}" IsChecked="{Binding EventsWebSocketServer.AutoStart}"
+                                                  ToolTip="{DynamicResource Tip.WsAutoStart}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl.Address}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EventsWebSocketServer.Address}"
+                                                 ToolTip="{DynamicResource Tip.WsAddress}"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Lbl.Port}" Style="{DynamicResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding EventsWebSocketServer.Port}"
+                                                 ToolTip="{DynamicResource Tip.WsPort}"/>
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button Content="{DynamicResource Btn.StartServer}" Command="{Binding EventsWebSocketServer.StartCommand}"
+                                                Style="{DynamicResource AccentButton}" Margin="0,0,8,0"
+                                                ToolTip="{DynamicResource Tip.StartWsServer}"/>
+                                        <Button Content="{DynamicResource Btn.StopServer}" Command="{Binding EventsWebSocketServer.StopCommand}"
+                                                Margin="0,0,8,0" ToolTip="{DynamicResource Tip.StopWsServer}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <GroupBox Grid.Column="4" Header="UDP Server" VerticalAlignment="Top">
                                 <StackPanel>
                                     <CheckBox Content="{DynamicResource Chk.AutoStart}" IsChecked="{Binding UdpServer.AutoStart}" Margin="0,0,0,4"/>
                                     <TextBlock Style="{DynamicResource MutedText}" Text="Port 6669 (fixed)" Margin="0,0,0,8"/>
@@ -1966,7 +2015,7 @@
                                     </StackPanel>
                                 </StackPanel>
                             </GroupBox>
-                        </StackPanel>
+                        </Grid>
                     </TabItem>
 
                     <!-- ─── Custom APIs ─── -->

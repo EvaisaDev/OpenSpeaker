@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using OpenSpeaker.Api;
 using OpenSpeaker.Audio;
 using OpenSpeaker.Chat;
@@ -39,6 +40,7 @@ public class AppBootstrapper : IDisposable
     public UserService UserService { get; }
     public PermissionChecker PermissionChecker { get; }
     public WebSocketServer WsServer { get; }
+    public EventsWebSocketServer EventsWsServer { get; }
     public UdpServer UdpServer { get; }
     public VoiceGateService VoiceGate { get; }
     public EmoteStripper EmoteStripper { get; }
@@ -121,8 +123,25 @@ public class AppBootstrapper : IDisposable
         WsServer = new WebSocketServer(wsRouter, SettingsRepo, Logger);
         wsRouter.Broadcast = WsServer.Broadcast;
 
+        var eventsRouter = new WebSocketCommandRouter(Orchestrator, Queue, SettingsRepo, Database, VoiceGate, "OpenSpeaker", UpdateService.CurrentVersion);
+        EventsWsServer = new EventsWebSocketServer(eventsRouter, SettingsRepo, Logger);
+        eventsRouter.Broadcast = EventsWsServer.Broadcast;
+        Queue.ItemStarted += (_, e) => BroadcastUtteranceEvent("UtteranceStarted", e.Item);
+        Queue.ItemCompleted += (_, e) => BroadcastUtteranceEvent("UtteranceFinished", e.Item);
+
         var udpRouter = new UdpCommandRouter(Orchestrator, Queue, UserService, SettingsRepo, VoiceGate, EventConfigRepo);
         UdpServer = new UdpServer(udpRouter, Logger);
+    }
+
+    private void BroadcastUtteranceEvent(string type, TtsQueueItem item)
+    {
+        var payload = new
+        {
+            timeStamp = DateTime.Now.ToString("O"),
+            @event = new { source = "Speaker", type },
+            data = new { text = item.Text, username = item.Username, alias = item.VoiceAliasName }
+        };
+        EventsWsServer.Broadcast(JsonConvert.SerializeObject(payload));
     }
 
     public async Task StartAsync()
@@ -135,6 +154,12 @@ public class AppBootstrapper : IDisposable
         {
             WsServer.Start();
             Logger.Info("WEBSOCKET :: Websocket Server Started");
+        }
+
+        if (settings.EventsWebSocketServer.AutoStart)
+        {
+            EventsWsServer.Start();
+            Logger.Info("EVENTS WEBSOCKET :: Events WebSocket Server Started");
         }
 
         if (settings.UdpServer.AutoStart)
@@ -151,6 +176,7 @@ public class AppBootstrapper : IDisposable
     {
         await Twitch.DisconnectAsync();
         WsServer.Stop();
+        EventsWsServer.Stop();
         UdpServer.Stop();
         VoiceGate.Deactivate();
     }
@@ -162,6 +188,7 @@ public class AppBootstrapper : IDisposable
         Extensions.Dispose();
         Keybinds.Dispose();
         VoiceGate.Dispose();
+        EventsWsServer.Dispose();
         Database.Dispose();
     }
 }

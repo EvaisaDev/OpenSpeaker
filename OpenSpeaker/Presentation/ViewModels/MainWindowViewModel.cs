@@ -25,6 +25,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
     public ReplacementViewModel Replacement { get; }
     public VoiceAliasListViewModel VoiceAliases { get; }
     public WebSocketServerViewModel WebSocketServer { get; }
+    public EventsWebSocketServerViewModel EventsWebSocketServer { get; }
     public UdpServerViewModel UdpServer { get; }
     public CustomApiViewModel CustomApis { get; }
     public ExtensionsViewModel Extensions { get; }
@@ -82,6 +83,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
             }
         };
         WebSocketServer = new WebSocketServerViewModel(boot.WsServer, boot.SettingsRepo);
+        EventsWebSocketServer = new EventsWebSocketServerViewModel(boot.EventsWsServer, boot.SettingsRepo);
         UdpServer = new UdpServerViewModel(boot.UdpServer, boot.SettingsRepo);
         CustomApis = new CustomApiViewModel(boot.Database, boot.EngineRegistry);
         Extensions = new ExtensionsViewModel(boot.Extensions, boot.EngineRegistry, boot.VoicePool);
@@ -106,6 +108,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
                 GeneralSettings.Refresh();
                 SpeakingOptions.Refresh();
                 WebSocketServer.Refresh();
+                EventsWebSocketServer.Refresh();
                 UdpServer.Refresh();
             }
         };

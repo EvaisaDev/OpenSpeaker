@@ -1,6 +1,5 @@
 using Fleck;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using OpenSpeaker.Data;
 using OpenSpeaker.Infrastructure.Logging;
 namespace OpenSpeaker.Api;
@@ -114,22 +113,9 @@ public class WebSocketServer : IDisposable
 
     private async Task<ApiResponse> HandleMessageAsync(string message, string? userAgent = null)
     {
-        JObject? obj;
-        try { obj = JObject.Parse(message); }
+        BaseRequest request;
+        try { request = WebSocketCommandRouter.ParseRequest(message); }
         catch (Exception ex) { _logger.Warn($"[WS] Invalid JSON: {ex.Message}"); return ApiResponse.Err(string.Empty, "Invalid JSON"); }
-
-        var requestType = obj["request"]?.Value<string>()?.ToLower() ?? string.Empty;
-        var id = obj["id"]?.Value<string>() ?? string.Empty;
-
-        BaseRequest request = requestType switch
-        {
-            "speak"                    => obj.ToObject<SpeakRequest>()!,
-            "mode"                     => obj.ToObject<ModeRequest>()!,
-            "events"                   => obj.ToObject<EventsRequest>()!,
-            "subscribe"                => obj.ToObject<SubscribeRequest>()!,
-            "activatevoicegateprofile" => obj.ToObject<VoiceGateProfileRequest>()!,
-            _                          => new BaseRequest { Id = id, Request = obj["request"]?.Value<string>() ?? string.Empty }
-        };
 
         return await _router.RouteAsync(request, userAgent);
     }

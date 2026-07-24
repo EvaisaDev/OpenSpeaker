@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.4] - 2026-07-24
+
+### Other
+- New websocket API ([`7678f8d`](https://github.com/EvaisaDev/OpenSpeaker/commit/7678f8d))
+  - Added dedicated websocket server for speaker.bot emulation.
+  - Added new websocket server for our own OpenSpeaker API.
+  - OpenSpeaker websocket server now sends a message when starting and stopping an utterance.
+
 ## [0.4.3] - 2026-07-21
 
 ### Other
@@ -135,6 +143,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

@@ -29,6 +29,7 @@ public class NAudioPlayer : IAudioPlayer
         var tcs = new TaskCompletionSource<bool>();
         output.PlaybackStopped += (_, _) => tcs.TrySetResult(true);
 
+        audio = AudioGain.Apply(audio, Math.Clamp(volume, 0, 100));
         using var ms = new MemoryStream(audio.Samples);
         using var provider = new RawSourceWaveStream(ms, audio.Format);
         output.Init(provider);

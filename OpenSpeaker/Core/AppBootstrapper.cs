@@ -126,7 +126,7 @@ public class AppBootstrapper : IDisposable
         var eventsRouter = new WebSocketCommandRouter(Orchestrator, Queue, SettingsRepo, Database, VoiceGate, "OpenSpeaker", UpdateService.CurrentVersion);
         EventsWsServer = new EventsWebSocketServer(eventsRouter, SettingsRepo, Logger);
         eventsRouter.Broadcast = EventsWsServer.Broadcast;
-        Queue.ItemStarted += (_, e) => BroadcastUtteranceEvent("UtteranceStarted", e.Item);
+        Queue.ItemPlaying += (_, e) => BroadcastUtteranceEvent("UtteranceStarted", e.Item);
         Queue.ItemCompleted += (_, e) => BroadcastUtteranceEvent("UtteranceFinished", e.Item);
 
         Queue.ItemQueued += (_, e) => BroadcastTtsLifecycleEvent("TextQueued", e.Item, null, TimeSpan.Zero);

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Linq;
 using OpenSpeaker.Audio;
 using OpenSpeaker.Models;
 using OpenSpeaker.TTS;
@@ -40,5 +41,20 @@ public class PlaybackCoordinator
         foreach (var kvp in _playing)
             if (kvp.Key.UserId == userId)
                 kvp.Value.Stop();
+    }
+
+    public IReadOnlyList<TtsQueueItem> GetPlayingItems() => _playing.Keys.ToList();
+
+    public bool StopId(string speechId)
+    {
+        foreach (var kvp in _playing)
+        {
+            if (kvp.Key.SpeechId == speechId)
+            {
+                kvp.Value.Stop();
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -11,7 +11,7 @@ public partial class TwitchAuthWindow : Window
     private HttpListener? _listener;
     private const string ClientId = "o5xlrf6yir2hda9wste7lz92mu9i5w";
     private const string RedirectUri = "http://localhost:7581/callback";
-    private const string Scopes = "channel:read:subscriptions channel:read:redemptions bits:read moderator:read:followers user:read:chat user:write:chat";
+    private const string Scopes = "channel:read:subscriptions channel:read:redemptions bits:read moderator:read:followers moderator:manage:banned_users user:read:chat user:write:chat";
 
     private const string BotScopes = "user:write:chat user:bot";
 

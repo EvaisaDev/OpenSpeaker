@@ -1,4 +1,5 @@
 using System.IO;
+using Newtonsoft.Json.Linq;
 using OpenSpeaker.Data;
 using OpenSpeaker.Import;
 using OpenSpeaker.Infrastructure.Logging;
@@ -15,6 +16,13 @@ public class ExtensionManager : IDisposable
     private readonly IAppLogger? _logger;
     private volatile List<LuaExtension> _extensions = new();
     private Func<string, Task>? _chatSender;
+    private Func<string, int, string, Task<bool>>? _timeoutSender;
+    private Func<string, Task>? _soundPlayer;
+    private Func<List<QueueEntryInfo>>? _getPlayingQueueItems;
+    private Func<List<QueueEntryInfo>>? _getQueuedItems;
+    private Func<string, bool>? _stopQueueItem;
+    private Func<string, bool>? _removeQueueItem;
+    private Action<string>? _wsBroadcaster;
     private CancellationTokenSource? _loopCts;
     private Task? _loopTask;
 
@@ -81,7 +89,18 @@ public class ExtensionManager : IDisposable
             }
         }
 
-        foreach (var e in loaded) { e.SetChatSender(_chatSender); e.SetKeybinds(_keybinds); }
+        foreach (var e in loaded)
+        {
+            e.SetChatSender(_chatSender);
+            e.SetTimeoutSender(_timeoutSender);
+            e.SetSoundPlayer(_soundPlayer);
+            e.SetGetPlayingQueueItems(_getPlayingQueueItems);
+            e.SetGetQueuedItems(_getQueuedItems);
+            e.SetStopQueueItem(_stopQueueItem);
+            e.SetRemoveQueueItem(_removeQueueItem);
+            e.SetWsBroadcaster(_wsBroadcaster);
+            e.SetKeybinds(_keybinds);
+        }
         _extensions = loaded;
         _logger?.Info($"[ExtensionManager] LoadAll complete, total speech engines registered: [{string.Join(", ", SpeechEngines.Select(e => e.EngineId))}]");
     }
@@ -90,6 +109,48 @@ public class ExtensionManager : IDisposable
     {
         _chatSender = sender;
         foreach (var e in _extensions) e.SetChatSender(sender);
+    }
+
+    public void SetTimeoutSender(Func<string, int, string, Task<bool>>? sender)
+    {
+        _timeoutSender = sender;
+        foreach (var e in _extensions) e.SetTimeoutSender(sender);
+    }
+
+    public void SetSoundPlayer(Func<string, Task>? player)
+    {
+        _soundPlayer = player;
+        foreach (var e in _extensions) e.SetSoundPlayer(player);
+    }
+
+    public void SetGetPlayingQueueItems(Func<List<QueueEntryInfo>>? getter)
+    {
+        _getPlayingQueueItems = getter;
+        foreach (var e in _extensions) e.SetGetPlayingQueueItems(getter);
+    }
+
+    public void SetGetQueuedItems(Func<List<QueueEntryInfo>>? getter)
+    {
+        _getQueuedItems = getter;
+        foreach (var e in _extensions) e.SetGetQueuedItems(getter);
+    }
+
+    public void SetStopQueueItem(Func<string, bool>? fn)
+    {
+        _stopQueueItem = fn;
+        foreach (var e in _extensions) e.SetStopQueueItem(fn);
+    }
+
+    public void SetRemoveQueueItem(Func<string, bool>? fn)
+    {
+        _removeQueueItem = fn;
+        foreach (var e in _extensions) e.SetRemoveQueueItem(fn);
+    }
+
+    public void SetWsBroadcaster(Action<string>? broadcaster)
+    {
+        _wsBroadcaster = broadcaster;
+        foreach (var e in _extensions) e.SetWsBroadcaster(broadcaster);
     }
 
     public void StartUpdateLoop()
@@ -147,6 +208,19 @@ public class ExtensionManager : IDisposable
         foreach (var ext in snapshot.Where(e => e.HasMessageFilter))
             message = await ext.ProcessMessageAsync(ctx, message);
         return message;
+    }
+
+    public bool HasWsCommandHandlers => _extensions.Any(e => e.HasWsCommand);
+
+    public async Task<JToken?> DispatchWsCommandAsync(string command, JObject data)
+    {
+        var snapshot = _extensions;
+        foreach (var ext in snapshot.Where(e => e.HasWsCommand))
+        {
+            var result = await ext.HandleWsCommandAsync(command, data);
+            if (result is not null) return result;
+        }
+        return null;
     }
 
     public IReadOnlyList<ExtAuthField> GetAuthFields(string engineId) =>

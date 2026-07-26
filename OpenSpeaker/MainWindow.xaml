@@ -2364,10 +2364,12 @@
                                                     <DataTemplate>
                                                         <Grid Margin="0,0,0,8">
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="140"/>
+                                                                <ColumnDefinition Width="Auto" MinWidth="140" MaxWidth="220"/>
                                                                 <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
                                                             <TextBlock Text="{Binding Label}" VerticalAlignment="Center"
+                                                                       TextWrapping="Wrap" Margin="0,0,10,0"
                                                                        Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
 
                                                             <TextBox Grid.Column="1"
@@ -2423,6 +2425,35 @@
                                                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                                                         <Style.Triggers>
                                                                             <DataTrigger Binding="{Binding IsKeybind}" Value="False">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Button.Style>
+                                                            </Button>
+
+                                                            <TextBox Grid.Column="1"
+                                                                     Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                                                     Margin="0,0,6,0">
+                                                                <TextBox.Style>
+                                                                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsFilePicker}" Value="False">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBox.Style>
+                                                            </TextBox>
+
+                                                            <Button Grid.Column="2"
+                                                                    Content="Browse..."
+                                                                    Padding="10,4"
+                                                                    Command="{Binding BrowseCommand}">
+                                                                <Button.Style>
+                                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsFilePicker}" Value="False">
                                                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                                             </DataTrigger>
                                                                         </Style.Triggers>

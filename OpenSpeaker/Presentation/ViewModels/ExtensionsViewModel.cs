@@ -56,6 +56,26 @@ public class SettingFieldViewModel : BaseViewModel
     public bool IsCheckbox => Type == "checkbox";
     public bool IsDropdown => Type == "dropdown";
     public bool IsKeybind => Type == "keybind";
+    public bool IsFilePicker => Type == "file";
+
+    public RelayCommand BrowseCommand { get; }
+
+    public SettingFieldViewModel()
+    {
+        BrowseCommand = new RelayCommand(Browse);
+    }
+
+    private void Browse()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = string.IsNullOrEmpty(Label) ? "Choose a file" : $"Choose {Label}",
+            Filter = "All files (*.*)|*.*",
+            InitialDirectory = File.Exists(Value) ? Path.GetDirectoryName(Path.GetFullPath(Value)) : null
+        };
+        if (dialog.ShowDialog() == true)
+            Value = dialog.FileName;
+    }
 }
 
 public class ExtensionItem : BaseViewModel

@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenSpeaker.Data;
+using OpenSpeaker.Extensions;
 using OpenSpeaker.Models;
 using OpenSpeaker.Queue;
 using OpenSpeaker.Services;
@@ -14,6 +15,7 @@ public class WebSocketCommandRouter
     private readonly SettingsRepository _settingsRepo;
     private readonly DatabaseContext _db;
     private readonly VoiceGateService _voiceGate;
+    private readonly ExtensionManager? _extensions;
     private readonly string _identityName;
     private readonly string _identityVersion;
 
@@ -26,13 +28,14 @@ public class WebSocketCommandRouter
         "GetAliases", "GetState", "GetVoiceGateProfiles", "ActivateVoiceGateProfile"
     ];
 
-    public WebSocketCommandRouter(ITtsOrchestrator orchestrator, ITtsQueue queue, SettingsRepository settingsRepo, DatabaseContext db, VoiceGateService voiceGate, string? identityName = null, string? identityVersion = null)
+    public WebSocketCommandRouter(ITtsOrchestrator orchestrator, ITtsQueue queue, SettingsRepository settingsRepo, DatabaseContext db, VoiceGateService voiceGate, ExtensionManager? extensions = null, string? identityName = null, string? identityVersion = null)
     {
         _orchestrator = orchestrator;
         _queue = queue;
         _settingsRepo = settingsRepo;
         _db = db;
         _voiceGate = voiceGate;
+        _extensions = extensions;
         _identityName = identityName ?? "Speaker.bot";
         _identityVersion = identityVersion ?? "0.1.6";
     }
@@ -43,7 +46,7 @@ public class WebSocketCommandRouter
         var requestType = obj["request"]?.Value<string>()?.ToLower() ?? string.Empty;
         var id = obj["id"]?.Value<string>() ?? string.Empty;
 
-        return requestType switch
+        BaseRequest result = requestType switch
         {
             "speak"                    => obj.ToObject<SpeakRequest>()!,
             "mode"                     => obj.ToObject<ModeRequest>()!,
@@ -52,6 +55,9 @@ public class WebSocketCommandRouter
             "activatevoicegateprofile" => obj.ToObject<VoiceGateProfileRequest>()!,
             _                          => new BaseRequest { Id = id, Request = obj["request"]?.Value<string>() ?? string.Empty }
         };
+
+        result.Raw = obj;
+        return result;
     }
 
     public async Task<ApiResponse> RouteAsync(BaseRequest request, string? userAgent = null)
@@ -189,6 +195,12 @@ public class WebSocketCommandRouter
                     return ApiResponse.Ok(request.Id);
 
                 default:
+                    if (_extensions is not null && _extensions.HasWsCommandHandlers)
+                    {
+                        var extResult = await _extensions.DispatchWsCommandAsync(request.Request, request.Raw ?? new JObject());
+                        if (extResult is not null)
+                            return ApiResponse.WithResult(request.Id, extResult);
+                    }
                     return ApiResponse.Err(request.Id, $"Unknown command: {request.Request}");
             }
         }

@@ -15,6 +15,7 @@ using OpenSpeaker.TTS;
 using OpenSpeaker.Twitch;
 using OpenSpeaker.Users;
 using System.IO;
+using System.Linq;
 namespace OpenSpeaker.Core;
 
 public class AppBootstrapper : IDisposable
@@ -48,6 +49,7 @@ public class AppBootstrapper : IDisposable
 
     private readonly TtsQueueService _queueService;
     private readonly DatabaseMigration _migration;
+    private readonly NAudioPlayer _soundClipPlayer;
 
     public AppBootstrapper(string? dbPath = null)
     {
@@ -75,6 +77,7 @@ public class AppBootstrapper : IDisposable
         Extensions = new ExtensionManager(Database, Keybinds, Logger);
         EngineRegistry = new TtsEngineRegistry(Database, Extensions, Logger);
         var audioPlayer = new NAudioPlayer();
+        _soundClipPlayer = new NAudioPlayer();
         var wavSaver = new WavFileSaver();
 
         PermissionChecker = new PermissionChecker();
@@ -98,6 +101,18 @@ public class AppBootstrapper : IDisposable
         var twitchService = new TwitchEventSubService(TwitchAuth, emoteCache, Logger);
         Twitch = twitchService;
         Extensions.SetChatSender(msg => Twitch.SendChatMessageAsync(msg));
+        Extensions.SetTimeoutSender((userId, seconds, reason) => Twitch.TimeoutUserAsync(userId, seconds, reason));
+        Extensions.SetSoundPlayer(async path =>
+        {
+            var audio = await AudioFileLoader.LoadAsync(path);
+            if (audio.IsEmpty) return;
+            var soundSettings = SettingsRepo.GetSettings();
+            await _soundClipPlayer.PlayAsync(audio, soundSettings.AudioOutputDeviceId, soundSettings.ApplicationVolume);
+        });
+        Extensions.SetGetPlayingQueueItems(() => Queue.GetPlayingItems().Select(ToQueueEntryInfo).ToList());
+        Extensions.SetGetQueuedItems(() => Queue.GetQueuedItems().Select(ToQueueEntryInfo).ToList());
+        Extensions.SetStopQueueItem(id => Queue.StopId(id));
+        Extensions.SetRemoveQueueItem(id => Queue.RemoveId(id));
 
         var messagePicker = new WeightedMessagePicker();
         var variableBuilder = new VariableBuilder();
@@ -119,13 +134,18 @@ public class AppBootstrapper : IDisposable
 
         var chatService = new ChatService(Twitch, builtIn, custom, sayEverything, UserService, SettingsRepo, Queue, Extensions, Logger);
 
-        var wsRouter = new WebSocketCommandRouter(Orchestrator, Queue, SettingsRepo, Database, VoiceGate);
+        var wsRouter = new WebSocketCommandRouter(Orchestrator, Queue, SettingsRepo, Database, VoiceGate, Extensions);
         WsServer = new WebSocketServer(wsRouter, SettingsRepo, Logger);
         wsRouter.Broadcast = WsServer.Broadcast;
 
-        var eventsRouter = new WebSocketCommandRouter(Orchestrator, Queue, SettingsRepo, Database, VoiceGate, "OpenSpeaker", UpdateService.CurrentVersion);
+        var eventsRouter = new WebSocketCommandRouter(Orchestrator, Queue, SettingsRepo, Database, VoiceGate, Extensions, "OpenSpeaker", UpdateService.CurrentVersion);
         EventsWsServer = new EventsWebSocketServer(eventsRouter, SettingsRepo, Logger);
         eventsRouter.Broadcast = EventsWsServer.Broadcast;
+        Extensions.SetWsBroadcaster(json =>
+        {
+            WsServer.Broadcast(json);
+            EventsWsServer.Broadcast(json);
+        });
         Queue.ItemPlaying += (_, e) => BroadcastUtteranceEvent("UtteranceStarted", e.Item);
         Queue.ItemCompleted += (_, e) => BroadcastUtteranceEvent("UtteranceFinished", e.Item);
 
@@ -137,6 +157,9 @@ public class AppBootstrapper : IDisposable
         var udpRouter = new UdpCommandRouter(Orchestrator, Queue, UserService, SettingsRepo, VoiceGate, EventConfigRepo);
         UdpServer = new UdpServer(udpRouter, Logger);
     }
+
+    private static QueueEntryInfo ToQueueEntryInfo(TtsQueueItem item) =>
+        new(item.SpeechId, item.Text, item.Username, item.UserId);
 
     private void BroadcastUtteranceEvent(string type, TtsQueueItem item)
     {
@@ -214,6 +237,7 @@ public class AppBootstrapper : IDisposable
     public void Dispose()
     {
         _queueService.Dispose();
+        _soundClipPlayer.Dispose();
         EngineRegistry.Dispose();
         Extensions.Dispose();
         Keybinds.Dispose();

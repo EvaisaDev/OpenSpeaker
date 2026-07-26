@@ -57,8 +57,12 @@ Everywhere OpenSpeaker stores an engine id it prefixes it with "ext:", so the en
 GetVoices/GenerateSpeech callbacks, and the one you pass to GetAuth, is the raw unprefixed id.
 --------------------------
 To add a settings panel under the Extensions tab use RegisterSettings().
-types: text, number, checkbox, dropdown (dropdown requires options), keybind
+types: text, number, checkbox, dropdown (dropdown requires options), keybind, file
 label is optional and defaults to a prettified key.
+"file" renders a text box plus a Browse... button that opens a native Windows file picker; the
+value stored/passed to GetSetting is always the chosen absolute path as a string. Users can also
+type a path directly (e.g. a path relative to the extension folder, resolved the same way
+dofile()/sound.play() resolve paths).
 --------------------------
 RegisterSettings({
 	{ key = "quality", label = "Quality", type = "dropdown", options = {"standard", "premium"}, default = "standard" },
@@ -66,6 +70,7 @@ RegisterSettings({
 	{ key = "on",      label = "On",      type = "checkbox", default = true },
 	{ key = "prefix",  label = "Prefix",  type = "text",     default = "" },
 	{ key = "say_hi",  label = "Say Hi",  type = "keybind",  default = "F8" },
+	{ key = "clip",    label = "Sound Clip", type = "file",  default = "" },
 })
 --------------------------
 If you were using another engine as a workaround in old SpeakerBot, RegisterMigrationHook() tells
@@ -156,6 +161,21 @@ function OnUpdate()
 	end
 end
 --------------------------
+Optionally define OnWsCommand to receive websocket requests that don't match any built-in command
+(Speak, Pause, Stop, GetState, etc). Every extension defining OnWsCommand is tried in the order
+extensions loaded; the first one to return a table wins and is sent back as the response result.
+Return nil to say "not mine" and let the next extension (or the built-in "Unknown command" error)
+handle it. command is the lowercased "request" field, data is the full decoded request object.
+
+This lets a websocket client remote-control an extension, e.g. sending
+{ "request": "extension", "id": "1", "extension": "my-ext", "command": "toggle", "enabled": false }
+and having that extension's OnWsCommand check data.extension before acting on data.command.
+--------------------------
+function OnWsCommand(command, data)
+	if command ~= "extension" or data.extension ~= "my-ext" then return nil end
+	return { ok = true }
+end
+--------------------------
 Keybinds
 --------------------------
 Keys are read from a global hook, so binds fire while OpenSpeaker is unfocused. Input going to a
@@ -178,7 +198,32 @@ empty spec is always false.
 --------------------------
 Chat
 --------------------------
-chat.send(msg)  sends a message to the connected Twitch chat, no-op until chat is connected
+chat.send(msg)                       sends a message to the connected Twitch chat, no-op until chat is connected
+chat.timeout(user_id, seconds, reason) -> ok  times out a user, returns false on failure (not
+	connected, invalid user id, or the broadcaster account is missing the
+	moderator:manage:banned_users scope, which requires re-authenticating Twitch in Settings)
+--------------------------
+Sound
+--------------------------
+sound.play(path)  plays a local wav/mp3 file once through the same output device/volume as TTS,
+	outside the TTS queue and without going through any speech engine. Relative paths resolve
+	against your extension's own folder first, then the app folder, same as dofile()/loadfile().
+--------------------------
+Queue
+--------------------------
+queue.playing() -> array of { id, text, username, user_id }  items currently being spoken
+queue.list()     -> array of { id, text, username, user_id }  items still waiting in the queue
+queue.stop(id)   -> ok   interrupts a currently playing item by id, returns false if not found
+queue.remove(id) -> ok   removes a not-yet-played queued item by id, returns false if not found
+
+id is the same identifier used for the "id" field in TTS lifecycle websocket events.
+--------------------------
+WebSocket
+--------------------------
+ws.broadcast(type, data?)  sends { timeStamp, event = { source = "Extension", type }, data } to
+	every client connected to either websocket server (the Speaker.bot-protocol one and the
+	events-only one). data is an optional plain table, serialized the same way json.stringify
+	serializes it. type is a string you choose, e.g. "CopypastaTimeout".
 --------------------------
 Settings and auth
 --------------------------

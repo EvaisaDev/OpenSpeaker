@@ -111,6 +111,42 @@ public class TwitchEventSubService : ITwitchService, IDisposable
         catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to send chat message: {ex.Message}"); }
     }
 
+    public async Task<bool> TimeoutUserAsync(string userId, int seconds, string reason)
+    {
+        var broadcasterId = BroadcasterId;
+        var account = _auth.GetAccount();
+        var accessToken = account?.AccessToken;
+        var clientId = account?.ClientId;
+        var moderatorId = account?.UserId;
+        if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(moderatorId) || string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(userId))
+            return false;
+        try
+        {
+            var http = OpenSpeaker.Infrastructure.Http.HttpClientFactory.GetClient("twitch-helix");
+            var body = System.Text.Json.JsonSerializer.Serialize(new { data = new { user_id = userId, duration = seconds, reason } });
+            var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post,
+                $"https://api.twitch.tv/helix/moderation/bans?broadcaster_id={broadcasterId}&moderator_id={moderatorId}")
+            {
+                Content = new System.Net.Http.StringContent(body, System.Text.Encoding.UTF8, "application/json")
+            };
+            req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            req.Headers.Add("Client-Id", clientId);
+            var resp = await http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var respBody = await resp.Content.ReadAsStringAsync();
+                _logger?.Warn($"TWITCH :: Timeout user {userId} failed ({(int)resp.StatusCode}): {respBody}");
+                return false;
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger?.Warn($"TWITCH :: Failed to timeout user {userId}: {ex.Message}");
+            return false;
+        }
+    }
+
     private async Task OnWebsocketConnected(object? sender, WebsocketConnectedArgs e)
     {
         _connected = true;

@@ -12,6 +12,10 @@ public interface ITtsQueue
     void Stop();
     void StopUser(string userId);
     void SkipUser(string userId);
+    IReadOnlyList<TtsQueueItem> GetPlayingItems();
+    IReadOnlyList<TtsQueueItem> GetQueuedItems();
+    bool StopId(string speechId);
+    bool RemoveId(string speechId);
     event EventHandler<QueueItemEventArgs> ItemQueued;
     event EventHandler<QueueItemEventArgs> ItemStarted;
     event EventHandler<QueueItemEventArgs> ItemSynthesized;

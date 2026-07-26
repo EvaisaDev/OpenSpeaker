@@ -9,6 +9,7 @@ public interface ITwitchService
     Task ConnectAsync();
     Task DisconnectAsync();
     Task SendChatMessageAsync(string message);
+    Task<bool> TimeoutUserAsync(string userId, int seconds, string reason);
 
     event EventHandler<ChatMessageEventArgs> ChatMessage;
     event EventHandler<FollowEventArgs> Follow;

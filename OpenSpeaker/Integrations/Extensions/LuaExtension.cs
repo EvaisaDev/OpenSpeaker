@@ -12,6 +12,7 @@ namespace OpenSpeaker.Extensions;
 
 public record ExtAuthField(string Key, string Label, string Type);
 public record ExtSettingField(string Key, string Label, string Type, string Default, string[] Options);
+public record QueueEntryInfo(string Id, string Text, string Username, string UserId);
 public record MessageFilterContext(
     string Id,
     string Username,
@@ -38,6 +39,13 @@ public class LuaExtension : IDisposable
     private List<ExtSettingField> _settingFields = new();
     private Dictionary<string, string> _settingValues = new();
     private Func<string, Task>? _chatSender;
+    private Func<string, int, string, Task<bool>>? _timeoutSender;
+    private Func<string, Task>? _soundPlayer;
+    private Func<List<QueueEntryInfo>>? _getPlayingQueueItems;
+    private Func<List<QueueEntryInfo>>? _getQueuedItems;
+    private Func<string, bool>? _stopQueueItem;
+    private Func<string, bool>? _removeQueueItem;
+    private Action<string>? _wsBroadcaster;
     private KeybindService? _keybinds;
     private IAppLogger? _logger;
     private string _extensionDir = string.Empty;
@@ -48,6 +56,7 @@ public class LuaExtension : IDisposable
     public bool HasMessageFilter { get; private set; }
     public bool HasChatObserver { get; private set; }
     public bool HasUpdate { get; private set; }
+    public bool HasWsCommand { get; private set; }
     public bool HasKeybinds => _settingFields.Any(f => f.Type == "keybind");
     public bool NeedsTick => HasUpdate || HasKeybinds;
     public IReadOnlyList<LuaTtsEngine> SpeechEngines => _speechEngines;
@@ -85,6 +94,7 @@ public class LuaExtension : IDisposable
         ext.HasMessageFilter = ext._state.Environment["OnMessage"].TryRead<LuaFunction>(out _);
         ext.HasChatObserver = ext._state.Environment["OnChat"].TryRead<LuaFunction>(out _);
         ext.HasUpdate = ext._state.Environment["OnUpdate"].TryRead<LuaFunction>(out _);
+        ext.HasWsCommand = ext._state.Environment["OnWsCommand"].TryRead<LuaFunction>(out _);
         return ext;
     }
 
@@ -113,6 +123,20 @@ public class LuaExtension : IDisposable
     internal void SetSettings(Dictionary<string, string> values) => _settingValues = new Dictionary<string, string>(values);
 
     internal void SetChatSender(Func<string, Task>? sender) => _chatSender = sender;
+
+    internal void SetTimeoutSender(Func<string, int, string, Task<bool>>? sender) => _timeoutSender = sender;
+
+    internal void SetSoundPlayer(Func<string, Task>? player) => _soundPlayer = player;
+
+    internal void SetGetPlayingQueueItems(Func<List<QueueEntryInfo>>? getter) => _getPlayingQueueItems = getter;
+
+    internal void SetGetQueuedItems(Func<List<QueueEntryInfo>>? getter) => _getQueuedItems = getter;
+
+    internal void SetStopQueueItem(Func<string, bool>? fn) => _stopQueueItem = fn;
+
+    internal void SetRemoveQueueItem(Func<string, bool>? fn) => _removeQueueItem = fn;
+
+    internal void SetWsBroadcaster(Action<string>? broadcaster) => _wsBroadcaster = broadcaster;
 
     internal void SetKeybinds(KeybindService? keybinds) => _keybinds = keybinds;
 
@@ -301,6 +325,21 @@ public class LuaExtension : IDisposable
         finally { _stateLock.Release(); }
     }
 
+    internal async Task<JToken?> HandleWsCommandAsync(string command, JObject data)
+    {
+        await _stateLock.WaitAsync();
+        try
+        {
+            if (!_state.Environment["OnWsCommand"].TryRead<LuaFunction>(out var fn)) return null;
+            var dataTable = ObjectToLua(data);
+            var results = await _state.CallAsync(fn, new LuaValue[] { command, dataTable });
+            if (results.Length == 0 || !results[0].TryRead<LuaTable>(out var resultTable)) return null;
+            return LuaTableToJson(resultTable);
+        }
+        catch (Exception ex) { _logger?.Error($"[{ExtensionId}] OnWsCommand error: {ex.Message}"); return null; }
+        finally { _stateLock.Release(); }
+    }
+
     private static LuaTable BuildUserTable(MessageFilterContext ctx)
     {
         var t = new LuaTable();
@@ -414,7 +453,97 @@ public class LuaExtension : IDisposable
             }
             return ctx.Return();
         });
+        chatTable["timeout"] = new LuaFunction(async (ctx, ct) =>
+        {
+            var userId = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var seconds = ctx.HasArgument(1) ? (int)ctx.GetArgument<double>(1) : 0;
+            var reason = ctx.HasArgument(2) ? ctx.GetArgument<string>(2) : string.Empty;
+            var sender = _timeoutSender;
+            var ok = false;
+            if (sender is not null && !string.IsNullOrWhiteSpace(userId) && seconds > 0)
+            {
+                try { ok = await sender(userId, seconds, reason); }
+                catch (Exception ex) { _logger?.Error($"[{ExtensionId}] chat.timeout error: {ex.Message}"); }
+            }
+            return ctx.Return(ok);
+        });
         state.Environment["chat"] = chatTable;
+
+        var soundTable = new LuaTable();
+        soundTable["play"] = new LuaFunction(async (ctx, ct) =>
+        {
+            var path = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var player = _soundPlayer;
+            if (player is not null && !string.IsNullOrWhiteSpace(path))
+            {
+                var resolved = ResolveScriptPath(path);
+                try { await player(resolved); }
+                catch (Exception ex) { _logger?.Error($"[{ExtensionId}] sound.play error: {ex.Message}"); }
+            }
+            return ctx.Return();
+        });
+        state.Environment["sound"] = soundTable;
+
+        var queueTable = new LuaTable();
+        queueTable["playing"] = new LuaFunction((ctx, ct) =>
+        {
+            try { return new(ctx.Return(ToQueueArray(_getPlayingQueueItems?.Invoke()))); }
+            catch (Exception ex) { _logger?.Error($"[{ExtensionId}] queue.playing error: {ex.Message}"); return new(ctx.Return(new LuaTable())); }
+        });
+        queueTable["list"] = new LuaFunction((ctx, ct) =>
+        {
+            try { return new(ctx.Return(ToQueueArray(_getQueuedItems?.Invoke()))); }
+            catch (Exception ex) { _logger?.Error($"[{ExtensionId}] queue.list error: {ex.Message}"); return new(ctx.Return(new LuaTable())); }
+        });
+        queueTable["stop"] = new LuaFunction((ctx, ct) =>
+        {
+            var id = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var fn = _stopQueueItem;
+            var ok = false;
+            if (fn is not null && !string.IsNullOrWhiteSpace(id))
+            {
+                try { ok = fn(id); }
+                catch (Exception ex) { _logger?.Error($"[{ExtensionId}] queue.stop error: {ex.Message}"); }
+            }
+            return new(ctx.Return(ok));
+        });
+        queueTable["remove"] = new LuaFunction((ctx, ct) =>
+        {
+            var id = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var fn = _removeQueueItem;
+            var ok = false;
+            if (fn is not null && !string.IsNullOrWhiteSpace(id))
+            {
+                try { ok = fn(id); }
+                catch (Exception ex) { _logger?.Error($"[{ExtensionId}] queue.remove error: {ex.Message}"); }
+            }
+            return new(ctx.Return(ok));
+        });
+        state.Environment["queue"] = queueTable;
+
+        var wsTable = new LuaTable();
+        wsTable["broadcast"] = new LuaFunction((ctx, ct) =>
+        {
+            var type = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var data = ctx.HasArgument(1) && ctx.GetArgument<LuaValue>(1).TryRead<LuaTable>(out var dataTable) ? dataTable : null;
+            var broadcaster = _wsBroadcaster;
+            if (broadcaster is not null && !string.IsNullOrWhiteSpace(type))
+            {
+                try
+                {
+                    var payload = new JObject
+                    {
+                        ["timeStamp"] = DateTime.Now.ToString("O"),
+                        ["event"] = new JObject { ["source"] = "Extension", ["type"] = type },
+                        ["data"] = data is not null ? LuaTableToJson(data) : new JObject()
+                    };
+                    broadcaster(payload.ToString(Newtonsoft.Json.Formatting.None));
+                }
+                catch (Exception ex) { _logger?.Error($"[{ExtensionId}] ws.broadcast error: {ex.Message}"); }
+            }
+            return new(ctx.Return());
+        });
+        state.Environment["ws"] = wsTable;
 
         var keybindTable = new LuaTable();
         keybindTable["held"] = new LuaFunction((ctx, ct) =>
@@ -555,6 +684,22 @@ public class LuaExtension : IDisposable
             }
             return new(0);
         });
+    }
+
+    private static LuaTable ToQueueArray(List<QueueEntryInfo>? items)
+    {
+        var arr = new LuaTable();
+        if (items is null) return arr;
+        for (var i = 0; i < items.Count; i++)
+        {
+            var t = new LuaTable();
+            t["id"] = items[i].Id;
+            t["text"] = items[i].Text;
+            t["username"] = items[i].Username;
+            t["user_id"] = items[i].UserId;
+            arr[i + 1] = t;
+        }
+        return arr;
     }
 
     private static LuaTable? GetOptionalTable(LuaFunctionExecutionContext ctx, int index)

@@ -10,7 +10,7 @@
 ---@field label? string Defaults to a prettified key.
 ---@field type? "string" Only "string" is supported.
 
----@alias openspeaker.SettingType "text"|"number"|"checkbox"|"dropdown"|"keybind"
+---@alias openspeaker.SettingType "text"|"number"|"checkbox"|"dropdown"|"keybind"|"file"
 
 ---@class openspeaker.SettingField
 ---@field key string
@@ -107,6 +107,58 @@ chat = {}
 ---Sends a message to the connected Twitch chat. No-op until chat is connected.
 ---@param msg string
 function chat.send(msg) end
+
+---Times out a user in the connected Twitch chat. Requires the broadcaster account to have
+---re-authenticated with the moderator:manage:banned_users scope. Returns false on failure
+---(not connected, missing scope, invalid user id, etc).
+---@param user_id string
+---@param seconds number
+---@param reason string
+---@return boolean
+function chat.timeout(user_id, seconds, reason) end
+
+sound = {}
+
+---Plays a local WAV/MP3 file once through the same output device/volume as TTS, outside the
+---TTS queue and without going through any speech engine. Relative paths resolve against the
+---extension's own folder first, then the app folder.
+---@param path string
+function sound.play(path) end
+
+---@class openspeaker.QueueEntry
+---@field id string Same id used in TTS lifecycle websocket events.
+---@field text string
+---@field username string
+---@field user_id string
+
+queue = {}
+
+---Items currently being spoken.
+---@return openspeaker.QueueEntry[]
+function queue.playing() end
+
+---Items still waiting in the queue, not yet playing.
+---@return openspeaker.QueueEntry[]
+function queue.list() end
+
+---Interrupts a currently playing item by id.
+---@param id string
+---@return boolean ok False if no playing item has that id.
+function queue.stop(id) end
+
+---Removes a not-yet-played queued item by id.
+---@param id string
+---@return boolean ok False if no queued item has that id.
+function queue.remove(id) end
+
+ws = {}
+
+---Broadcasts an event to every client connected to either websocket server (the Speaker.bot
+---protocol one and the events-only one), as { timeStamp, event = { source = "Extension", type },
+---data }.
+---@param type string
+---@param data? table
+function ws.broadcast(type, data) end
 
 keybind = {}
 
@@ -224,3 +276,13 @@ function OnMessage(user, message) end
 ---Optional. Called about 60 times per second. Only runs if your extension defines OnUpdate or
 ---registers a keybind setting. A tick is skipped if the previous one is still running.
 function OnUpdate() end
+
+---Optional. Called when a client sends a websocket request whose "request" field does not match
+---any built-in command. Every extension that defines OnWsCommand is tried in load order; the
+---first one to return a table wins and that table is sent back as the response result. Returning
+---nil (or nothing) means "not mine", falling through to the next extension or the built-in
+---"Unknown command" error if none handle it.
+---@param command string The lowercased "request" field from the incoming websocket message.
+---@param data table The full decoded request object, including "id" and "request".
+---@return table|nil
+function OnWsCommand(command, data) end

@@ -8,6 +8,9 @@ public class BaseRequest
 
     [JsonProperty("request")]
     public string Request { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public Newtonsoft.Json.Linq.JObject? Raw { get; set; }
 }
 
 public class SpeakRequest : BaseRequest

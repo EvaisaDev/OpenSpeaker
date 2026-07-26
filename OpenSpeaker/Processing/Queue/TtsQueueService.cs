@@ -182,6 +182,22 @@ public class TtsQueueService : ITtsQueue, IDisposable
         foreach (var item in kept) _queue.TryAdd(item);
     }
 
+    public IReadOnlyList<TtsQueueItem> GetPlayingItems() => _playback.GetPlayingItems();
+    public IReadOnlyList<TtsQueueItem> GetQueuedItems() => _queue.ToArray();
+    public bool StopId(string speechId) => _playback.StopId(speechId);
+    public bool RemoveId(string speechId)
+    {
+        var kept = new List<TtsQueueItem>();
+        var removed = false;
+        while (_queue.TryTake(out var item))
+        {
+            if (item.SpeechId == speechId) removed = true;
+            else kept.Add(item);
+        }
+        foreach (var item in kept) _queue.TryAdd(item);
+        return removed;
+    }
+
     public void Dispose()
     {
         _cts.Cancel();

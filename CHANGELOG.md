@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.3] - 2026-07-26
+
+### Other
+- More extension features! ([`1fd770e`](https://github.com/EvaisaDev/OpenSpeaker/commit/1fd770e))
+  - Added "file" setting type for extensions
+  - Added queue.playing() / queue.list()
+  - Added queue.stop(id)
+  - Added queue.remove(id)
+  - Added ws.broadcast(type, data)
+  - Added OnWsCommand(command, data) callback
+  - Fixed extension tab layout to allow for longer labels.
+
 ## [0.5.2] - 2026-07-25
 
 ### Other
@@ -159,6 +171,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

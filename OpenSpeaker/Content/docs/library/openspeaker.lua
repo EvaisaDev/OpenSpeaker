@@ -239,6 +239,23 @@ function base64.encode(str) end
 ---@return string decoded "" if the input is not valid base64.
 function base64.decode(str) end
 
+storage = {}
+
+---Values persist in the app database, scoped to this extension, surviving app restarts and reloads.
+---@param key string
+---@return any value nil if key is unset.
+function storage.get(key) end
+
+---value can be any json-serializable lua value; it round-trips through storage.get unchanged.
+---@param key string
+---@param value any
+---@return boolean ok
+function storage.set(key, value) end
+
+---@param key string
+---@return boolean ok
+function storage.delete(key) end
+
 ---Required. Called once on load to get extension metadata.
 ---@return openspeaker.ExtensionMeta
 function Extension() end

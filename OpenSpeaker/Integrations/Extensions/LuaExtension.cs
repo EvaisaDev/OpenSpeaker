@@ -46,6 +46,9 @@ public class LuaExtension : IDisposable
     private Func<string, bool>? _stopQueueItem;
     private Func<string, bool>? _removeQueueItem;
     private Action<string>? _wsBroadcaster;
+    private Func<string, string?>? _storageGetter;
+    private Action<string, string>? _storageSetter;
+    private Action<string>? _storageDeleter;
     private KeybindService? _keybinds;
     private IAppLogger? _logger;
     private string _extensionDir = string.Empty;
@@ -137,6 +140,13 @@ public class LuaExtension : IDisposable
     internal void SetRemoveQueueItem(Func<string, bool>? fn) => _removeQueueItem = fn;
 
     internal void SetWsBroadcaster(Action<string>? broadcaster) => _wsBroadcaster = broadcaster;
+
+    internal void SetStorage(Func<string, string?>? getter, Action<string, string>? setter, Action<string>? deleter)
+    {
+        _storageGetter = getter;
+        _storageSetter = setter;
+        _storageDeleter = deleter;
+    }
 
     internal void SetKeybinds(KeybindService? keybinds) => _keybinds = keybinds;
 
@@ -544,6 +554,42 @@ public class LuaExtension : IDisposable
             return new(ctx.Return());
         });
         state.Environment["ws"] = wsTable;
+
+        var storageTable = new LuaTable();
+        storageTable["get"] = new LuaFunction((ctx, ct) =>
+        {
+            var key = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var getter = _storageGetter;
+            if (getter is null || string.IsNullOrWhiteSpace(key)) return new(ctx.Return(LuaValue.Nil));
+            try
+            {
+                var raw = getter(key);
+                return new(ctx.Return(raw is null ? LuaValue.Nil : JsonToLua(JToken.Parse(raw))));
+            }
+            catch (Exception ex) { _logger?.Error($"[{ExtensionId}] storage.get error: {ex.Message}"); return new(ctx.Return(LuaValue.Nil)); }
+        });
+        storageTable["set"] = new LuaFunction((ctx, ct) =>
+        {
+            var key = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var setter = _storageSetter;
+            if (setter is null || string.IsNullOrWhiteSpace(key) || !ctx.HasArgument(1)) return new(ctx.Return(false));
+            try
+            {
+                var json = LuaToJson(ctx.GetArgument<LuaValue>(1)).ToString(Newtonsoft.Json.Formatting.None);
+                setter(key, json);
+                return new(ctx.Return(true));
+            }
+            catch (Exception ex) { _logger?.Error($"[{ExtensionId}] storage.set error: {ex.Message}"); return new(ctx.Return(false)); }
+        });
+        storageTable["delete"] = new LuaFunction((ctx, ct) =>
+        {
+            var key = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var deleter = _storageDeleter;
+            if (deleter is null || string.IsNullOrWhiteSpace(key)) return new(ctx.Return(false));
+            try { deleter(key); return new(ctx.Return(true)); }
+            catch (Exception ex) { _logger?.Error($"[{ExtensionId}] storage.delete error: {ex.Message}"); return new(ctx.Return(false)); }
+        });
+        state.Environment["storage"] = storageTable;
 
         var keybindTable = new LuaTable();
         keybindTable["held"] = new LuaFunction((ctx, ct) =>

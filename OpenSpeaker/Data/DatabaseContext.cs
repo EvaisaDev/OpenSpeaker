@@ -19,6 +19,8 @@ public class DatabaseContext : IDisposable
         var settings = _db.GetCollection<AppSettings>("settings");
         if (settings.Count() == 0)
             settings.Insert(new AppSettings());
+
+        _db.GetCollection<ExtensionData>("extensiondata").EnsureIndex(d => new { d.ExtensionId, d.Key }, unique: true);
     }
 
     private ILiteCollection<T> Synchronized<T>(ILiteCollection<T> collection) =>
@@ -41,6 +43,7 @@ public class DatabaseContext : IDisposable
     public ILiteCollection<CustomApiDefinition> CustomApis => Synchronized(_db.GetCollection<CustomApiDefinition>("customapis"));
     public ILiteCollection<ExtensionConfig> ExtensionConfigs => Synchronized(_db.GetCollection<ExtensionConfig>("extensionconfigs"));
     public ILiteCollection<ExtensionSettings> ExtensionSettings => Synchronized(_db.GetCollection<ExtensionSettings>("extensionsettings"));
+    public ILiteCollection<ExtensionData> ExtensionData => Synchronized(_db.GetCollection<ExtensionData>("extensiondata"));
 
     public ILiteCollection<BsonDocument> RawCollection(string name) => Synchronized(_db.GetCollection<BsonDocument>(name));
     public void DropCollection(string name) { lock (_gate) _db.DropCollection(name); }

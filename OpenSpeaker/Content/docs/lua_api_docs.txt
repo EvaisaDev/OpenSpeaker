@@ -266,3 +266,15 @@ base64.decode(str)   base64 -> utf8 string, "" if the input is not valid base64
 json.stringify treats a table with a 1..n array part as a json array and any other table as a json
 object. An empty table serializes as an object.
 --------------------------
+storage
+--------------------------
+storage.get(key)          returns the stored value for key, or nil if unset
+storage.set(key, value)   stores value under key, returns true on success
+storage.delete(key)       removes key, returns true on success
+
+Values persist in the app database, scoped to the extension, and survive app restarts and reloads.
+value can be any json-serializable lua value (string, number, boolean, table); it round-trips
+through storage.get as the same shape it was stored as.
+
+Storage is namespaced per extension id, so two extensions can use the same key without colliding.
+--------------------------

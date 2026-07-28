@@ -100,6 +100,11 @@ public class ExtensionManager : IDisposable
             e.SetRemoveQueueItem(_removeQueueItem);
             e.SetWsBroadcaster(_wsBroadcaster);
             e.SetKeybinds(_keybinds);
+            var extensionId = e.ExtensionId;
+            e.SetStorage(
+                key => StorageGet(extensionId, key),
+                (key, value) => StorageSet(extensionId, key, value),
+                key => StorageDelete(extensionId, key));
         }
         _extensions = loaded;
         _logger?.Info($"[ExtensionManager] LoadAll complete, total speech engines registered: [{string.Join(", ", SpeechEngines.Select(e => e.EngineId))}]");
@@ -180,6 +185,26 @@ public class ExtensionManager : IDisposable
             catch (OperationCanceledException) { break; }
         }
     }
+
+    private string? StorageGet(string extensionId, string key) =>
+        _db.ExtensionData.FindOne(d => d.ExtensionId == extensionId && d.Key == key)?.Value;
+
+    private void StorageSet(string extensionId, string key, string value)
+    {
+        var existing = _db.ExtensionData.FindOne(d => d.ExtensionId == extensionId && d.Key == key);
+        if (existing is null)
+        {
+            _db.ExtensionData.Insert(new ExtensionData { ExtensionId = extensionId, Key = key, Value = value });
+        }
+        else
+        {
+            existing.Value = value;
+            _db.ExtensionData.Update(existing);
+        }
+    }
+
+    private void StorageDelete(string extensionId, string key) =>
+        _db.ExtensionData.DeleteMany(d => d.ExtensionId == extensionId && d.Key == key);
 
     public void SaveSettings(string extensionId, Dictionary<string, string> values)
     {

@@ -11,7 +11,7 @@ using OpenSpeaker.TTS;
 namespace OpenSpeaker.Extensions;
 
 public record ExtAuthField(string Key, string Label, string Type);
-public record ExtSettingField(string Key, string Label, string Type, string Default, string[] Options);
+public record ExtSettingField(string Key, string Label, string Type, string Default, string[] Options, string Action = "");
 public record QueueEntryInfo(string Id, string Text, string Username, string UserId);
 public record MessageFilterContext(
     string Id,
@@ -51,6 +51,7 @@ public class LuaExtension : IDisposable
     private Action<string, string>? _storageSetter;
     private Action<string>? _storageDeleter;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Net.WebSockets.ClientWebSocket> _wsClients = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _statusValues = new();
     private KeybindService? _keybinds;
     private IAppLogger? _logger;
     private string _extensionDir = string.Empty;
@@ -189,6 +190,21 @@ public class LuaExtension : IDisposable
     internal string GetSettingValue(string key) =>
         _settingValues.TryGetValue(key, out var v) ? v
         : _settingFields.FirstOrDefault(f => f.Key == key)?.Default ?? string.Empty;
+
+    internal string GetStatusValue(string key) => _statusValues.TryGetValue(key, out var v) ? v : string.Empty;
+
+    internal async Task InvokeSettingActionAsync(string action)
+    {
+        if (string.IsNullOrEmpty(action)) return;
+        await _stateLock.WaitAsync();
+        try
+        {
+            if (!_state.Environment[action].TryRead<LuaFunction>(out var fn)) return;
+            await _state.CallAsync(fn, Array.Empty<LuaValue>());
+        }
+        catch (Exception ex) { _logger?.Error($"[{ExtensionId}] {action} error: {ex.Message}"); }
+        finally { _stateLock.Release(); }
+    }
 
     internal void SetAuth(string engineId, string configJson)
     {
@@ -756,6 +772,16 @@ public class LuaExtension : IDisposable
             return new(0);
         });
 
+        state.Environment["SetStatus"] = new LuaFunction((ctx, ct) =>
+        {
+            if (!ctx.HasArgument(0)) return new(0);
+            var key = ctx.GetArgument<string>(0);
+            string? value = null;
+            if (ctx.HasArgument(1)) ctx.GetArgument<LuaValue>(1).TryRead<string>(out value);
+            _statusValues[key] = value ?? string.Empty;
+            return new(0);
+        });
+
         state.Environment["GetSettings"] = new LuaFunction((ctx, ct) =>
         {
             var t = new LuaTable();
@@ -1082,7 +1108,10 @@ public class LuaExtension : IDisposable
                 options = opts.ToArray();
             }
 
-            fields.Add(new ExtSettingField(key, label ?? ToLabel(key), type, defaultStr, options));
+            entry["action"].TryRead<string>(out var action);
+            action ??= string.Empty;
+
+            fields.Add(new ExtSettingField(key, label ?? ToLabel(key), type, defaultStr, options, action));
         }
         return fields;
     }

@@ -10,7 +10,7 @@
 ---@field label? string Defaults to a prettified key.
 ---@field type? "string" Only "string" is supported.
 
----@alias openspeaker.SettingType "text"|"number"|"checkbox"|"dropdown"|"keybind"|"file"
+---@alias openspeaker.SettingType "text"|"number"|"checkbox"|"dropdown"|"keybind"|"file"|"status"|"button"
 
 ---@class openspeaker.SettingField
 ---@field key string
@@ -18,6 +18,7 @@
 ---@field type? openspeaker.SettingType Defaults to "text".
 ---@field default? string|number|boolean
 ---@field options? string[] Required for "dropdown", ignored otherwise.
+---@field action? string Required for "button": name of a global function called with no arguments on click.
 
 ---@class openspeaker.EngineDef
 ---@field id string Raw id. OpenSpeaker registers it as "ext:<id>".
@@ -98,6 +99,12 @@ function GetSetting(key) end
 ---Returns every registered setting, typed the same way GetSetting types them.
 ---@return table<string, string|number|boolean>
 function GetSettings() end
+
+---Sets the live display value of a "status" setting field. Not persisted, not affected by Save
+---Settings; purely for showing the extension's current state (e.g. connection status) in the UI.
+---@param key string A "status" setting key.
+---@param value string
+function SetStatus(key, value) end
 
 ---Reserved. Currently always returns an empty table.
 ---@return table

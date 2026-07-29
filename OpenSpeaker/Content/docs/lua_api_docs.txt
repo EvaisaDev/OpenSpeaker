@@ -57,12 +57,17 @@ Everywhere OpenSpeaker stores an engine id it prefixes it with "ext:", so the en
 GetVoices/GenerateSpeech callbacks, and the one you pass to GetAuth, is the raw unprefixed id.
 --------------------------
 To add a settings panel under the Extensions tab use RegisterSettings().
-types: text, number, checkbox, dropdown (dropdown requires options), keybind, file
+types: text, number, checkbox, dropdown (dropdown requires options), keybind, file, status, button
 label is optional and defaults to a prettified key.
 "file" renders a text box plus a Browse... button that opens a native Windows file picker; the
 value stored/passed to GetSetting is always the chosen absolute path as a string. Users can also
 type a path directly (e.g. a path relative to the extension folder, resolved the same way
 dofile()/sound.play() resolve paths).
+"status" renders a read-only label showing whatever value was last set with SetStatus(key, value).
+Not persisted and not included in Save Settings; purely a live display, refreshed in the UI a few
+times a second while the extension's settings panel is open.
+"button" renders a clickable button (its label is the button text) that calls a global function
+named by the "action" key, with no arguments, when clicked. Requires "action", ignores "default".
 --------------------------
 RegisterSettings({
 	{ key = "quality", label = "Quality", type = "dropdown", options = {"standard", "premium"}, default = "standard" },
@@ -71,7 +76,13 @@ RegisterSettings({
 	{ key = "prefix",  label = "Prefix",  type = "text",     default = "" },
 	{ key = "say_hi",  label = "Say Hi",  type = "keybind",  default = "F8" },
 	{ key = "clip",    label = "Sound Clip", type = "file",  default = "" },
+	{ key = "conn_status", label = "Connection Status", type = "status", default = "Disconnected" },
+	{ key = "reconnect",   label = "Reconnect",         type = "button", action = "reconnect_now" },
 })
+
+function reconnect_now()
+	SetStatus("conn_status", "Reconnecting...")
+end
 --------------------------
 If you were using another engine as a workaround in old SpeakerBot, RegisterMigrationHook() tells
 the importer to remap that engine's voices and config to yours during import.
@@ -276,6 +287,7 @@ GetAuth(engine_id)   returns a table of the auth values the user entered for tha
 GetSetting(key)      returns a single setting value
 GetSettings()        returns all settings as a table
 GetVoiceSettings()   reserved, currently always returns an empty table
+SetStatus(key, value) sets the live display value of a "status" setting field
 log(msg)             writes to the debug log
 
 Setting values come back typed: checkbox fields are booleans, number fields are numbers, and

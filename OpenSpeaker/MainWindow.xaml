@@ -2370,7 +2370,17 @@
                                                             </Grid.ColumnDefinitions>
                                                             <TextBlock Text="{Binding Label}" VerticalAlignment="Center"
                                                                        TextWrapping="Wrap" Margin="0,0,10,0"
-                                                                       Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                                                                       Foreground="{DynamicResource TextSecondary}" FontSize="12">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsButton}" Value="True">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
 
                                                             <TextBox Grid.Column="1"
                                                                      Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}">
@@ -2454,6 +2464,38 @@
                                                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                                                         <Style.Triggers>
                                                                             <DataTrigger Binding="{Binding IsFilePicker}" Value="False">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Button.Style>
+                                                            </Button>
+
+                                                            <TextBlock Grid.Column="1"
+                                                                       Text="{Binding Value}"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource TextPrimary}"
+                                                                       FontWeight="SemiBold">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsStatus}" Value="False">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+
+                                                            <Button Grid.Column="1"
+                                                                    HorizontalAlignment="Left"
+                                                                    Padding="10,4"
+                                                                    Content="{Binding Label}"
+                                                                    Command="{Binding ClickCommand}">
+                                                                <Button.Style>
+                                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsButton}" Value="False">
                                                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                                             </DataTrigger>
                                                                         </Style.Triggers>

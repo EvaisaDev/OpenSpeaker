@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Windows.Threading;
 using OpenSpeaker.Extensions;
 using OpenSpeaker.Services;
 using OpenSpeaker.TTS;
@@ -57,12 +58,16 @@ public class SettingFieldViewModel : BaseViewModel
     public bool IsDropdown => Type == "dropdown";
     public bool IsKeybind => Type == "keybind";
     public bool IsFilePicker => Type == "file";
+    public bool IsStatus => Type == "status";
+    public bool IsButton => Type == "button";
 
     public RelayCommand BrowseCommand { get; }
+    public RelayCommand ClickCommand { get; }
 
-    public SettingFieldViewModel()
+    public SettingFieldViewModel(Action? onClick = null)
     {
         BrowseCommand = new RelayCommand(Browse);
+        ClickCommand = new RelayCommand(() => onClick?.Invoke());
     }
 
     private void Browse()
@@ -95,6 +100,7 @@ public class ExtensionsViewModel : BaseViewModel
     private readonly ExtensionManager _extensions;
     private readonly TtsEngineRegistry _registry;
     private readonly VoicePool _voicePool;
+    private readonly DispatcherTimer _statusTimer;
 
     public ObservableCollection<ExtensionItem> Items { get; } = new();
     public ObservableCollection<SettingFieldViewModel> SettingFields { get; } = new();
@@ -124,7 +130,22 @@ public class ExtensionsViewModel : BaseViewModel
         OpenExtensionsFolderCommand = new RelayCommand(OpenExtensionsFolder);
         SaveSettingsCommand = new RelayCommand(SaveSettings, () => HasSettings);
 
+        _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _statusTimer.Tick += (_, _) => RefreshStatusFields();
+        _statusTimer.Start();
+
         Refresh();
+    }
+
+    private void RefreshStatusFields()
+    {
+        if (_selected == null || SettingFields.Count == 0) return;
+        var ext = _extensions.Extensions.FirstOrDefault(e => e.ExtensionId == _selected.EngineId);
+        if (ext == null) return;
+
+        foreach (var field in SettingFields)
+            if (field.IsStatus)
+                field.Value = ext.GetStatusValue(field.Key);
     }
 
     private void Refresh()
@@ -164,14 +185,16 @@ public class ExtensionsViewModel : BaseViewModel
 
         foreach (var field in ext.SettingFields)
         {
-            SettingFields.Add(new SettingFieldViewModel
+            var action = field.Action;
+            var vm = new SettingFieldViewModel(field.Type == "button" ? () => _ = ext.InvokeSettingActionAsync(action) : null)
             {
                 Key = field.Key,
                 Label = field.Label,
                 Type = field.Type,
                 Options = field.Options,
-                Value = ext.GetSettingValue(field.Key)
-            });
+                Value = field.Type == "status" ? ext.GetStatusValue(field.Key) : ext.GetSettingValue(field.Key)
+            };
+            SettingFields.Add(vm);
         }
 
         OnPropertyChanged(nameof(HasSettings));
@@ -180,7 +203,7 @@ public class ExtensionsViewModel : BaseViewModel
     private void SaveSettings()
     {
         if (_selected == null) return;
-        var values = SettingFields.ToDictionary(f => f.Key, f => f.Value);
+        var values = SettingFields.Where(f => !f.IsStatus && !f.IsButton).ToDictionary(f => f.Key, f => f.Value);
         _extensions.SaveSettings(_selected.EngineId, values);
     }
 

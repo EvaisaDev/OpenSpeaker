@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.7] - 2026-07-29
+
+### Other
+- More API stuff ([`faca0d6`](https://github.com/EvaisaDev/OpenSpeaker/commit/faca0d6))
+  - Status fields
+  - Buttons
+
 ## [0.5.6] - 2026-07-29
 
 _No notable changes._
@@ -189,6 +196,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

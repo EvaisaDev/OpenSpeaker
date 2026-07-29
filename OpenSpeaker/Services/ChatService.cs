@@ -62,7 +62,7 @@ public class ChatService
         _logger?.Info($"CHAT :: Mode={settings.Mode} Enabled={settings.Enabled}");
         if (settings.Mode == TtsModes.Everything)
         {
-            await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, e.Message, e.Roles, isReply: e.IsReply, isHighlight: e.IsHighlight, isSubscriber: e.IsSubscriber, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
+            await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, e.Message, e.Roles, isReply: e.IsReply, isHighlight: e.IsHighlight, isSubscriber: e.IsSubscriber, isSelf: e.IsSelf, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
         }
         else if (settings.Mode == TtsModes.Command)
         {
@@ -72,7 +72,7 @@ public class ChatService
                 {
                     var text = matchMessage.Substring(cmd.Length).Trim();
                     if (!string.IsNullOrEmpty(text))
-                        await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, text, e.Roles, isCommand: true, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
+                        await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, text, e.Roles, isCommand: true, isSelf: e.IsSelf, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
                     break;
                 }
             }
@@ -91,7 +91,7 @@ public class ChatService
                 e.Roles.Contains(UserRoles.Moderator, StringComparer.OrdinalIgnoreCase),
                 e.Roles.Contains(UserRoles.VIP, StringComparer.OrdinalIgnoreCase),
                 e.Roles.Contains(UserRoles.Broadcaster, StringComparer.OrdinalIgnoreCase),
-                user.IsRegular, user.IsIgnored, user.IsForced
+                user.IsRegular, user.IsIgnored, user.IsForced, e.IsSelf
             );
             await _extensions.ObserveMessageAsync(ctx, e.Message);
         }

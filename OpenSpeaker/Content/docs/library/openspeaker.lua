@@ -42,6 +42,11 @@
 ---@field is_regular boolean
 ---@field is_ignored boolean
 ---@field is_forced boolean
+---@field is_self boolean True only when OpenSpeaker itself sent this exact message (via chat.send or a timeout announcement), regardless of which account sent it.
+
+---@class openspeaker.TtsUser
+---@field id string
+---@field username string
 
 ---@class openspeaker.SpeechResult
 ---@field url? string OpenSpeaker fetches this url.
@@ -159,6 +164,40 @@ ws = {}
 ---@param type string
 ---@param data? table
 function ws.broadcast(type, data) end
+
+wsclient = {}
+
+---Connects out to an external websocket server (the opposite direction of ws.broadcast, which is
+---for clients connecting into OpenSpeaker).
+---@param url string
+---@return string|nil handle nil on failure
+---@return string|nil err Only set when handle is nil.
+function wsclient.connect(url) end
+
+---@param handle string
+---@return boolean
+function wsclient.is_connected(handle) end
+
+---Fire-and-forget send. message is typically json.stringify(...) of a table.
+---@param handle string
+---@param message string
+---@return boolean ok
+function wsclient.send(handle, message) end
+
+---Sends message then blocks for the next full text message on that socket, or until timeout_ms
+---elapses. Intended for a socket your extension owns exclusively and calls serially; if something
+---else sends unsolicited messages on the same socket, a call may return that message instead of an
+---actual reply.
+---@param handle string
+---@param message string
+---@param timeout_ms? number Defaults to 2000.
+---@return string|nil reply
+---@return string|nil err Only set when reply is nil ("timeout", "not connected", or a socket error).
+function wsclient.request(handle, message, timeout_ms) end
+
+---Closes and forgets the connection. All connections also close automatically on unload/reload.
+---@param handle string
+function wsclient.close(handle) end
 
 keybind = {}
 
@@ -303,3 +342,13 @@ function OnUpdate() end
 ---@param data table The full decoded request object, including "id" and "request".
 ---@return table|nil
 function OnWsCommand(command, data) end
+
+---Optional. Called right after a TTS item is synthesized, before it plays through OpenSpeaker's own
+---audio output. audio_base64 is the synthesized audio as a base64-encoded WAV file (self-describing:
+---sample rate/channels/bit depth are in its header). Return "mute" to suppress local playback (e.g.
+---because you already routed the audio elsewhere yourself); return nil to let it play locally as
+---normal. Several extensions chain in load order; the first to return "mute" wins.
+---@param user openspeaker.TtsUser
+---@param audio_base64 string
+---@return "mute"|nil
+function OnBeforeSpeak(user, audio_base64) end

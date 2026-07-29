@@ -14,4 +14,5 @@ public class ChatMessageEventArgs : EventArgs
     public bool IsReply { get; init; }
     public IReadOnlyList<string> MessageEmotes { get; init; } = Array.Empty<string>();
     public IReadOnlyList<string> MessageCheermotes { get; init; } = Array.Empty<string>();
+    public bool IsSelf { get; init; }
 }

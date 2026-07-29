@@ -48,7 +48,7 @@ public class SayEverythingHandler
         _logger = logger;
     }
 
-    public async Task HandleAsync(string twitchId, string username, string displayName, string message, List<string> roles, bool isCommand = false, bool isReply = false, bool isHighlight = false, bool isSubscriber = false, IReadOnlyList<string>? messageEmotes = null, IReadOnlyList<string>? messageCheermotes = null)
+    public async Task HandleAsync(string twitchId, string username, string displayName, string message, List<string> roles, bool isCommand = false, bool isReply = false, bool isHighlight = false, bool isSubscriber = false, bool isSelf = false, IReadOnlyList<string>? messageEmotes = null, IReadOnlyList<string>? messageCheermotes = null)
     {
         _logger?.Info($"SAY :: HandleAsync {username}: {message} [isCommand={isCommand}]");
         var settings = _settingsRepo.GetSettings();
@@ -100,7 +100,7 @@ public class SayEverythingHandler
                 roles.Contains(UserRoles.Moderator, StringComparer.OrdinalIgnoreCase),
                 roles.Contains(UserRoles.VIP, StringComparer.OrdinalIgnoreCase),
                 roles.Contains(UserRoles.Broadcaster, StringComparer.OrdinalIgnoreCase),
-                user.IsRegular, user.IsIgnored, user.IsForced
+                user.IsRegular, user.IsIgnored, user.IsForced, isSelf
             );
             sanitized = await _extensions.ProcessMessageAsync(ctx, sanitized);
             if (string.IsNullOrWhiteSpace(sanitized)) { _logger?.Info("SAY :: Dropped - extension filtered"); return; }

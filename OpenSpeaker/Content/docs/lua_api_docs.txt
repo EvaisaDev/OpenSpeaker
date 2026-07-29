@@ -121,7 +121,11 @@ end
 --------------------------
 Optionally define OnMessage to intercept chat messages before they get spoken.
 user fields: id, username, display_name, nickname, is_subscriber, is_mod, is_vip,
-			is_broadcaster, is_regular, is_ignored, is_forced
+			is_broadcaster, is_regular, is_ignored, is_forced, is_self
+
+is_self is true when the message was sent by OpenSpeaker's own connected account (the bot
+account if one is set, otherwise the broadcaster account). Use this to always skip your own
+messages, since sending a chat message can cause it to be echoed back through chat.
 
 Return a string to replace the message, or "" to block it entirely.
 Returning nil (or erroring) passes the original message through unchanged, it does NOT block.
@@ -176,6 +180,28 @@ function OnWsCommand(command, data)
 	return { ok = true }
 end
 --------------------------
+Optionally define OnBeforeSpeak to intercept a TTS item right after it's synthesized, before it
+plays through OpenSpeaker's own audio output. user has only id and username (the other ChatUser
+fields aren't available at this point, since a TTS item is not necessarily tied to a single chat
+message). audio_base64 is the fully synthesized audio as a base64-encoded WAV file (self-describing,
+includes sample rate/channels/bit depth in its header, decodable by any standard WAV reader).
+
+Return the string "mute" to suppress local playback entirely (e.g. because you already routed the
+audio somewhere else yourself, such as over wsclient). Return nil to let it play locally as normal.
+If several extensions define OnBeforeSpeak they're tried in load order and the first one to return
+"mute" wins; once one mutes it, the rest are not called.
+
+This does not stop the item from counting as queued/playing/completed for lifecycle events and
+queue.playing()/queue.list(), it only decides whether local audio is actually produced.
+--------------------------
+function OnBeforeSpeak(user, audio_base64)
+	if user_is_elsewhere(user.username) then
+		send_audio_elsewhere(audio_base64)
+		return "mute"
+	end
+	return nil
+end
+--------------------------
 Keybinds
 --------------------------
 Keys are read from a global hook, so binds fire while OpenSpeaker is unfocused. Input going to a
@@ -224,6 +250,25 @@ ws.broadcast(type, data?)  sends { timeStamp, event = { source = "Extension", ty
 	every client connected to either websocket server (the Speaker.bot-protocol one and the
 	events-only one). data is an optional plain table, serialized the same way json.stringify
 	serializes it. type is a string you choose, e.g. "CopypastaTimeout".
+--------------------------
+wsclient (outbound websocket client)
+--------------------------
+ws.* above is for clients connecting INTO OpenSpeaker. wsclient is the opposite direction: use it
+when your extension needs to connect OUT to some other websocket server (e.g. a game you're
+building) and talk to it.
+
+wsclient.connect(url)                    -> handle, or nil, err
+wsclient.is_connected(handle)            -> bool
+wsclient.send(handle, message)           -> ok           fire-and-forget, message is a string (e.g. json.stringify(...))
+wsclient.request(handle, message, timeout_ms?) -> reply, or nil, err
+	sends message then blocks until the next full text message arrives on that socket or
+	timeout_ms elapses (default 2000). This is a simple one-in-one-out request/response helper: if
+	something else could send unsolicited messages on the same socket at the wrong time, that
+	message would incorrectly be returned as if it were the reply. Fine for a socket your extension
+	owns exclusively and calls serially.
+wsclient.close(handle)                   closes and forgets the connection
+
+All connections are closed automatically when the extension unloads/reloads.
 --------------------------
 Settings and auth
 --------------------------

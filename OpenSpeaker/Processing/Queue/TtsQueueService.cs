@@ -1,10 +1,12 @@
 using OpenSpeaker.Audio;
 using OpenSpeaker.Data;
+using OpenSpeaker.Extensions;
 using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Models;
 using OpenSpeaker.TTS;
 using OpenSpeaker.Users;
 using System.Collections.Concurrent;
+using System.IO;
 namespace OpenSpeaker.Queue;
 
 public class TtsQueueService : ITtsQueue, IDisposable
@@ -14,6 +16,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
     private readonly PlaybackCoordinator _playback;
     private readonly Func<IAudioPlayer> _playerFactory;
     private readonly SettingsRepository _settingsRepo;
+    private readonly ExtensionManager? _extensions;
     private readonly CancellationTokenSource _cts = new();
     private bool _paused = false;
     private readonly object _pauseLock = new();
@@ -35,12 +38,14 @@ public class TtsQueueService : ITtsQueue, IDisposable
         PlaybackCoordinator playback,
         Func<IAudioPlayer> playerFactory,
         SettingsRepository settingsRepo,
+        ExtensionManager? extensions = null,
         IAppLogger? logger = null)
     {
         _synthesizer = synthesizer;
         _playback = playback;
         _playerFactory = playerFactory;
         _settingsRepo = settingsRepo;
+        _extensions = extensions;
         _logger = logger;
 
         Task.Run(ProcessLoop);
@@ -117,8 +122,17 @@ public class TtsQueueService : ITtsQueue, IDisposable
         var settings = _settingsRepo.GetSettings();
         try
         {
+            var suppressPlayback = result.Item.IsSilent;
+            if (!suppressPlayback && _extensions is { HasBeforeSpeakHooks: true } && !result.Audio.IsEmpty)
+            {
+                var wavBase64 = ToWavBase64(result.Audio);
+                var action = await _extensions.InvokeBeforeSpeakAsync(result.Item.UserId, result.Item.Username, wavBase64);
+                if (string.Equals(action, "mute", StringComparison.OrdinalIgnoreCase))
+                    suppressPlayback = true;
+            }
+
             _logger?.Info($"QUEUE :: IsSilent={result.Item.IsSilent} DisableAudioOutput={settings.DisableAudioOutput}");
-            if (!result.Item.IsSilent && !settings.DisableAudioOutput)
+            if (!suppressPlayback && !settings.DisableAudioOutput)
             {
                 while (_paused && !_cts.IsCancellationRequested)
                     await Task.Delay(100);
@@ -204,5 +218,33 @@ public class TtsQueueService : ITtsQueue, IDisposable
         _queue.CompleteAdding();
         _cts.Dispose();
         _queue.Dispose();
+    }
+
+    private static string ToWavBase64(AudioData audio)
+    {
+        var format = audio.Format;
+        var samples = audio.Samples;
+        var byteRate = format.SampleRate * format.Channels * (format.BitsPerSample / 8);
+        var blockAlign = (short)(format.Channels * (format.BitsPerSample / 8));
+
+        using var ms = new MemoryStream();
+        using (var bw = new BinaryWriter(ms, System.Text.Encoding.ASCII, leaveOpen: true))
+        {
+            bw.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
+            bw.Write(36 + samples.Length);
+            bw.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
+            bw.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
+            bw.Write(16);
+            bw.Write((short)1);
+            bw.Write((short)format.Channels);
+            bw.Write(format.SampleRate);
+            bw.Write(byteRate);
+            bw.Write(blockAlign);
+            bw.Write((short)format.BitsPerSample);
+            bw.Write(System.Text.Encoding.ASCII.GetBytes("data"));
+            bw.Write(samples.Length);
+            bw.Write(samples);
+        }
+        return Convert.ToBase64String(ms.ToArray());
     }
 }

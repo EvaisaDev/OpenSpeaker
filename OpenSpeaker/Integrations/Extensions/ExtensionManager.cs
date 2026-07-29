@@ -235,6 +235,19 @@ public class ExtensionManager : IDisposable
         return message;
     }
 
+    public bool HasBeforeSpeakHooks => _extensions.Any(e => e.HasBeforeSpeak);
+
+    public async Task<string?> InvokeBeforeSpeakAsync(string userId, string username, string audioBase64Wav)
+    {
+        var snapshot = _extensions;
+        foreach (var ext in snapshot.Where(e => e.HasBeforeSpeak))
+        {
+            var action = await ext.InvokeBeforeSpeakAsync(userId, username, audioBase64Wav);
+            if (!string.IsNullOrEmpty(action)) return action;
+        }
+        return null;
+    }
+
     public bool HasWsCommandHandlers => _extensions.Any(e => e.HasWsCommand);
 
     public async Task<JToken?> DispatchWsCommandAsync(string command, JObject data)

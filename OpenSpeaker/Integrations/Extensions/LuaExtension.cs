@@ -24,7 +24,8 @@ public record MessageFilterContext(
     bool IsBroadcaster,
     bool IsRegular,
     bool IsIgnored,
-    bool IsForced
+    bool IsForced,
+    bool IsSelf
 );
 
 public class LuaExtension : IDisposable
@@ -49,6 +50,7 @@ public class LuaExtension : IDisposable
     private Func<string, string?>? _storageGetter;
     private Action<string, string>? _storageSetter;
     private Action<string>? _storageDeleter;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Net.WebSockets.ClientWebSocket> _wsClients = new();
     private KeybindService? _keybinds;
     private IAppLogger? _logger;
     private string _extensionDir = string.Empty;
@@ -60,6 +62,7 @@ public class LuaExtension : IDisposable
     public bool HasChatObserver { get; private set; }
     public bool HasUpdate { get; private set; }
     public bool HasWsCommand { get; private set; }
+    public bool HasBeforeSpeak { get; private set; }
     public bool HasKeybinds => _settingFields.Any(f => f.Type == "keybind");
     public bool NeedsTick => HasUpdate || HasKeybinds;
     public IReadOnlyList<LuaTtsEngine> SpeechEngines => _speechEngines;
@@ -98,6 +101,7 @@ public class LuaExtension : IDisposable
         ext.HasChatObserver = ext._state.Environment["OnChat"].TryRead<LuaFunction>(out _);
         ext.HasUpdate = ext._state.Environment["OnUpdate"].TryRead<LuaFunction>(out _);
         ext.HasWsCommand = ext._state.Environment["OnWsCommand"].TryRead<LuaFunction>(out _);
+        ext.HasBeforeSpeak = ext._state.Environment["OnBeforeSpeak"].TryRead<LuaFunction>(out _);
         return ext;
     }
 
@@ -350,6 +354,24 @@ public class LuaExtension : IDisposable
         finally { _stateLock.Release(); }
     }
 
+    internal async Task<string?> InvokeBeforeSpeakAsync(string userId, string username, string audioBase64Wav)
+    {
+        await _stateLock.WaitAsync();
+        try
+        {
+            if (!_state.Environment["OnBeforeSpeak"].TryRead<LuaFunction>(out var fn)) return null;
+            var userTable = new LuaTable();
+            userTable["id"] = userId;
+            userTable["username"] = username;
+            var results = await _state.CallAsync(fn, new LuaValue[] { userTable, audioBase64Wav });
+            if (results.Length > 0 && results[0].TryRead<string>(out var action))
+                return action;
+            return null;
+        }
+        catch (Exception ex) { _logger?.Error($"[{ExtensionId}] OnBeforeSpeak error: {ex.Message}"); return null; }
+        finally { _stateLock.Release(); }
+    }
+
     private static LuaTable BuildUserTable(MessageFilterContext ctx)
     {
         var t = new LuaTable();
@@ -364,6 +386,7 @@ public class LuaExtension : IDisposable
         t["is_regular"] = ctx.IsRegular;
         t["is_ignored"] = ctx.IsIgnored;
         t["is_forced"] = ctx.IsForced;
+        t["is_self"] = ctx.IsSelf;
         return t;
     }
 
@@ -554,6 +577,85 @@ public class LuaExtension : IDisposable
             return new(ctx.Return());
         });
         state.Environment["ws"] = wsTable;
+
+        var wsClientTable = new LuaTable();
+        wsClientTable["connect"] = new LuaFunction(async (ctx, ct) =>
+        {
+            var url = ctx.GetArgument<string>(0);
+            var handle = Guid.NewGuid().ToString("N");
+            try
+            {
+                var client = new System.Net.WebSockets.ClientWebSocket();
+                await client.ConnectAsync(new Uri(url), _disposeCts.Token);
+                _wsClients[handle] = client;
+                return ctx.Return(handle);
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"[{ExtensionId}] wsclient.connect error: {ex.Message}");
+                return ctx.Return(LuaValue.Nil, ex.Message);
+            }
+        });
+        wsClientTable["is_connected"] = new LuaFunction((ctx, ct) =>
+        {
+            var handle = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var connected = _wsClients.TryGetValue(handle, out var client) && client.State == System.Net.WebSockets.WebSocketState.Open;
+            return new(ctx.Return(connected));
+        });
+        wsClientTable["send"] = new LuaFunction(async (ctx, ct) =>
+        {
+            var handle = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var message = ctx.HasArgument(1) ? ctx.GetArgument<string>(1) : string.Empty;
+            if (!_wsClients.TryGetValue(handle, out var client) || client.State != System.Net.WebSockets.WebSocketState.Open)
+                return ctx.Return(false);
+            try
+            {
+                var bytes = System.Text.Encoding.UTF8.GetBytes(message);
+                await client.SendAsync(bytes, System.Net.WebSockets.WebSocketMessageType.Text, true, _disposeCts.Token);
+                return ctx.Return(true);
+            }
+            catch (Exception ex) { _logger?.Error($"[{ExtensionId}] wsclient.send error: {ex.Message}"); return ctx.Return(false); }
+        });
+        wsClientTable["request"] = new LuaFunction(async (ctx, ct) =>
+        {
+            var handle = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            var message = ctx.HasArgument(1) ? ctx.GetArgument<string>(1) : string.Empty;
+            var timeoutMs = ctx.HasArgument(2) ? (int)ctx.GetArgument<double>(2) : 2000;
+            if (!_wsClients.TryGetValue(handle, out var client) || client.State != System.Net.WebSockets.WebSocketState.Open)
+                return ctx.Return(LuaValue.Nil, "not connected");
+            try
+            {
+                var bytes = System.Text.Encoding.UTF8.GetBytes(message);
+                await client.SendAsync(bytes, System.Net.WebSockets.WebSocketMessageType.Text, true, _disposeCts.Token);
+
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(_disposeCts.Token);
+                timeoutCts.CancelAfter(timeoutMs);
+                var buffer = new byte[8192];
+                using var ms = new MemoryStream();
+                System.Net.WebSockets.WebSocketReceiveResult result;
+                do
+                {
+                    result = await client.ReceiveAsync(buffer, timeoutCts.Token);
+                    ms.Write(buffer, 0, result.Count);
+                } while (!result.EndOfMessage);
+
+                return ctx.Return(System.Text.Encoding.UTF8.GetString(ms.ToArray()));
+            }
+            catch (OperationCanceledException) { return ctx.Return(LuaValue.Nil, "timeout"); }
+            catch (Exception ex) { _logger?.Error($"[{ExtensionId}] wsclient.request error: {ex.Message}"); return ctx.Return(LuaValue.Nil, ex.Message); }
+        });
+        wsClientTable["close"] = new LuaFunction(async (ctx, ct) =>
+        {
+            var handle = ctx.HasArgument(0) ? ctx.GetArgument<string>(0) : string.Empty;
+            if (_wsClients.TryRemove(handle, out var client))
+            {
+                try { await client.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "closed", CancellationToken.None); }
+                catch { }
+                client.Dispose();
+            }
+            return ctx.Return();
+        });
+        state.Environment["wsclient"] = wsClientTable;
 
         var storageTable = new LuaTable();
         storageTable["get"] = new LuaFunction((ctx, ct) =>
@@ -1026,6 +1128,8 @@ public class LuaExtension : IDisposable
         try { Task.WaitAll(_asyncJobs.Values.ToArray(), TimeSpan.FromSeconds(2)); } catch { }
         try { _stateLock.Wait(TimeSpan.FromSeconds(2)); } catch { }
         _asyncJobs.Clear();
+        foreach (var client in _wsClients.Values) client.Dispose();
+        _wsClients.Clear();
         _http.Dispose();
         _stateLock.Dispose();
         _disposeCts.Dispose();

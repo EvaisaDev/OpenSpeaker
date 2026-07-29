@@ -20,6 +20,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
     private TwitchAPI? _api;
     private bool _connected = false;
     private bool _hasConnectedOnce = false;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _sentMessageIds = new();
 
     public bool IsConnected => _connected;
     public bool IsChatConnected => _connected;
@@ -90,7 +91,11 @@ public class TwitchEventSubService : ITwitchService, IDisposable
         var accessToken = sender?.AccessToken;
         var clientId = sender?.ClientId;
         var senderId = sender?.UserId;
-        if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(senderId) || string.IsNullOrEmpty(broadcasterId)) return;
+        if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(senderId) || string.IsNullOrEmpty(broadcasterId))
+        {
+            _logger?.Warn($"TWITCH :: Send chat message aborted, missing credentials (hasToken={!string.IsNullOrEmpty(accessToken)}, hasClientId={!string.IsNullOrEmpty(clientId)}, hasSenderId={!string.IsNullOrEmpty(senderId)}, hasBroadcasterId={!string.IsNullOrEmpty(broadcasterId)})");
+            return;
+        }
         try
         {
             var http = OpenSpeaker.Infrastructure.Http.HttpClientFactory.GetClient("twitch-helix");
@@ -102,13 +107,28 @@ public class TwitchEventSubService : ITwitchService, IDisposable
             req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
             req.Headers.Add("Client-Id", clientId);
             var resp = await http.SendAsync(req);
+            var respBody = await resp.Content.ReadAsStringAsync();
             if (!resp.IsSuccessStatusCode)
             {
-                var respBody = await resp.Content.ReadAsStringAsync();
                 _logger?.Warn($"TWITCH :: Send chat message failed ({(int)resp.StatusCode}): {respBody}");
+                return;
+            }
+            using var doc = System.Text.Json.JsonDocument.Parse(respBody);
+            if (doc.RootElement.TryGetProperty("data", out var data) && data.GetArrayLength() > 0)
+            {
+                var messageId = data[0].TryGetProperty("message_id", out var idProp) ? idProp.GetString() : null;
+                if (!string.IsNullOrEmpty(messageId)) TrackSentMessageId(messageId);
             }
         }
         catch (Exception ex) { _logger?.Warn($"TWITCH :: Failed to send chat message: {ex.Message}"); }
+    }
+
+    private void TrackSentMessageId(string messageId)
+    {
+        var cutoff = DateTime.UtcNow.AddSeconds(-30);
+        foreach (var kv in _sentMessageIds)
+            if (kv.Value < cutoff) _sentMessageIds.TryRemove(kv.Key, out _);
+        _sentMessageIds[messageId] = DateTime.UtcNow;
     }
 
     public async Task<bool> TimeoutUserAsync(string userId, int seconds, string reason)
@@ -257,6 +277,8 @@ public class TwitchEventSubService : ITwitchService, IDisposable
             .Select(f => f.Text)
             .ToList() ?? [];
 
+        var isSelf = _sentMessageIds.TryRemove(msg.MessageId, out _);
+
         ChatMessage?.Invoke(this, new ChatMessageEventArgs
         {
             UserId = msg.ChatterUserId,
@@ -271,6 +293,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
             IsReply = msg.Reply != null,
             MessageEmotes = messageEmotes,
             MessageCheermotes = messageCheermotes,
+            IsSelf = isSelf,
         });
         await Task.CompletedTask;
     }

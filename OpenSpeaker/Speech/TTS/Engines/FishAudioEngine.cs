@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Models;
@@ -67,10 +68,63 @@ public class FishAudioEngine : HttpTtsEngine, IVoiceSearchEngine
     public Task<IReadOnlyList<VoiceInfo>> TopVoicesAsync(int limit) =>
         FetchModelsAsync($"/model?page_size={limit}&page_number=1&sort_by=task_count");
 
-    public Task<IReadOnlyList<VoiceInfo>> SearchVoicesAsync(string query, int limit)
+    public async Task<IReadOnlyList<VoiceInfo>> SearchVoicesAsync(string query, int limit)
     {
-        if (string.IsNullOrWhiteSpace(query)) return TopVoicesAsync(limit);
-        return FetchModelsAsync($"/model?title={Uri.EscapeDataString(query)}&page_size={limit}&page_number=1&sort_by=task_count");
+        if (string.IsNullOrWhiteSpace(query)) return await TopVoicesAsync(limit);
+
+        var text = query.Trim();
+        if (text.StartsWith('#'))
+        {
+            var id = text[1..].Trim();
+            if (id.Length == 0) return await TopVoicesAsync(limit);
+            var voice = await ResolveVoiceAsync(id);
+            return voice != null ? new[] { voice } : Array.Empty<VoiceInfo>();
+        }
+
+        string? authorId = null;
+        var authorMatch = Regex.Match(text, "@(\\S+)");
+        if (authorMatch.Success)
+        {
+            authorId = authorMatch.Groups[1].Value;
+            text = text.Remove(authorMatch.Index, authorMatch.Length).Trim();
+        }
+
+        string? exactText = null;
+        var quoteMatch = Regex.Match(text, "\"([^\"]*)\"");
+        if (quoteMatch.Success)
+        {
+            exactText = quoteMatch.Groups[1].Value;
+            text = text.Remove(quoteMatch.Index, quoteMatch.Length).Trim();
+        }
+
+        var titleFilter = exactText ?? text;
+
+        var url = $"/model?page_size={limit}&page_number=1&sort_by=task_count";
+        if (!string.IsNullOrEmpty(titleFilter)) url += $"&title={Uri.EscapeDataString(titleFilter)}";
+        if (!string.IsNullOrEmpty(authorId)) url += $"&author_id={Uri.EscapeDataString(authorId)}";
+
+        var results = await FetchModelsAsync(url);
+
+        if (exactText != null)
+            return results.Where(v => v.Name.Equals(exactText, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        return RankByRelevance(results, titleFilter);
+    }
+
+    private static IReadOnlyList<VoiceInfo> RankByRelevance(IReadOnlyList<VoiceInfo> voices, string query) =>
+        voices
+            .Select((voice, index) => (voice, index))
+            .OrderBy(x => MatchRank(x.voice.Name, query))
+            .ThenBy(x => x.index)
+            .Select(x => x.voice)
+            .ToList();
+
+    private static int MatchRank(string name, string query)
+    {
+        if (name.Equals(query, StringComparison.OrdinalIgnoreCase)) return 0;
+        if (name.StartsWith(query, StringComparison.OrdinalIgnoreCase)) return 1;
+        if (name.Contains(query, StringComparison.OrdinalIgnoreCase)) return 2;
+        return 3;
     }
 
     public async Task<VoiceInfo?> ResolveVoiceAsync(string id)

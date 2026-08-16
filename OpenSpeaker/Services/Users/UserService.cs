@@ -21,7 +21,15 @@ public class UserService : IUserService
         LockedAsync(() =>
         {
             var user = _userRepo.FindByTwitchId(twitchId);
-            if (user != null) return user;
+            if (user != null)
+            {
+                if (user.Username != username)
+                {
+                    user.Username = username;
+                    _userRepo.Upsert(user);
+                }
+                return user;
+            }
 
             user = new UserRecord { TwitchId = twitchId, Username = username };
             _userRepo.Upsert(user);
@@ -47,6 +55,7 @@ public class UserService : IUserService
                 _userRepo.Upsert(user);
                 return;
             }
+            user.Username = username;
             user.LastActive = DateTime.Now;
             _userRepo.Upsert(user);
         });

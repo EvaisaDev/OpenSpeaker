@@ -10,7 +10,7 @@ public partial class TwitchAuthWindow : Window
     private readonly bool _isBot;
     private HttpListener? _listener;
     private const string ClientId = "o5xlrf6yir2hda9wste7lz92mu9i5w";
-    private const string RedirectUri = "http://localhost:7581/callback";
+    private const string RedirectUri = "http://localhost:7681/callback";
     private const string Scopes = "channel:read:subscriptions channel:read:redemptions bits:read moderator:read:followers moderator:manage:banned_users user:read:chat user:write:chat";
 
     private const string BotScopes = "user:write:chat user:bot";
@@ -48,7 +48,7 @@ public partial class TwitchAuthWindow : Window
         try
         {
             _listener = new HttpListener();
-            _listener.Prefixes.Add("http://localhost:7581/");
+            _listener.Prefixes.Add("http://localhost:7681/");
             _listener.Start();
             _ = ListenAsync();
             var scopes = _isBot ? BotScopes : Scopes;

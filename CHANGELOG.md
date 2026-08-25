@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.10] - 2026-08-23
+
+### Other
+- solve auth issue? ([`2f4fcca`](https://github.com/EvaisaDev/OpenSpeaker/commit/2f4fcca))
+
 ## [0.5.9] - 2026-08-16
 
 ### Other
@@ -209,6 +214,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

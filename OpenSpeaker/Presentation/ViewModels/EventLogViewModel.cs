@@ -19,6 +19,7 @@ public class EventLogViewModel : BaseViewModel
 
     public RelayCommand ClearCommand { get; }
 
+
     private readonly ConcurrentQueue<EventLogEntry> _pending = new();
     private int _flushScheduled;
 

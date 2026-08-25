@@ -20,34 +20,31 @@ public class CustomCommandHandler : IChatCommandHandler
         _queue = queue;
     }
 
-    public async Task<bool> HandleAsync(string twitchId, string username, List<string> roles, string rawMessage)
+    public Task<bool> HandleAsync(string twitchId, string username, List<string> roles, string rawMessage)
     {
-        return await Task.Run(() =>
+        var commands = _repo.GetAll().Where(c => c.Enabled);
+        foreach (var cmd in commands)
         {
-            var commands = _repo.GetAll().Where(c => c.Enabled);
-            foreach (var cmd in commands)
+            if (!rawMessage.StartsWith(cmd.Trigger, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!cmd.AllowedRoles.Any(r => roles.Contains(r)) && !roles.Contains(UserRoles.Broadcaster))
+                return Task.FromResult(false);
+
+            var text = rawMessage.Substring(cmd.Trigger.Length).Trim();
+            if (string.IsNullOrEmpty(text))
+                return Task.FromResult(true);
+
+            _queue.Enqueue(new TtsQueueItem
             {
-                if (!rawMessage.StartsWith(cmd.Trigger, StringComparison.OrdinalIgnoreCase))
-                    continue;
+                Text = text,
+                VoiceAliasName = cmd.VoiceAliasName,
+                UserId = twitchId
+            });
 
-                if (!cmd.AllowedRoles.Any(r => roles.Contains(r)) && !roles.Contains(UserRoles.Broadcaster))
-                    return false;
+            return Task.FromResult(true);
+        }
 
-                var text = rawMessage.Substring(cmd.Trigger.Length).Trim();
-                if (string.IsNullOrEmpty(text))
-                    return true;
-
-                _queue.Enqueue(new TtsQueueItem
-                {
-                    Text = text,
-                    VoiceAliasName = cmd.VoiceAliasName,
-                    UserId = twitchId
-                });
-
-                return true;
-            }
-
-            return false;
-        });
+        return Task.FromResult(false);
     }
 }

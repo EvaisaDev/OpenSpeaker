@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Threading;
 using System.Windows;
 using OpenSpeaker.Infrastructure.Logging;
 namespace OpenSpeaker.ViewModels;
@@ -16,6 +18,9 @@ public class EventLogViewModel : BaseViewModel
     public ObservableCollection<EventLogEntry> Entries { get; } = new();
 
     public RelayCommand ClearCommand { get; }
+
+    private readonly ConcurrentQueue<EventLogEntry> _pending = new();
+    private int _flushScheduled;
 
     public EventLogViewModel(IAppLogger logger)
     {
@@ -53,12 +58,20 @@ public class EventLogViewModel : BaseViewModel
                 Color     = catColor
             };
 
-            Application.Current?.Dispatcher.Invoke(() =>
-            {
-                Entries.Add(entry);
-                if (Entries.Count > 500)
-                    Entries.RemoveAt(0);
-            });
+            _pending.Enqueue(entry);
+            if (Interlocked.CompareExchange(ref _flushScheduled, 1, 0) == 0)
+                Application.Current?.Dispatcher.BeginInvoke(new Action(FlushPending));
         };
+    }
+
+    private void FlushPending()
+    {
+        Interlocked.Exchange(ref _flushScheduled, 0);
+        while (_pending.TryDequeue(out var entry))
+        {
+            Entries.Add(entry);
+            if (Entries.Count > 500)
+                Entries.RemoveAt(0);
+        }
     }
 }

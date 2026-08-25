@@ -22,6 +22,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
     private readonly object _pauseLock = new();
     private readonly IAppLogger? _logger;
     private Task _pregenTail = Task.CompletedTask;
+    private CancellationTokenSource _clearCts = new();
 
     public event EventHandler<QueueItemEventArgs>? ItemQueued;
     public event EventHandler<QueueItemEventArgs>? ItemStarted;
@@ -60,11 +61,12 @@ public class TtsQueueService : ITtsQueue, IDisposable
 
             if (_cts.IsCancellationRequested) break;
 
+            var clearToken = _clearCts.Token;
             var settings = _settingsRepo.GetSettings();
             switch (settings.QueueMode)
             {
                 case QueueModes.Simultaneous:
-                    _ = Task.Run(() => ProcessItem(item, _playerFactory()));
+                    _ = Task.Run(() => ProcessItem(item, _playerFactory(), clearToken));
                     break;
 
                 case QueueModes.PreGenerated:
@@ -78,7 +80,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
                         {
                             var result = await synthTask;
                             if (result != null)
-                                await PlaySynthesisResultAsync(result, null);
+                                await PlaySynthesisResultAsync(result, null, clearToken);
                         }
                         catch (Exception ex)
                         {
@@ -88,7 +90,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
                     break;
 
                 default:
-                    await ProcessItem(item, null);
+                    await ProcessItem(item, null, clearToken);
                     break;
             }
         }
@@ -117,12 +119,12 @@ public class TtsQueueService : ITtsQueue, IDisposable
         return result;
     }
 
-    private async Task PlaySynthesisResultAsync(SynthesisResult result, IAudioPlayer? playerOverride)
+    private async Task PlaySynthesisResultAsync(SynthesisResult result, IAudioPlayer? playerOverride, CancellationToken clearToken = default)
     {
         var settings = _settingsRepo.GetSettings();
         try
         {
-            var suppressPlayback = result.Item.IsSilent;
+            var suppressPlayback = result.Item.IsSilent || clearToken.IsCancellationRequested;
             if (!suppressPlayback && _extensions is { HasBeforeSpeakHooks: true } && !result.Audio.IsEmpty)
             {
                 var wavBase64 = ToWavBase64(result.Audio);
@@ -136,7 +138,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
             {
                 while (_paused && !_cts.IsCancellationRequested)
                     await Task.Delay(100);
-                if (!_cts.IsCancellationRequested)
+                if (!_cts.IsCancellationRequested && !clearToken.IsCancellationRequested)
                 {
                     ItemPlaying?.Invoke(this, new QueueItemEventArgs
                     {
@@ -166,11 +168,11 @@ public class TtsQueueService : ITtsQueue, IDisposable
         }
     }
 
-    private async Task ProcessItem(TtsQueueItem item, IAudioPlayer? playerOverride)
+    private async Task ProcessItem(TtsQueueItem item, IAudioPlayer? playerOverride, CancellationToken clearToken = default)
     {
         var result = await SynthesizeItemAsync(item);
         if (result != null)
-            await PlaySynthesisResultAsync(result, playerOverride);
+            await PlaySynthesisResultAsync(result, playerOverride, clearToken);
         else
             playerOverride?.Dispose();
     }
@@ -185,6 +187,10 @@ public class TtsQueueService : ITtsQueue, IDisposable
     public void Clear()
     {
         while (_queue.TryTake(out _)) { }
+        var oldCts = Interlocked.Exchange(ref _clearCts, new CancellationTokenSource());
+        oldCts.Cancel();
+        oldCts.Dispose();
+        _playback.Stop();
     }
     public void Stop() => _playback.Stop();
     public void StopUser(string userId) => _playback.StopUser(userId);
@@ -218,6 +224,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
         _queue.CompleteAdding();
         _cts.Dispose();
         _queue.Dispose();
+        _clearCts.Dispose();
     }
 
     private static string ToWavBase64(AudioData audio)

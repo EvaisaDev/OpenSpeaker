@@ -57,6 +57,10 @@ public class SayEverythingHandler
         var prefixCheckMessage = isReply ? MentionStripper.StripLeadingMention(message) : message;
         if (_sanitizer.IsIgnoredPrefix(prefixCheckMessage)) { _logger?.Info($"SAY :: Dropped - ignored prefix"); return; }
 
+        var sanitized = _sanitizer.Sanitize(message, true, messageEmotes, messageCheermotes);
+        _logger?.Info($"SAY :: Sanitized='{sanitized}'");
+        if (string.IsNullOrWhiteSpace(sanitized)) { _logger?.Info("SAY :: Dropped - sanitized to empty"); return; }
+
         var user = await _userService.GetOrCreateAsync(twitchId, username);
         _logger?.Info($"SAY :: User lookup: TwitchId={twitchId} Username={user.Username} IsIgnored={user.IsIgnored} IsForced={user.IsForced} IsRegular={user.IsRegular} IsSubscribed={user.IsSubscribed} Role={user.Role}");
         _logger?.Info($"SAY :: Roles from Twitch: [{string.Join(", ", roles)}]");
@@ -87,10 +91,6 @@ public class SayEverythingHandler
                         _lastSpoke.TryRemove(entry.Key, out _);
             }
         }
-
-        var sanitized = _sanitizer.Sanitize(message, true, messageEmotes, messageCheermotes);
-        _logger?.Info($"SAY :: Sanitized='{sanitized}'");
-        if (string.IsNullOrWhiteSpace(sanitized)) { _logger?.Info("SAY :: Dropped - sanitized to empty"); return; }
 
         if (_extensions is { HasMessageFilters: true })
         {

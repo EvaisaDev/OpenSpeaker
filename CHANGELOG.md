@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.11] - 2026-08-25
+
+### Other
+- Forgot to add a changelog ([`47bc379`](https://github.com/EvaisaDev/OpenSpeaker/commit/47bc379))
+  whoospy.
+  - Hopefully emote spam should no longer clog the queue
+  - Clear should now properly empty the queue.
+  - I hate it here
+- surely works good ([`09f9e13`](https://github.com/EvaisaDev/OpenSpeaker/commit/09f9e13))
+
 ## [0.5.10] - 2026-08-23
 
 ### Other
@@ -214,6 +224,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

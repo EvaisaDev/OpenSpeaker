@@ -9,6 +9,7 @@ public partial class TwitchAuthWindow : Window
     private readonly TwitchAuthService _auth;
     private readonly bool _isBot;
     private HttpListener? _listener;
+    private string _authUrl = string.Empty;
     private const string ClientId = "o5xlrf6yir2hda9wste7lz92mu9i5w";
     private const string RedirectUri = "http://localhost:7681/callback";
     private const string Scopes = "channel:read:subscriptions channel:read:redemptions bits:read moderator:read:followers moderator:manage:banned_users user:read:chat user:write:chat";
@@ -51,12 +52,59 @@ public partial class TwitchAuthWindow : Window
             _listener.Prefixes.Add("http://localhost:7681/");
             _listener.Start();
             _ = ListenAsync();
-            var scopes = _isBot ? BotScopes : Scopes;
-            var forceVerify = _isBot ? "&force_verify=true" : string.Empty;
-            var authUrl = $"https://id.twitch.tv/oauth2/authorize?client_id={ClientId}&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=token&scope={Uri.EscapeDataString(scopes)}{forceVerify}";
-            Process.Start(new ProcessStartInfo(authUrl) { UseShellExecute = true });
         }
-        catch (Exception ex) { StatusText.Text = $"Error: {ex.Message}"; }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Could not start the local login listener on port 7681 ({ex.Message}). Close any other running copy of OpenSpeaker and try again.";
+            return;
+        }
+
+        var scopes = _isBot ? BotScopes : Scopes;
+        var forceVerify = _isBot ? "&force_verify=true" : string.Empty;
+        _authUrl = $"https://id.twitch.tv/oauth2/authorize?client_id={ClientId}&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=token&scope={Uri.EscapeDataString(scopes)}{forceVerify}";
+
+        if (!TryOpenBrowser(_authUrl, out var browserError))
+        {
+            StatusText.Text = $"Could not open your browser ({browserError}). Copy the login link below and open it manually.";
+            CopyLinkButton.Visibility = Visibility.Visible;
+        }
+    }
+
+    private static bool TryOpenBrowser(string url, out string error)
+    {
+        error = string.Empty;
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            return true;
+        }
+        catch (Exception ex) { error = ex.Message; }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{url}\"") { UseShellExecute = true });
+            return true;
+        }
+        catch { }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo("cmd.exe", $"/c start \"\" \"{url}\"") { UseShellExecute = false, CreateNoWindow = true });
+            return true;
+        }
+        catch { }
+
+        return false;
+    }
+
+    private void CopyLink_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Windows.Clipboard.SetText(_authUrl);
+            StatusText.Text = "Login link copied to clipboard. Paste it into your browser to continue.";
+        }
+        catch (Exception ex) { StatusText.Text = $"Could not copy the link: {ex.Message}"; }
     }
 
     private async Task ListenAsync()
@@ -122,7 +170,7 @@ public partial class TwitchAuthWindow : Window
         catch (Exception ex) { Dispatcher.Invoke(() => StatusText.Text = $"Error: {ex.Message}"); }
     }
 
-    private void StopListener() { try { _listener?.Stop(); } catch { } }
+    private void StopListener() { try { _listener?.Close(); } catch { } finally { _listener = null; } }
     private void OnClosed(object? sender, EventArgs e) { StopListener(); }
     private void Cancel_Click(object sender, RoutedEventArgs e) { StopListener(); Close(); }
 }

@@ -1,12 +1,17 @@
+using System.Collections.Concurrent;
 using OpenSpeaker.Data;
 using OpenSpeaker.Models;
 namespace OpenSpeaker.Users;
 
 public class UserService : IUserService
 {
+    private static readonly TimeSpan TouchThrottle = TimeSpan.FromSeconds(30);
+
     private readonly UserRepository _userRepo;
     private readonly VoiceAliasRepository _aliasRepo;
     private readonly object _lock = new();
+    private readonly ConcurrentDictionary<string, DateTime> _lastTouch = new();
+    private DateTime _lastTouchPrune = DateTime.UtcNow;
 
     public UserService(UserRepository userRepo, VoiceAliasRepository aliasRepo)
     {
@@ -45,8 +50,22 @@ public class UserService : IUserService
             _userRepo.Upsert(user);
         });
 
-    public Task TouchLastActiveAsync(string twitchId, string username) =>
-        LockedAsync(() =>
+    public Task TouchLastActiveAsync(string twitchId, string username)
+    {
+        var now = DateTime.UtcNow;
+        if (_lastTouch.TryGetValue(twitchId, out var last) && now - last < TouchThrottle)
+            return Task.CompletedTask;
+        _lastTouch[twitchId] = now;
+
+        if (now - _lastTouchPrune > TouchThrottle)
+        {
+            _lastTouchPrune = now;
+            foreach (var entry in _lastTouch)
+                if (now - entry.Value >= TouchThrottle)
+                    _lastTouch.TryRemove(entry.Key, out _);
+        }
+
+        return LockedAsync(() =>
         {
             var user = _userRepo.FindByTwitchId(twitchId);
             if (user == null)
@@ -59,6 +78,7 @@ public class UserService : IUserService
             user.LastActive = DateTime.Now;
             _userRepo.Upsert(user);
         });
+    }
 
     public Task AddPastVoiceAsync(string twitchId, string voiceId, string engineId)
     {

@@ -1586,11 +1586,11 @@
 
                                     <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
                                         <CheckBox Content="{DynamicResource Chk.Enabled}" IsChecked="{Binding Replacement.EditEnabled}"
-                                                  IsThreeState="True" Margin="0,0,12,0" ToolTip="{DynamicResource Tip.FilterEnabled}"/>
+                                                  IsThreeState="False" Margin="0,0,12,0" ToolTip="{DynamicResource Tip.FilterEnabled}"/>
                                         <CheckBox Content="{DynamicResource Chk.Regex}" IsChecked="{Binding Replacement.EditIsRegex}"
-                                                  IsThreeState="True" Margin="0,0,12,0" ToolTip="{DynamicResource Tip.FilterRegex}"/>
+                                                  IsThreeState="False" Margin="0,0,12,0" ToolTip="{DynamicResource Tip.FilterRegex}"/>
                                         <CheckBox Content="Whole word" IsChecked="{Binding Replacement.EditWholeWord}"
-                                                  IsThreeState="True"
+                                                  IsThreeState="False"
                                                   Visibility="{Binding Replacement.WholeWordVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                     </StackPanel>
 
@@ -1625,32 +1625,33 @@
                                     <DataGridTextColumn Binding="{Binding Mode}" Width="Auto">
                                         <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Mode}"/></DataGridTextColumn.Header>
                                     </DataGridTextColumn>
-                                    <DataGridCheckBoxColumn Binding="{Binding IsRegex}" Width="Auto">
-                                        <DataGridCheckBoxColumn.Header><TextBlock Text="{DynamicResource Col.Regex}"/></DataGridCheckBoxColumn.Header>
-                                        <DataGridCheckBoxColumn.ElementStyle>
-                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
-                                        </DataGridCheckBoxColumn.ElementStyle>
-                                        <DataGridCheckBoxColumn.EditingElementStyle>
-                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
-                                        </DataGridCheckBoxColumn.EditingElementStyle>
-                                    </DataGridCheckBoxColumn>
-                                    <DataGridCheckBoxColumn Header="Word" Binding="{Binding WholeWord}" Width="Auto">
-                                        <DataGridCheckBoxColumn.ElementStyle>
-                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
-                                        </DataGridCheckBoxColumn.ElementStyle>
-                                        <DataGridCheckBoxColumn.EditingElementStyle>
-                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
-                                        </DataGridCheckBoxColumn.EditingElementStyle>
-                                    </DataGridCheckBoxColumn>
-                                    <DataGridCheckBoxColumn Binding="{Binding Enabled}" Width="Auto">
-                                        <DataGridCheckBoxColumn.Header><TextBlock Text="{DynamicResource Col.On}"/></DataGridCheckBoxColumn.Header>
-                                        <DataGridCheckBoxColumn.ElementStyle>
-                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
-                                        </DataGridCheckBoxColumn.ElementStyle>
-                                        <DataGridCheckBoxColumn.EditingElementStyle>
-                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"/>
-                                        </DataGridCheckBoxColumn.EditingElementStyle>
-                                    </DataGridCheckBoxColumn>
+                                    <DataGridTemplateColumn Width="Auto">
+                                        <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col.Regex}"/></DataGridTemplateColumn.Header>
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsRegex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="Auto">
+                                        <DataGridTemplateColumn.Header>Word</DataGridTemplateColumn.Header>
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding WholeWord, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="Auto">
+                                        <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col.On}"/></DataGridTemplateColumn.Header>
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Binding="{Binding Pattern}" Width="*">
                                         <DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Pattern}"/></DataGridTextColumn.Header>
                                     </DataGridTextColumn>

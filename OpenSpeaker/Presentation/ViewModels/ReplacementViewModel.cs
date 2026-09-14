@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
@@ -17,6 +19,7 @@ public class ReplacementViewModel : BaseViewModel
     public IEnumerable<string> AvailableModes { get; } = new[] { "Replace", "Skip" };
 
     private List<RegexReplacement> _selectedItems = new();
+    private bool _suppressItemChanges;
 
     private RegexReplacement? _selectedReplacement;
     public RegexReplacement? SelectedReplacement
@@ -88,7 +91,26 @@ public class ReplacementViewModel : BaseViewModel
         SaveReplacementCommand   = new RelayCommand(SaveReplacement,   () => _selectedItems.Count > 0);
         ImportWordlistCommand    = new RelayCommand(ImportWordlist);
 
+        Replacements.CollectionChanged += OnReplacementsChanged;
         Refresh();
+    }
+
+    private void OnReplacementsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems != null)
+            foreach (RegexReplacement r in e.OldItems) r.PropertyChanged -= OnItemPropertyChanged;
+        if (e.NewItems != null)
+            foreach (RegexReplacement r in e.NewItems) r.PropertyChanged += OnItemPropertyChanged;
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+            foreach (var r in Replacements) { r.PropertyChanged -= OnItemPropertyChanged; r.PropertyChanged += OnItemPropertyChanged; }
+    }
+
+    private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_suppressItemChanges || sender is not RegexReplacement r) return;
+        _regexRepo.Upsert(r);
+        if (_selectedItems.Contains(r)) LoadEditor();
+        ApplySample();
     }
 
     public void OnSelectionChanged(IList items)
@@ -100,6 +122,7 @@ public class ReplacementViewModel : BaseViewModel
 
     public void Refresh()
     {
+        foreach (var r in Replacements) r.PropertyChanged -= OnItemPropertyChanged;
         Replacements.Clear();
         foreach (var r in _regexRepo.GetAll().OrderBy(r => r.Order))
             Replacements.Add(r);
@@ -180,6 +203,7 @@ public class ReplacementViewModel : BaseViewModel
     {
         if (_selectedItems.Count == 0) return;
 
+        _suppressItemChanges = true;
         foreach (var r in _selectedItems)
         {
             if (EditMode != null) r.Mode = EditMode;
@@ -192,6 +216,8 @@ public class ReplacementViewModel : BaseViewModel
             if (EditEnabled.HasValue) r.Enabled = EditEnabled.Value;
             _regexRepo.Upsert(r);
         }
+        _suppressItemChanges = false;
+        ApplySample();
     }
 
     private void ImportWordlist()

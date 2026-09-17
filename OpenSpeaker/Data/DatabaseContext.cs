@@ -21,6 +21,10 @@ public class DatabaseContext : IDisposable
             settings.Insert(new AppSettings());
 
         _db.GetCollection<ExtensionData>("extensiondata").EnsureIndex(d => new { d.ExtensionId, d.Key }, unique: true);
+
+        var users = _db.GetCollection<UserRecord>("users");
+        users.EnsureIndex(u => u.TwitchId);
+        users.EnsureIndex(u => u.Username.ToLower());
     }
 
     private ILiteCollection<T> Synchronized<T>(ILiteCollection<T> collection) =>

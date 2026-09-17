@@ -13,4 +13,5 @@ public interface IUserService
     Task UpdateSubscribedAsync(string twitchId, bool isSubscribed);
     Task AddPastVoiceAsync(string twitchId, string voiceId, string engineId);
     Task TouchLastActiveAsync(string twitchId, string username);
+    Task TouchLastActiveAsync(UserRecord user, string username);
 }

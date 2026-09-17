@@ -52,18 +52,7 @@ public class UserService : IUserService
 
     public Task TouchLastActiveAsync(string twitchId, string username)
     {
-        var now = DateTime.UtcNow;
-        if (_lastTouch.TryGetValue(twitchId, out var last) && now - last < TouchThrottle)
-            return Task.CompletedTask;
-        _lastTouch[twitchId] = now;
-
-        if (now - _lastTouchPrune > TouchThrottle)
-        {
-            _lastTouchPrune = now;
-            foreach (var entry in _lastTouch)
-                if (now - entry.Value >= TouchThrottle)
-                    _lastTouch.TryRemove(entry.Key, out _);
-        }
+        if (!ShouldTouch(twitchId)) return Task.CompletedTask;
 
         return LockedAsync(() =>
         {
@@ -78,6 +67,35 @@ public class UserService : IUserService
             user.LastActive = DateTime.Now;
             _userRepo.Upsert(user);
         });
+    }
+
+    public Task TouchLastActiveAsync(UserRecord user, string username)
+    {
+        if (!ShouldTouch(user.TwitchId)) return Task.CompletedTask;
+
+        return LockedAsync(() =>
+        {
+            user.Username = username;
+            user.LastActive = DateTime.Now;
+            _userRepo.Upsert(user);
+        });
+    }
+
+    private bool ShouldTouch(string twitchId)
+    {
+        var now = DateTime.UtcNow;
+        if (_lastTouch.TryGetValue(twitchId, out var last) && now - last < TouchThrottle)
+            return false;
+        _lastTouch[twitchId] = now;
+
+        if (now - _lastTouchPrune > TouchThrottle)
+        {
+            _lastTouchPrune = now;
+            foreach (var entry in _lastTouch)
+                if (now - entry.Value >= TouchThrottle)
+                    _lastTouch.TryRemove(entry.Key, out _);
+        }
+        return true;
     }
 
     public Task AddPastVoiceAsync(string twitchId, string voiceId, string engineId)

@@ -33,7 +33,7 @@ public class TtsSynthesizer
         _logger = logger;
     }
 
-    public async Task<SynthesisResult?> SynthesizeAsync(TtsQueueItem item, Action onStarted)
+    public async Task<SynthesisResult?> SynthesizeAsync(TtsQueueItem item, Action onStarted, CancellationToken cancellationToken = default)
     {
         var settings = _settingsRepo.GetSettings();
 
@@ -60,7 +60,7 @@ public class TtsSynthesizer
         try
         {
             var text = resolved.LowercaseText ? item.Text.ToLowerInvariant() : item.Text;
-            var audio = await engine.SynthesizeAsync(text, voiceId, synthParams);
+            var audio = await engine.SynthesizeAsync(text, voiceId, synthParams).WaitAsync(cancellationToken);
             _logger?.Info($"QUEUE :: Synthesis done. IsEmpty={audio.IsEmpty}");
             if (audio.IsEmpty) return null;
 
@@ -78,6 +78,11 @@ public class TtsSynthesizer
             }
 
             return new SynthesisResult(item, audio, deviceId, savedPath);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger?.Info($"QUEUE :: Synthesis cancelled for '{item.Text}'");
+            return null;
         }
         catch (Exception ex)
         {

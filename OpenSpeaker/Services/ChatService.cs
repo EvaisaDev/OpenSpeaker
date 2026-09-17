@@ -48,9 +48,10 @@ public class ChatService
     private async void OnChatMessage(object? sender, Twitch.TwitchEventArgs.ChatMessageEventArgs e)
     {
         _logger?.Info($"CHAT :: Message from {e.Username}: {e.Message}");
-        _userService.TouchLastActiveAsync(e.UserId, e.Username).Forget(_logger, "TouchLastActive");
+        var user = await _userService.GetOrCreateAsync(e.UserId, e.Username);
+        _userService.TouchLastActiveAsync(user, e.Username).Forget(_logger, "TouchLastActive");
 
-        await NotifyChatObserversAsync(e);
+        await NotifyChatObserversAsync(e, user);
 
         var matchMessage = e.IsReply ? Text.MentionStripper.StripLeadingMention(e.Message) : e.Message;
         if (matchMessage != e.Message) _logger?.Info($"CHAT :: Reply mention stripped for matching → '{matchMessage}'");
@@ -62,7 +63,7 @@ public class ChatService
         _logger?.Info($"CHAT :: Mode={settings.Mode} Enabled={settings.Enabled}");
         if (settings.Mode == TtsModes.Everything)
         {
-            await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, e.Message, e.Roles, isReply: e.IsReply, isHighlight: e.IsHighlight, isSubscriber: e.IsSubscriber, isSelf: e.IsSelf, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
+            await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, e.Message, e.Roles, isReply: e.IsReply, isHighlight: e.IsHighlight, isSubscriber: e.IsSubscriber, isSelf: e.IsSelf, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes, user: user);
         }
         else if (settings.Mode == TtsModes.Command)
         {
@@ -72,19 +73,18 @@ public class ChatService
                 {
                     var text = matchMessage.Substring(cmd.Length).Trim();
                     if (!string.IsNullOrEmpty(text))
-                        await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, text, e.Roles, isCommand: true, isSelf: e.IsSelf, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes);
+                        await _sayEverything.HandleAsync(e.UserId, e.Username, e.DisplayName, text, e.Roles, isCommand: true, isSelf: e.IsSelf, messageEmotes: e.MessageEmotes, messageCheermotes: e.MessageCheermotes, user: user);
                     break;
                 }
             }
         }
     }
 
-    private async Task NotifyChatObserversAsync(Twitch.TwitchEventArgs.ChatMessageEventArgs e)
+    private async Task NotifyChatObserversAsync(Twitch.TwitchEventArgs.ChatMessageEventArgs e, UserRecord user)
     {
         if (_extensions is not { HasChatObservers: true }) return;
         try
         {
-            var user = await _userService.GetOrCreateAsync(e.UserId, e.Username);
             var ctx = new MessageFilterContext(
                 e.UserId, e.Username, e.DisplayName, user.Nickname,
                 e.IsSubscriber,

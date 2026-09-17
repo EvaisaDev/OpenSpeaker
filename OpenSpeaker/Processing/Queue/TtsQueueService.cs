@@ -22,6 +22,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
     private readonly object _pauseLock = new();
     private readonly IAppLogger? _logger;
     private Task _pregenTail = Task.CompletedTask;
+    private readonly object _pregenLock = new();
     private CancellationTokenSource _clearCts = new();
 
     public event EventHandler<QueueItemEventArgs>? ItemQueued;
@@ -71,9 +72,10 @@ public class TtsQueueService : ITtsQueue, IDisposable
 
                 case QueueModes.PreGenerated:
                     var capturedItem = item;
-                    var synthTask = SynthesizeItemAsync(capturedItem);
-                    var prevTail = _pregenTail;
-                    _pregenTail = Task.Run(async () =>
+                    var synthTask = SynthesizeItemAsync(capturedItem, clearToken);
+                    Task prevTail;
+                    lock (_pregenLock) prevTail = _pregenTail;
+                    var tail = Task.Run(async () =>
                     {
                         try { await prevTail; } catch { }
                         try
@@ -87,6 +89,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
                             _logger?.Error($"PreGenerated playback failed: {ex.Message}");
                         }
                     });
+                    lock (_pregenLock) if (!clearToken.IsCancellationRequested) _pregenTail = tail;
                     break;
 
                 default:
@@ -96,25 +99,25 @@ public class TtsQueueService : ITtsQueue, IDisposable
         }
     }
 
-    private async Task<SynthesisResult?> SynthesizeItemAsync(TtsQueueItem item)
+    private async Task<SynthesisResult?> SynthesizeItemAsync(TtsQueueItem item, CancellationToken clearToken = default)
     {
         var result = await _synthesizer.SynthesizeAsync(
             item,
-            () => ItemStarted?.Invoke(this, new QueueItemEventArgs { Item = item }));
+            () => ItemStarted?.Invoke(this, new QueueItemEventArgs { Item = item }),
+            clearToken);
 
-        if (result == null)
+        if (result == null || clearToken.IsCancellationRequested)
         {
             ItemCompleted?.Invoke(this, new QueueItemEventArgs { Item = item });
+            return null;
         }
-        else
+
+        ItemSynthesized?.Invoke(this, new QueueItemEventArgs
         {
-            ItemSynthesized?.Invoke(this, new QueueItemEventArgs
-            {
-                Item           = item,
-                OutputFilePath = result.SavedPath,
-                Duration       = result.Audio.Duration,
-            });
-        }
+            Item           = item,
+            OutputFilePath = result.SavedPath,
+            Duration       = result.Audio.Duration,
+        });
 
         return result;
     }
@@ -170,7 +173,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
 
     private async Task ProcessItem(TtsQueueItem item, IAudioPlayer? playerOverride, CancellationToken clearToken = default)
     {
-        var result = await SynthesizeItemAsync(item);
+        var result = await SynthesizeItemAsync(item, clearToken);
         if (result != null)
             await PlaySynthesisResultAsync(result, playerOverride, clearToken);
         else
@@ -186,11 +189,15 @@ public class TtsQueueService : ITtsQueue, IDisposable
     public void Resume() { lock (_pauseLock) { _paused = false; } }
     public void Clear()
     {
-        while (_queue.TryTake(out _)) { }
+        var dropped = new List<TtsQueueItem>();
+        while (_queue.TryTake(out var item)) dropped.Add(item);
         var oldCts = Interlocked.Exchange(ref _clearCts, new CancellationTokenSource());
+        lock (_pregenLock) _pregenTail = Task.CompletedTask;
         oldCts.Cancel();
         oldCts.Dispose();
         _playback.Stop();
+        foreach (var item in dropped)
+            ItemCompleted?.Invoke(this, new QueueItemEventArgs { Item = item });
     }
     public void Stop() => _playback.Stop();
     public void StopUser(string userId) => _playback.StopUser(userId);

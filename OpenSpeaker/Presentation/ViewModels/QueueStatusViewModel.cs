@@ -18,11 +18,12 @@ public class QueueStatusViewModel : BaseViewModel
     public QueueStatusViewModel(ITtsQueue queue)
     {
         _queue = queue;
-        PauseCommand = new RelayCommand(() => _queue.Pause());
-        ResumeCommand = new RelayCommand(() => _queue.Resume());
-        ClearCommand = new RelayCommand(() => _queue.Clear());
-        StopCommand = new RelayCommand(() => _queue.Stop());
+        PauseCommand = new RelayCommand(() => { _queue.Pause(); UpdateStatus(); });
+        ResumeCommand = new RelayCommand(() => { _queue.Resume(); UpdateStatus(); });
+        ClearCommand = new RelayCommand(() => { _queue.Clear(); UpdateStatus(); });
+        StopCommand = new RelayCommand(() => { _queue.Stop(); UpdateStatus(); });
 
+        _queue.ItemQueued += (_, _) => UpdateStatus();
         _queue.ItemStarted += (_, _) => UpdateStatus();
         _queue.ItemCompleted += (_, _) => UpdateStatus();
     }

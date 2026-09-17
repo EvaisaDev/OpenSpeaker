@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.15] - 2026-09-17
+
+### Other
+- fix some issues ([`710abaa`](https://github.com/EvaisaDev/OpenSpeaker/commit/710abaa))
+  - Pregenerated mode should no longer break queue clearing and such.
+  - Pause and resume button should work properly now.
+
 ## [0.5.14] - 2026-09-14
 
 ### Other
@@ -240,6 +247,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

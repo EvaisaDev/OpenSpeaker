@@ -8,6 +8,7 @@
 
     <!-- Header bar -->
     <sys:String x:Key="Btn.GenericSpeaker">TTS Player</sys:String>
+    <sys:String x:Key="Btn.Sync">Sync</sys:String>
     <sys:String x:Key="Btn.SaveSettings">Save Settings</sys:String>
     <sys:String x:Key="Chk.Enabled">Enabled</sys:String>
 
@@ -267,6 +268,7 @@
     <!-- Header bar -->
     <sys:String x:Key="Tip.SilenceTts">Stop all currently playing and queued TTS audio immediately.</sys:String>
     <sys:String x:Key="Tip.GenericSpeaker">Open the generic speaker dialog to say a custom phrase.</sys:String>
+    <sys:String x:Key="Tip.Sync">Find other OpenSpeaker instances on your network and pull their settings, voices, and users into this instance.</sys:String>
     <sys:String x:Key="Tip.SaveSettings">Save all current settings to disk.</sys:String>
     <sys:String x:Key="Tip.HeaderEnabled">Globally enable or disable all TTS processing.</sys:String>
 
@@ -489,5 +491,37 @@
     <sys:String x:Key="Tip.ImportFolder">Path to your Speaker.bot install folder.</sys:String>
     <sys:String x:Key="Tip.BrowseImportFolder">Browse for your Speaker.bot install folder (the folder containing Speaker.bot.exe or the data subfolder).</sys:String>
     <sys:String x:Key="Tip.ImportNow">Import all data from the selected Speaker.bot folder into OpenSpeaker. This will overwrite existing settings, events, and rewards with imported data. Users and aliases are merged.</sys:String>
+
+    <sys:String x:Key="Sync.Title">Sync from another instance</sys:String>
+    <sys:String x:Key="Sync.Description">OpenSpeaker instances found on your network.</sys:String>
+    <sys:String x:Key="Sync.Searching">Searching the network...</sys:String>
+    <sys:String x:Key="Sync.NoneFound">No other OpenSpeaker instances found.</sys:String>
+    <sys:String x:Key="Sync.FoundCount">Found {0} instance(s).</sys:String>
+    <sys:String x:Key="Sync.ConfirmMessage">This will replace everything in the current profile with the data from "{0}" ({1}).&#10;&#10;Selected: {2}&#10;&#10;A backup of the current database will be saved next to it. Continue?</sys:String>
+    <sys:String x:Key="Sync.Pulling">Connecting to {0}...</sys:String>
+    <sys:String x:Key="Sync.Receiving">Receiving data... {0} KB</sys:String>
+    <sys:String x:Key="Sync.Applying">Applying data and reloading...</sys:String>
+    <sys:String x:Key="Sync.Done">Synced from "{0}". OpenSpeaker has reloaded with the new data.</sys:String>
+    <sys:String x:Key="Sync.Failed">Sync failed: {0}</sys:String>
+    <sys:String x:Key="Btn.SyncNow">Sync</sys:String>
+    <sys:String x:Key="Btn.Cancel">Cancel</sys:String>
+    <sys:String x:Key="Tip.SyncRefresh">Search the network again.</sys:String>
+    <sys:String x:Key="Tip.SyncNow">Pull all data from the selected instance and replace the current profile's data.</sys:String>
+    <sys:String x:Key="Sync.WhatToSync">What to sync</sys:String>
+    <sys:String x:Key="Btn.SelectAll">All</sys:String>
+    <sys:String x:Key="Btn.SelectNone">None</sys:String>
+    <sys:String x:Key="Sync.Cat.Settings">General settings</sys:String>
+    <sys:String x:Key="Sync.Cat.VoiceAliases">Voice aliases</sys:String>
+    <sys:String x:Key="Sync.Cat.Users">Users</sys:String>
+    <sys:String x:Key="Sync.Cat.Events">Events</sys:String>
+    <sys:String x:Key="Sync.Cat.Commands">Custom commands</sys:String>
+    <sys:String x:Key="Sync.Cat.Rewards">Channel rewards</sys:String>
+    <sys:String x:Key="Sync.Cat.SpeechEngines">Speech engines &amp; custom APIs</sys:String>
+    <sys:String x:Key="Sync.Cat.Filters">Filters &amp; bad words</sys:String>
+    <sys:String x:Key="Sync.Cat.IgnoredVoices">Ignored voices</sys:String>
+    <sys:String x:Key="Sync.Cat.VoiceGate">Voice gate profiles</sys:String>
+    <sys:String x:Key="Sync.Cat.TwitchAccounts">Twitch accounts</sys:String>
+    <sys:String x:Key="Sync.Cat.Extensions">Extension settings &amp; data</sys:String>
+    <sys:String x:Key="Sync.Cat.Other">Other data</sys:String>
 
 </ResourceDictionary>

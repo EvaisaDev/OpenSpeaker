@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using OpenSpeaker.Core;
 using OpenSpeaker.Localization;
 using OpenSpeaker.Services;
+using OpenSpeaker.Sync;
 using OpenSpeaker.Themes;
 using OpenSpeaker.ViewModels;
 namespace OpenSpeaker;
@@ -59,40 +60,68 @@ public partial class App : Application
 
             await _boot.StartAsync();
 
-            var viewModel = new MainWindowViewModel(_boot, _profileVm);
-            _window = new MainWindow(_boot, viewModel);
+            _window = new MainWindow(_boot, CreateMainViewModel(_boot));
             _window.Show();
             _window.Activate();
         }
         catch (Exception ex)
         {
+            System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "crash.log"), $"[{DateTime.Now:O}] Startup failed: {ex}\n\n");
             MessageBox.Show($"OpenSpeaker failed to start:\n\n{ex.Message}", "Startup Error", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }
 
+    private MainWindowViewModel CreateMainViewModel(AppBootstrapper boot)
+    {
+        return new MainWindowViewModel(boot, _profileVm!)
+        {
+            OnSyncApply = (json, source, filter) => ApplySyncAsync(json, source, filter)
+        };
+    }
+
     private async Task SwitchProfileAsync(string name)
     {
-        if (_boot == null || _window == null || _profileService == null || _profileVm == null) return;
-
+        if (_profileService == null) return;
         _profileService.SetActive(name);
-        var dbPath = _profileService.GetDbPath(name);
+        await ReloadAsync(_profileService.GetDbPath(name), null);
+    }
+
+    private async Task ApplySyncAsync(string json, SyncInstanceInfo source, Func<string, bool> includeCollection)
+    {
+        if (_profileService == null) return;
+        var dbPath = _profileService.GetDbPath(_profileService.Load().ActiveProfile);
+        await ReloadAsync(dbPath, () => Task.Run(() => DatabaseSnapshot.Apply(dbPath, json, includeCollection)));
+        _boot?.Logger.Info($"SYNC :: Replaced local data with snapshot from {source.InstanceName} ({source.Endpoint})");
+    }
+
+    private async Task ReloadAsync(string dbPath, Func<Task>? whileClosed)
+    {
+        if (_boot == null || _window == null || _profileVm == null) return;
 
         await _boot.StopAsync();
         _boot.Dispose();
 
-        _boot = new AppBootstrapper(dbPath);
+        try
+        {
+            if (whileClosed != null) await whileClosed();
+        }
+        finally
+        {
+            _boot = new AppBootstrapper(dbPath);
+        }
 
         var settings = _boot.SettingsRepo.GetSettings();
         ThemeService.Apply(settings.Theme);
+        LocalizationService.Load(settings.Language);
+        UiController.Instance.ShowTooltips = settings.ShowTooltips;
 
         await _boot.StartAsync();
 
         (_window.DataContext as IDisposable)?.Dispose();
 
-        var viewModel = new MainWindowViewModel(_boot, _profileVm);
         _window.SetBootstrapper(_boot);
-        _window.DataContext = viewModel;
+        _window.DataContext = CreateMainViewModel(_boot);
     }
 
     private static void OnGlobalToolTipOpening(object sender, ToolTipEventArgs e)

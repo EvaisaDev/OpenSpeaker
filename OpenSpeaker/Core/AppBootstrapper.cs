@@ -10,6 +10,7 @@ using OpenSpeaker.Input;
 using OpenSpeaker.Models;
 using OpenSpeaker.Queue;
 using OpenSpeaker.Services;
+using OpenSpeaker.Sync;
 using OpenSpeaker.Text;
 using OpenSpeaker.TTS;
 using OpenSpeaker.Twitch;
@@ -46,6 +47,7 @@ public class AppBootstrapper : IDisposable
     public VoiceGateService VoiceGate { get; }
     public EmoteStripper EmoteStripper { get; }
     public VoicePool VoicePool { get; }
+    public NetworkSyncService NetworkSync { get; }
 
     private readonly TtsQueueService _queueService;
     private readonly DatabaseMigration _migration;
@@ -156,6 +158,8 @@ public class AppBootstrapper : IDisposable
 
         var udpRouter = new UdpCommandRouter(Orchestrator, Queue, UserService, SettingsRepo, VoiceGate, EventConfigRepo);
         UdpServer = new UdpServer(udpRouter, Logger);
+
+        NetworkSync = new NetworkSyncService(Database, SettingsRepo, Logger);
     }
 
     private static QueueEntryInfo ToQueueEntryInfo(TtsQueueItem item) =>
@@ -218,6 +222,8 @@ public class AppBootstrapper : IDisposable
         if (settings.UdpServer.AutoStart)
             UdpServer.Start();
 
+        NetworkSync.Start();
+
         if (TwitchAuth.HasValidAccount())
         {
             try { await Twitch.ConnectAsync(); }
@@ -231,6 +237,7 @@ public class AppBootstrapper : IDisposable
         WsServer.Stop();
         EventsWsServer.Stop();
         UdpServer.Stop();
+        NetworkSync.Stop();
         VoiceGate.Deactivate();
     }
 
@@ -243,6 +250,7 @@ public class AppBootstrapper : IDisposable
         Keybinds.Dispose();
         VoiceGate.Dispose();
         EventsWsServer.Dispose();
+        NetworkSync.Dispose();
         Database.Dispose();
     }
 }

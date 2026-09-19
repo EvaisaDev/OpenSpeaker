@@ -51,6 +51,7 @@ public class DatabaseContext : IDisposable
 
     public ILiteCollection<BsonDocument> RawCollection(string name) => Synchronized(_db.GetCollection<BsonDocument>(name));
     public void DropCollection(string name) { lock (_gate) _db.DropCollection(name); }
+    public IReadOnlyList<string> GetCollectionNames() { lock (_gate) return _db.GetCollectionNames().ToList(); }
 
     public void Dispose() { lock (_gate) _db.Dispose(); }
 }

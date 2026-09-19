@@ -94,7 +94,8 @@ public class UsersViewModel : BaseViewModel
 
     private void ApplyFilter()
     {
-        var selectedId = _selectedUser?.TwitchId;
+        var selected = _selectedUser;
+        var selectedId = selected?.TwitchId;
         var filtered = string.IsNullOrEmpty(_userFilter)
             ? _allUsers
             : _allUsers.Where(u =>
@@ -103,8 +104,15 @@ public class UsersViewModel : BaseViewModel
         Users.Clear();
         foreach (var u in filtered)
             Users.Add(u);
-        if (selectedId != null)
-            SelectedUser = Users.FirstOrDefault(u => u.TwitchId == selectedId);
+        if (selectedId == null) return;
+
+        var fresh = Users.FirstOrDefault(u => u.TwitchId == selectedId);
+        if (fresh == null || selected == null) { SelectedUser = fresh; return; }
+
+        selected.LastActive = fresh.LastActive;
+        selected.PastVoices = fresh.PastVoices;
+        Users[Users.IndexOf(fresh)] = selected;
+        SelectedUser = selected;
     }
 
     public void OnChatMessage(string twitchId)

@@ -9,8 +9,11 @@ public class UserRepository : LiteDbRepository<UserRecord>
     public UserRecord? FindByTwitchId(string twitchId) =>
         _collection.FindOne(u => u.TwitchId == twitchId);
 
-    public UserRecord? FindByUsername(string username) =>
-        _collection.FindOne(u => u.Username.ToLower() == username.ToLower());
+    public UserRecord? FindByUsername(string username)
+    {
+        var name = username.TrimStart('@').ToLowerInvariant();
+        return _collection.FindOne(u => u.Username.ToLower() == name);
+    }
 
     public List<UserRecord> GetIgnored() =>
         _collection.Find(u => u.IsIgnored).ToList();

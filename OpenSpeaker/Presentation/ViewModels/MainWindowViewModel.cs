@@ -1,6 +1,7 @@
 using System.Windows;
 using OpenSpeaker.Core;
 using OpenSpeaker.Import;
+using OpenSpeaker.Sync;
 using OpenSpeaker.Views;
 namespace OpenSpeaker.ViewModels;
 
@@ -49,6 +50,8 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
 
     public AsyncRelayCommand SilenceTtsCommand { get; }
     public AsyncRelayCommand GenericSpeakCommand { get; }
+    public RelayCommand SyncCommand { get; }
+    public Func<string, SyncInstanceInfo, Func<string, bool>, Task>? OnSyncApply { get; set; }
 
     public MainWindowViewModel(AppBootstrapper boot, ProfileViewModel profile)
     {
@@ -121,6 +124,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
 
         SilenceTtsCommand = new AsyncRelayCommand(SilenceTtsAsync);
         GenericSpeakCommand = new AsyncRelayCommand(GenericSpeakAsync);
+        SyncCommand = new RelayCommand(OpenSync);
 
         Update = new UpdateViewModel(boot.SettingsRepo);
         _ = Update.InitializeAsync();
@@ -139,6 +143,13 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
         window.Owner = Application.Current.MainWindow;
         window.Show();
         await Task.CompletedTask;
+    }
+
+    private void OpenSync()
+    {
+        var vm = new SyncViewModel(_boot.NetworkSync) { OnApply = OnSyncApply };
+        var window = new SyncWindow(vm) { Owner = Application.Current.MainWindow };
+        window.ShowDialog();
     }
 
     public void Dispose()

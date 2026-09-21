@@ -15,7 +15,7 @@ public class FishAudioEngine : HttpTtsEngine, IVoiceSearchEngine
     {
         EngineParameterDef.Slider("speed", "Speed", 0.5, 2.0, 0.05, 1.0),
         EngineParameterDef.Combo("model", "Model",
-            ["s2.1-pro", "s2.1-pro-free", "s2-pro", "s1"],
+            ["s2.1-pro", "s2.1-pro-free", "s2-pro", "s1", "drama-3-preview"],
             "s2.1-pro-free"),
         EngineParameterDef.SearchableVoice("voice", "Voice"),
     };

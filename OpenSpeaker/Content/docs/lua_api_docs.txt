@@ -219,8 +219,9 @@ end
 
 Optionally define OnTransformAudio to replace the synthesized audio of a TTS item with different
 audio, e.g. to run it through a voice changer. It runs right after synthesis, before volume gain,
-saving and OnBeforeSpeak. user has only id and username (username is the Twitch login name), and
-audio_base64 is the synthesized audio as a base64-encoded WAV file.
+saving and OnBeforeSpeak. user has only id, username (the Twitch login name) and alias (the name
+of the voice alias the item was spoken with, "" if none), and audio_base64 is the synthesized audio
+as a base64-encoded WAV file.
 
 Return nil to keep the audio unchanged. Otherwise return the same kind of table GenerateSpeech
 returns ({ data = ... }, { url = ... } or { async_job = ... }, plus format). Async jobs are awaited
@@ -365,4 +366,8 @@ value can be any json-serializable lua value (string, number, boolean, table); i
 through storage.get as the same shape it was stored as.
 
 Storage is namespaced per extension id, so two extensions can use the same key without colliding.
+--------------------------
+aliases
+--------------------------
+aliases.list()            returns the names of all voice aliases, sorted alphabetically
 --------------------------

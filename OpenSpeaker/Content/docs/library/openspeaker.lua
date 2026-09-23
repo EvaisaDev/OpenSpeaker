@@ -48,6 +48,7 @@
 ---@class openspeaker.TtsUser
 ---@field id string
 ---@field username string
+---@field alias? string Voice alias the item was spoken with ("" if none). Only set for OnTransformAudio.
 
 ---@class openspeaker.SpeechResult
 ---@field url? string OpenSpeaker fetches this url.
@@ -319,6 +320,12 @@ function storage.set(key, value) end
 ---@param key string
 ---@return boolean ok
 function storage.delete(key) end
+
+aliases = {}
+
+---Returns the names of all voice aliases, sorted alphabetically.
+---@return string[]
+function aliases.list() end
 
 ---Required. Called once on load to get extension metadata.
 ---@return openspeaker.ExtensionMeta

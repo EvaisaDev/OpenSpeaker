@@ -55,6 +55,7 @@ public class LuaExtension : IDisposable
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _statusValues = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> _optionOverrides = new();
     private Action<Dictionary<string, string>>? _settingsSaver;
+    private Func<IReadOnlyList<string>>? _aliasLister;
     private KeybindService? _keybinds;
     private IAppLogger? _logger;
     private string _extensionDir = string.Empty;
@@ -156,6 +157,8 @@ public class LuaExtension : IDisposable
     internal void SetSettings(Dictionary<string, string> values) => _settingValues = new Dictionary<string, string>(values);
 
     internal void SetSettingsSaver(Action<Dictionary<string, string>>? saver) => _settingsSaver = saver;
+
+    internal void SetAliasLister(Func<IReadOnlyList<string>>? lister) => _aliasLister = lister;
 
     internal IReadOnlyList<string> GetSettingOptions(ExtSettingField field) =>
         _optionOverrides.TryGetValue(field.Key, out var opts) ? opts : field.Options;
@@ -428,7 +431,7 @@ public class LuaExtension : IDisposable
         finally { _stateLock.Release(); }
     }
 
-    internal async Task<AudioData?> InvokeTransformAudioAsync(string userId, string username, AudioData audio)
+    internal async Task<AudioData?> InvokeTransformAudioAsync(string userId, string username, string alias, AudioData audio)
     {
         LuaValue result;
         await _stateLock.WaitAsync();
@@ -438,6 +441,7 @@ public class LuaExtension : IDisposable
             var userTable = new LuaTable();
             userTable["id"] = userId;
             userTable["username"] = username;
+            userTable["alias"] = alias;
             var results = await _state.CallAsync(fn, new LuaValue[] { userTable, audio.ToWavBase64() });
             result = results.Length > 0 ? results[0] : LuaValue.Nil;
         }
@@ -785,6 +789,18 @@ public class LuaExtension : IDisposable
             catch (Exception ex) { _logger?.Error($"[{ExtensionId}] storage.delete error: {ex.Message}"); return new(ctx.Return(false)); }
         });
         state.Environment["storage"] = storageTable;
+
+        var aliasTable = new LuaTable();
+        aliasTable["list"] = new LuaFunction((ctx, ct) =>
+        {
+            var result = new LuaTable();
+            IReadOnlyList<string> names;
+            try { names = _aliasLister?.Invoke() ?? Array.Empty<string>(); }
+            catch (Exception ex) { _logger?.Error($"[{ExtensionId}] aliases.list error: {ex.Message}"); names = Array.Empty<string>(); }
+            for (var i = 0; i < names.Count; i++) result[i + 1] = names[i];
+            return new(ctx.Return(result));
+        });
+        state.Environment["aliases"] = aliasTable;
 
         var keybindTable = new LuaTable();
         keybindTable["held"] = new LuaFunction((ctx, ct) =>

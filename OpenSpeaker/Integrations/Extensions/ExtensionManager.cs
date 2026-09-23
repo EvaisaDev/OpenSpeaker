@@ -102,6 +102,7 @@ public class ExtensionManager : IDisposable
             e.SetKeybinds(_keybinds);
             var extensionId = e.ExtensionId;
             e.SetSettingsSaver(values => PersistSettings(extensionId, values));
+            e.SetAliasLister(ListAliasNames);
             e.SetStorage(
                 key => StorageGet(extensionId, key),
                 (key, value) => StorageSet(extensionId, key, value),
@@ -255,12 +256,15 @@ public class ExtensionManager : IDisposable
 
     public bool HasTransformAudioHooks => _extensions.Any(e => e.HasTransformAudio);
 
-    public async Task<TTS.AudioData> TransformAudioAsync(string userId, string username, TTS.AudioData audio)
+    private IReadOnlyList<string> ListAliasNames() =>
+        _db.VoiceAliases.FindAll().Select(a => a.Name).Where(n => !string.IsNullOrWhiteSpace(n)).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+
+    public async Task<TTS.AudioData> TransformAudioAsync(string userId, string username, string alias, TTS.AudioData audio)
     {
         var snapshot = _extensions;
         foreach (var ext in snapshot.Where(e => e.HasTransformAudio))
         {
-            var transformed = await ext.InvokeTransformAudioAsync(userId, username, audio);
+            var transformed = await ext.InvokeTransformAudioAsync(userId, username, alias, audio);
             if (transformed is not null) audio = transformed;
         }
         return audio;

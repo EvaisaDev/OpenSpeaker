@@ -70,7 +70,7 @@ public class TtsSynthesizer
 
             if (_extensions is { HasTransformAudioHooks: true })
             {
-                audio = await _extensions.TransformAudioAsync(item.UserId, item.Username, audio).WaitAsync(cancellationToken);
+                audio = await _extensions.TransformAudioAsync(item.UserId, item.Username, aliasName ?? string.Empty, audio).WaitAsync(cancellationToken);
                 if (audio.IsEmpty) return null;
             }
 

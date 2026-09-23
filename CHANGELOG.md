@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.3] - 2026-09-23
+
+### Other
+- new lua api stuff ([`0133047`](https://github.com/EvaisaDev/OpenSpeaker/commit/0133047))
+
 ## [0.6.1] - 2026-09-21
 
 ### Other
@@ -259,6 +264,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

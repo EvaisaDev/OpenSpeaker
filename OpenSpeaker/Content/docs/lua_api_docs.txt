@@ -68,6 +68,9 @@ Not persisted and not included in Save Settings; purely a live display, refreshe
 times a second while the extension's settings panel is open.
 "button" renders a clickable button (its label is the button text) that calls a global function
 named by the "action" key, with no arguments, when clicked. Requires "action", ignores "default".
+Clicking a button first saves the current values of the other fields (as Save Settings would), so
+GetSetting inside the action sees what the user typed. Any values the action changes with
+SetSetting are shown in the UI once it returns.
 --------------------------
 RegisterSettings({
 	{ key = "quality", label = "Quality", type = "dropdown", options = {"standard", "premium"}, default = "standard" },
@@ -213,6 +216,25 @@ function OnBeforeSpeak(user, audio_base64)
 	return nil
 end
 --------------------------
+
+Optionally define OnTransformAudio to replace the synthesized audio of a TTS item with different
+audio, e.g. to run it through a voice changer. It runs right after synthesis, before volume gain,
+saving and OnBeforeSpeak. user has only id and username (username is the Twitch login name), and
+audio_base64 is the synthesized audio as a base64-encoded WAV file.
+
+Return nil to keep the audio unchanged. Otherwise return the same kind of table GenerateSpeech
+returns ({ data = ... }, { url = ... } or { async_job = ... }, plus format). Async jobs are awaited
+without holding the extension's lock, so OnUpdate/OnChat keep running during a slow request. If
+the returned audio fails to download or decode, the original audio is used instead.
+If several extensions define OnTransformAudio they chain in load order, each one receiving the
+previous one's output.
+--------------------------
+function OnTransformAudio(user, audio_base64)
+	if user.username ~= "someone" then return nil end
+	local body = json.stringify({ audio = audio_base64 })
+	return { async_job = http.post_bytes_async("https://api.example.com/convert", body), format = "mp3" }
+end
+--------------------------
 Keybinds
 --------------------------
 Keys are read from a global hook, so binds fire while OpenSpeaker is unfocused. Input going to a
@@ -288,6 +310,9 @@ GetSetting(key)      returns a single setting value
 GetSettings()        returns all settings as a table
 GetVoiceSettings()   reserved, currently always returns an empty table
 SetStatus(key, value) sets the live display value of a "status" setting field
+SetSetting(key, value) changes a setting's stored value (not status/button fields) and saves it
+SetSettingOptions(key, options) replaces the choices of a "dropdown" field at runtime, e.g. with
+                     a list fetched from an API. Not persisted, call it again after every load.
 log(msg)             writes to the debug log
 
 Setting values come back typed: checkbox fields are booleans, number fields are numbers, and
@@ -303,6 +328,12 @@ http.get_bytes_async(url, headers?)                 -> job_id
 http.post_bytes_async(url, body, contentType?, headers?) -> job_id
 
 contentType defaults to "application/json" if omitted.
+Requests time out after 5 minutes.
+
+http.pin(host, ip) makes this extension's requests to host connect to ip directly instead of
+looking it up in DNS, while still sending host as the TLS server name and Host header (so HTTPS
+certificates keep working). Useful when some users' routers or ISPs resolve a host incorrectly.
+http.pin(host, nil) removes the pin.
 headers is a plain table like { ["Authorization"] = "Bearer xyz" }
 
 On a network failure the blocking calls return ok = false and status = 0. The body/data field holds

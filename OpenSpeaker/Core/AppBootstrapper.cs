@@ -87,7 +87,7 @@ public class AppBootstrapper : IDisposable
 
         var voiceResolver = new VoiceResolver(EngineRegistry, AliasRepo);
         var playbackCoordinator = new PlaybackCoordinator(audioPlayer);
-        var synthesizer = new TtsSynthesizer(voiceResolver, wavSaver, SettingsRepo, UserService, Logger);
+        var synthesizer = new TtsSynthesizer(voiceResolver, wavSaver, SettingsRepo, UserService, Extensions, Logger);
         _queueService = new TtsQueueService(synthesizer, playbackCoordinator, () => new NAudioPlayer(), SettingsRepo, Extensions, Logger);
         Queue = _queueService;
 

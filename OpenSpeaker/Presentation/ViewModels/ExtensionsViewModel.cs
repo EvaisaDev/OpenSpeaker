@@ -19,7 +19,19 @@ public class SettingFieldViewModel : BaseViewModel
     public string Key { get; init; } = string.Empty;
     public string Label { get; init; } = string.Empty;
     public string Type { get; init; } = string.Empty;
-    public IReadOnlyList<string> Options { get; init; } = Array.Empty<string>();
+    private IReadOnlyList<string> _options = Array.Empty<string>();
+    public IReadOnlyList<string> Options
+    {
+        get => _options;
+        set
+        {
+            if (_options.SequenceEqual(value)) return;
+            var current = _value;
+            _options = value;
+            OnPropertyChanged();
+            if (_value != current) { _value = current; OnPropertyChanged(nameof(Value)); }
+        }
+    }
 
     private bool _capturing;
     private string _captureText = string.Empty;
@@ -144,8 +156,25 @@ public class ExtensionsViewModel : BaseViewModel
         if (ext == null) return;
 
         foreach (var field in SettingFields)
+        {
             if (field.IsStatus)
                 field.Value = ext.GetStatusValue(field.Key);
+            else if (field.IsDropdown)
+                field.Options = ext.SettingFields.FirstOrDefault(f => f.Key == field.Key) is { } def
+                    ? ext.GetSettingOptions(def)
+                    : field.Options;
+        }
+    }
+
+    private async Task RunSettingActionAsync(LuaExtension ext, string action)
+    {
+        SaveSettings();
+        await ext.InvokeSettingActionAsync(action);
+        if (_selected?.EngineId != ext.ExtensionId) return;
+        foreach (var field in SettingFields)
+            if (!field.IsStatus && !field.IsButton)
+                field.Value = ext.GetSettingValue(field.Key);
+        RefreshStatusFields();
     }
 
     private void Refresh()
@@ -186,12 +215,12 @@ public class ExtensionsViewModel : BaseViewModel
         foreach (var field in ext.SettingFields)
         {
             var action = field.Action;
-            var vm = new SettingFieldViewModel(field.Type == "button" ? () => _ = ext.InvokeSettingActionAsync(action) : null)
+            var vm = new SettingFieldViewModel(field.Type == "button" ? () => _ = RunSettingActionAsync(ext, action) : null)
             {
                 Key = field.Key,
                 Label = field.Label,
                 Type = field.Type,
-                Options = field.Options,
+                Options = ext.GetSettingOptions(field),
                 Value = field.Type == "status" ? ext.GetStatusValue(field.Key) : ext.GetSettingValue(field.Key)
             };
             SettingFields.Add(vm);

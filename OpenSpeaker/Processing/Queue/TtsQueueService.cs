@@ -130,7 +130,7 @@ public class TtsQueueService : ITtsQueue, IDisposable
             var suppressPlayback = result.Item.IsSilent || clearToken.IsCancellationRequested;
             if (!suppressPlayback && _extensions is { HasBeforeSpeakHooks: true } && !result.Audio.IsEmpty)
             {
-                var wavBase64 = ToWavBase64(result.Audio);
+                var wavBase64 = result.Audio.ToWavBase64();
                 var action = await _extensions.InvokeBeforeSpeakAsync(result.Item.UserId, result.Item.Username, wavBase64);
                 if (string.Equals(action, "mute", StringComparison.OrdinalIgnoreCase))
                     suppressPlayback = true;
@@ -232,33 +232,5 @@ public class TtsQueueService : ITtsQueue, IDisposable
         _cts.Dispose();
         _queue.Dispose();
         _clearCts.Dispose();
-    }
-
-    private static string ToWavBase64(AudioData audio)
-    {
-        var format = audio.Format;
-        var samples = audio.Samples;
-        var byteRate = format.SampleRate * format.Channels * (format.BitsPerSample / 8);
-        var blockAlign = (short)(format.Channels * (format.BitsPerSample / 8));
-
-        using var ms = new MemoryStream();
-        using (var bw = new BinaryWriter(ms, System.Text.Encoding.ASCII, leaveOpen: true))
-        {
-            bw.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-            bw.Write(36 + samples.Length);
-            bw.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
-            bw.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
-            bw.Write(16);
-            bw.Write((short)1);
-            bw.Write((short)format.Channels);
-            bw.Write(format.SampleRate);
-            bw.Write(byteRate);
-            bw.Write(blockAlign);
-            bw.Write((short)format.BitsPerSample);
-            bw.Write(System.Text.Encoding.ASCII.GetBytes("data"));
-            bw.Write(samples.Length);
-            bw.Write(samples);
-        }
-        return Convert.ToBase64String(ms.ToArray());
     }
 }

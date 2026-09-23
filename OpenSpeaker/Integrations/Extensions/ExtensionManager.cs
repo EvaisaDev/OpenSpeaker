@@ -101,6 +101,7 @@ public class ExtensionManager : IDisposable
             e.SetWsBroadcaster(_wsBroadcaster);
             e.SetKeybinds(_keybinds);
             var extensionId = e.ExtensionId;
+            e.SetSettingsSaver(values => PersistSettings(extensionId, values));
             e.SetStorage(
                 key => StorageGet(extensionId, key),
                 (key, value) => StorageSet(extensionId, key, value),
@@ -209,7 +210,11 @@ public class ExtensionManager : IDisposable
     public void SaveSettings(string extensionId, Dictionary<string, string> values)
     {
         _extensions.FirstOrDefault(e => e.ExtensionId == extensionId)?.SetSettings(values);
+        PersistSettings(extensionId, values);
+    }
 
+    private void PersistSettings(string extensionId, Dictionary<string, string> values)
+    {
         var existing = _db.ExtensionSettings.FindOne(s => s.ExtensionId == extensionId)
             ?? new ExtensionSettings { ExtensionId = extensionId };
         existing.Values = values;
@@ -246,6 +251,19 @@ public class ExtensionManager : IDisposable
             if (!string.IsNullOrEmpty(action)) return action;
         }
         return null;
+    }
+
+    public bool HasTransformAudioHooks => _extensions.Any(e => e.HasTransformAudio);
+
+    public async Task<TTS.AudioData> TransformAudioAsync(string userId, string username, TTS.AudioData audio)
+    {
+        var snapshot = _extensions;
+        foreach (var ext in snapshot.Where(e => e.HasTransformAudio))
+        {
+            var transformed = await ext.InvokeTransformAudioAsync(userId, username, audio);
+            if (transformed is not null) audio = transformed;
+        }
+        return audio;
     }
 
     public bool HasWsCommandHandlers => _extensions.Any(e => e.HasWsCommand);

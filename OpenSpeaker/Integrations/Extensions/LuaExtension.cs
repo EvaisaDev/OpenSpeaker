@@ -32,7 +32,8 @@ public class LuaExtension : IDisposable
 {
     private readonly LuaState _state;
     private readonly SemaphoreSlim _stateLock = new(1, 1);
-    private readonly HttpClient _http = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Net.IPAddress> _hostPins = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HttpClient _http;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Task<byte[]>> _asyncJobs = new();
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly Dictionary<string, Dictionary<string, string>> _authByEngine = new();
@@ -52,6 +53,8 @@ public class LuaExtension : IDisposable
     private Action<string>? _storageDeleter;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Net.WebSockets.ClientWebSocket> _wsClients = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _statusValues = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> _optionOverrides = new();
+    private Action<Dictionary<string, string>>? _settingsSaver;
     private KeybindService? _keybinds;
     private IAppLogger? _logger;
     private string _extensionDir = string.Empty;
@@ -64,6 +67,7 @@ public class LuaExtension : IDisposable
     public bool HasUpdate { get; private set; }
     public bool HasWsCommand { get; private set; }
     public bool HasBeforeSpeak { get; private set; }
+    public bool HasTransformAudio { get; private set; }
     public bool HasKeybinds => _settingFields.Any(f => f.Type == "keybind");
     public bool NeedsTick => HasUpdate || HasKeybinds;
     public IReadOnlyList<LuaTtsEngine> SpeechEngines => _speechEngines;
@@ -73,8 +77,28 @@ public class LuaExtension : IDisposable
 
     private LuaExtension()
     {
+        _http = new HttpClient(new SocketsHttpHandler { ConnectCallback = ConnectAsync }) { Timeout = TimeSpan.FromMinutes(5) };
         _state = LuaState.Create();
         _state.OpenStandardLibraries();
+    }
+
+    private async ValueTask<Stream> ConnectAsync(SocketsHttpConnectionContext context, CancellationToken ct)
+    {
+        var endpoint = context.DnsEndPoint;
+        var socket = new System.Net.Sockets.Socket(System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp) { NoDelay = true };
+        try
+        {
+            if (_hostPins.TryGetValue(endpoint.Host, out var ip))
+                await socket.ConnectAsync(new System.Net.IPEndPoint(ip, endpoint.Port), ct);
+            else
+                await socket.ConnectAsync(endpoint, ct);
+            return new System.Net.Sockets.NetworkStream(socket, ownsSocket: true);
+        }
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
     }
 
     public static async Task<LuaExtension> CreateAsync(string luaFilePath, IAppLogger? logger = null)
@@ -103,6 +127,7 @@ public class LuaExtension : IDisposable
         ext.HasUpdate = ext._state.Environment["OnUpdate"].TryRead<LuaFunction>(out _);
         ext.HasWsCommand = ext._state.Environment["OnWsCommand"].TryRead<LuaFunction>(out _);
         ext.HasBeforeSpeak = ext._state.Environment["OnBeforeSpeak"].TryRead<LuaFunction>(out _);
+        ext.HasTransformAudio = ext._state.Environment["OnTransformAudio"].TryRead<LuaFunction>(out _);
         return ext;
     }
 
@@ -129,6 +154,11 @@ public class LuaExtension : IDisposable
     }
 
     internal void SetSettings(Dictionary<string, string> values) => _settingValues = new Dictionary<string, string>(values);
+
+    internal void SetSettingsSaver(Action<Dictionary<string, string>>? saver) => _settingsSaver = saver;
+
+    internal IReadOnlyList<string> GetSettingOptions(ExtSettingField field) =>
+        _optionOverrides.TryGetValue(field.Key, out var opts) ? opts : field.Options;
 
     internal void SetChatSender(Func<string, Task>? sender) => _chatSender = sender;
 
@@ -247,6 +277,11 @@ public class LuaExtension : IDisposable
             _stateLock.Release();
         }
 
+        return await ResolveAudioResultAsync(result);
+    }
+
+    private async Task<AudioData> ResolveAudioResultAsync(LuaValue result)
+    {
         if (result.TryRead<LuaTable>(out var table) &&
             table["async_job"].TryRead<string>(out var jobId) &&
             _asyncJobs.TryRemove(jobId, out var jobTask))
@@ -264,7 +299,12 @@ public class LuaExtension : IDisposable
             }
         }
 
-        return await ProcessReturnAsync(result);
+        try { return await ProcessReturnAsync(result); }
+        catch (Exception ex)
+        {
+            _logger?.Error($"[{ExtensionId}] Audio result error: {ex.Message}");
+            return AudioData.Empty;
+        }
     }
 
     internal async Task<IReadOnlyList<VoiceInfo>> GetVoicesAsync(string engineId)
@@ -388,6 +428,27 @@ public class LuaExtension : IDisposable
         finally { _stateLock.Release(); }
     }
 
+    internal async Task<AudioData?> InvokeTransformAudioAsync(string userId, string username, AudioData audio)
+    {
+        LuaValue result;
+        await _stateLock.WaitAsync();
+        try
+        {
+            if (!_state.Environment["OnTransformAudio"].TryRead<LuaFunction>(out var fn)) return null;
+            var userTable = new LuaTable();
+            userTable["id"] = userId;
+            userTable["username"] = username;
+            var results = await _state.CallAsync(fn, new LuaValue[] { userTable, audio.ToWavBase64() });
+            result = results.Length > 0 ? results[0] : LuaValue.Nil;
+        }
+        catch (Exception ex) { _logger?.Error($"[{ExtensionId}] OnTransformAudio error: {ex.Message}"); return null; }
+        finally { _stateLock.Release(); }
+
+        if (result.Type == LuaValueType.Nil) return null;
+        var transformed = await ResolveAudioResultAsync(result);
+        return transformed.IsEmpty ? null : transformed;
+    }
+
     private static LuaTable BuildUserTable(MessageFilterContext ctx)
     {
         var t = new LuaTable();
@@ -458,6 +519,22 @@ public class LuaExtension : IDisposable
             var jobId = Guid.NewGuid().ToString("N");
             _asyncJobs[jobId] = HttpPostBytesRawAsync(url, body, contentType, headers, _disposeCts.Token);
             return new(ctx.Return(jobId));
+        });
+        httpTable["pin"] = new LuaFunction((ctx, ct) =>
+        {
+            var host = ctx.GetArgument<string>(0).Trim();
+            var address = ctx.HasArgument(1) ? ctx.GetArgument<LuaValue>(1) : LuaValue.Nil;
+            if (address.TryRead<string>(out var ipText) && !string.IsNullOrWhiteSpace(ipText))
+            {
+                if (!System.Net.IPAddress.TryParse(ipText.Trim(), out var ip))
+                    throw new ArgumentException($"http.pin: '{ipText}' is not an IP address");
+                _hostPins[host] = ip;
+            }
+            else
+            {
+                _hostPins.TryRemove(host, out _);
+            }
+            return new(ctx.Return());
         });
         state.Environment["http"] = httpTable;
 
@@ -780,6 +857,38 @@ public class LuaExtension : IDisposable
             if (ctx.HasArgument(1)) ctx.GetArgument<LuaValue>(1).TryRead<string>(out value);
             _statusValues[key] = value ?? string.Empty;
             return new(0);
+        });
+
+        state.Environment["SetSetting"] = new LuaFunction((ctx, ct) =>
+        {
+            if (!ctx.HasArgument(0) || !ctx.HasArgument(1)) return new(ctx.Return(false));
+            var key = ctx.GetArgument<string>(0);
+            var field = _settingFields.FirstOrDefault(f => f.Key == key);
+            if (field is null || field.Type is "status" or "button") return new(ctx.Return(false));
+            var raw = ctx.GetArgument<LuaValue>(1);
+            string str;
+            if (raw.TryRead<bool>(out var b)) str = b ? "true" : "false";
+            else if (raw.TryRead<double>(out var d)) str = d.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            else if (raw.TryRead<string>(out var s)) str = s;
+            else return new(ctx.Return(false));
+            var values = new Dictionary<string, string>(_settingValues) { [key] = str };
+            _settingValues = values;
+            try { _settingsSaver?.Invoke(new Dictionary<string, string>(values)); }
+            catch (Exception ex) { _logger?.Error($"[{ExtensionId}] SetSetting save error: {ex.Message}"); }
+            return new(ctx.Return(true));
+        });
+
+        state.Environment["SetSettingOptions"] = new LuaFunction((ctx, ct) =>
+        {
+            if (!ctx.HasArgument(0) || !ctx.HasArgument(1)) return new(ctx.Return(false));
+            var key = ctx.GetArgument<string>(0);
+            if (!ctx.GetArgument<LuaValue>(1).TryRead<LuaTable>(out var optTable)) return new(ctx.Return(false));
+            var opts = new List<string>();
+            for (var i = 1; i <= optTable.ArrayLength; i++)
+                if (optTable[i].TryRead<string>(out var opt))
+                    opts.Add(opt);
+            _optionOverrides[key] = opts.ToArray();
+            return new(ctx.Return(true));
         });
 
         state.Environment["GetSettings"] = new LuaFunction((ctx, ct) =>

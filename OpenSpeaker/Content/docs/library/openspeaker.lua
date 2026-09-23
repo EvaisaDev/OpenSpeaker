@@ -106,6 +106,18 @@ function GetSettings() end
 ---@param value string
 function SetStatus(key, value) end
 
+---Changes a setting's stored value and saves it, as if the user had edited it and pressed Save
+---Settings. Does nothing for "status" and "button" fields.
+---@param key string
+---@param value string|number|boolean
+function SetSetting(key, value) end
+
+---Replaces the choices of a "dropdown" setting at runtime, e.g. with a list fetched from an API.
+---Not persisted, so call it again each time the extension loads.
+---@param key string A "dropdown" setting key.
+---@param options string[]
+function SetSettingOptions(key, options) end
+
 ---Reserved. Currently always returns an empty table.
 ---@return table
 function GetVoiceSettings() end
@@ -263,6 +275,12 @@ function http.get_bytes_async(url, headers) end
 ---@return string job_id
 function http.post_bytes_async(url, body, contentType, headers) end
 
+---Makes this extension's requests to host connect to ip directly, skipping DNS. TLS and the Host
+---header still use host, so HTTPS certificates keep working. Pass nil as ip to remove the pin.
+---@param host string
+---@param ip string|nil
+function http.pin(host, ip) end
+
 json = {}
 
 ---@param str string
@@ -359,3 +377,13 @@ function OnWsCommand(command, data) end
 ---@param audio_base64 string
 ---@return "mute"|nil
 function OnBeforeSpeak(user, audio_base64) end
+
+---Optional. Called right after a TTS item is synthesized, before volume gain, saving and
+---OnBeforeSpeak, to replace its audio (e.g. with a voice changer). audio_base64 is the synthesized
+---audio as a base64-encoded WAV file. Return nil to keep it unchanged, or a SpeechResult like
+---GenerateSpeech returns. Async jobs are awaited outside the extension's lock. If the result fails
+---to download or decode, the original audio is kept. Several extensions chain in load order.
+---@param user openspeaker.TtsUser
+---@param audio_base64 string
+---@return openspeaker.SpeechResult|nil
+function OnTransformAudio(user, audio_base64) end

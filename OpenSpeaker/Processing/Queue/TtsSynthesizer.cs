@@ -1,5 +1,6 @@
 using OpenSpeaker.Audio;
 using OpenSpeaker.Data;
+using OpenSpeaker.Extensions;
 using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Models;
 using OpenSpeaker.TTS;
@@ -14,6 +15,7 @@ public class TtsSynthesizer
     private readonly WavFileSaver _wavSaver;
     private readonly SettingsRepository _settingsRepo;
     private readonly UserService _userService;
+    private readonly ExtensionManager? _extensions;
     private readonly IAppLogger? _logger;
     private (string VoiceId, string EngineId) _lastUsedVoice;
 
@@ -24,12 +26,14 @@ public class TtsSynthesizer
         WavFileSaver wavSaver,
         SettingsRepository settingsRepo,
         UserService userService,
+        ExtensionManager? extensions = null,
         IAppLogger? logger = null)
     {
         _resolver = resolver;
         _wavSaver = wavSaver;
         _settingsRepo = settingsRepo;
         _userService = userService;
+        _extensions = extensions;
         _logger = logger;
     }
 
@@ -63,6 +67,12 @@ public class TtsSynthesizer
             var audio = await engine.SynthesizeAsync(text, voiceId, synthParams).WaitAsync(cancellationToken);
             _logger?.Info($"QUEUE :: Synthesis done. IsEmpty={audio.IsEmpty}");
             if (audio.IsEmpty) return null;
+
+            if (_extensions is { HasTransformAudioHooks: true })
+            {
+                audio = await _extensions.TransformAudioAsync(item.UserId, item.Username, audio).WaitAsync(cancellationToken);
+                if (audio.IsEmpty) return null;
+            }
 
             audio = AudioGain.Apply(audio, resolved.Volume);
 

@@ -2478,6 +2478,7 @@
                                                             <TextBlock Grid.Column="1"
                                                                        Text="{Binding Value}"
                                                                        VerticalAlignment="Center"
+                                                                       TextWrapping="Wrap"
                                                                        Foreground="{DynamicResource TextPrimary}"
                                                                        FontWeight="SemiBold">
                                                                 <TextBlock.Style>

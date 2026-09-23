@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.1] - 2026-09-21
+
+### Other
+- Update FishAudioEngine.cs ([`4f45877`](https://github.com/EvaisaDev/OpenSpeaker/commit/4f45877))
+
 ## [0.6.0] - 2026-09-19
 
 ### Other
@@ -254,6 +259,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

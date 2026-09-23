@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.6] - 2026-09-23
+
+### Other
+- fuck this shit ([`0399093`](https://github.com/EvaisaDev/OpenSpeaker/commit/0399093))
+- more changes to the api ([`5d7fef3`](https://github.com/EvaisaDev/OpenSpeaker/commit/5d7fef3))
+
 ## [0.6.5] - 2026-09-23
 
 ### Other
@@ -273,6 +279,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

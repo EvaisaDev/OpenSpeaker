@@ -113,6 +113,7 @@ public class ExtensionsViewModel : BaseViewModel
     private readonly TtsEngineRegistry _registry;
     private readonly VoicePool _voicePool;
     private readonly DispatcherTimer _statusTimer;
+    private bool _syncingFromExtension;
 
     public ObservableCollection<ExtensionItem> Items { get; } = new();
     public ObservableCollection<SettingFieldViewModel> SettingFields { get; } = new();
@@ -171,9 +172,14 @@ public class ExtensionsViewModel : BaseViewModel
         SaveSettings();
         await ext.InvokeSettingActionAsync(action);
         if (_selected?.EngineId != ext.ExtensionId) return;
-        foreach (var field in SettingFields)
-            if (!field.IsStatus && !field.IsButton)
-                field.Value = ext.GetSettingValue(field.Key);
+        _syncingFromExtension = true;
+        try
+        {
+            foreach (var field in SettingFields)
+                if (!field.IsStatus && !field.IsButton)
+                    field.Value = ext.GetSettingValue(field.Key);
+        }
+        finally { _syncingFromExtension = false; }
         RefreshStatusFields();
     }
 
@@ -223,6 +229,8 @@ public class ExtensionsViewModel : BaseViewModel
                 Options = ext.GetSettingOptions(field),
                 Value = field.Type == "status" ? ext.GetStatusValue(field.Key) : ext.GetSettingValue(field.Key)
             };
+            if (!vm.IsStatus && !vm.IsButton)
+                vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(SettingFieldViewModel.Value)) SaveSettings(); };
             SettingFields.Add(vm);
         }
 
@@ -231,7 +239,7 @@ public class ExtensionsViewModel : BaseViewModel
 
     private void SaveSettings()
     {
-        if (_selected == null) return;
+        if (_selected == null || _syncingFromExtension) return;
         var values = SettingFields.Where(f => !f.IsStatus && !f.IsButton).ToDictionary(f => f.Key, f => f.Value);
         _extensions.SaveSettings(_selected.EngineId, values);
     }

@@ -13,7 +13,7 @@ public record SyncCategory(string Key, string LabelKey, string[] Collections)
         new("commands", "Sync.Cat.Commands", new[] { "customcommands" }),
         new("rewards", "Sync.Cat.Rewards", new[] { "channelrewards" }),
         new("engines", "Sync.Cat.SpeechEngines", new[] { "engineconfigs", "customapis" }),
-        new("filters", "Sync.Cat.Filters", new[] { "regexreplacements", "badwords" }),
+        new("filters", "Sync.Cat.Filters", new[] { "regexreplacements", "badwords", "voiceswitches" }),
         new("ignoredvoices", "Sync.Cat.IgnoredVoices", new[] { "ignoreprofiles" }),
         new("voicegate", "Sync.Cat.VoiceGate", new[] { "voicegateprofiles" }),
         new("twitch", "Sync.Cat.TwitchAccounts", new[] { "twitchaccounts" }),

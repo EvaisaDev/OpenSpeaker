@@ -24,14 +24,19 @@ public class VoiceResolver
             return new ResolvedVoice(stickyEngine, item.StickyVoiceId, SynthParams.Empty, settings.AudioOutputDeviceId, item.VoiceAliasName);
         }
 
-        var alias = _aliasRepo.GetByName(item.VoiceAliasName)
+		return ResolveAlias(item.VoiceAliasName, settings);
+	}
+
+	public ResolvedVoice ResolveAlias(string aliasName, AppSettings settings)
+	{
+        var alias = _aliasRepo.GetByName(aliasName)
             ?? _aliasRepo.GetByName(settings.DefaultVoiceAlias);
         if (alias == null || string.IsNullOrEmpty(alias.VoiceId))
-            return new ResolvedVoice(_engineRegistry.GetDefaultEngine(), string.Empty, SynthParams.Empty, settings.AudioOutputDeviceId, item.VoiceAliasName);
+            return new ResolvedVoice(_engineRegistry.GetDefaultEngine(), string.Empty, SynthParams.Empty, settings.AudioOutputDeviceId, aliasName);
 
         var engine = _engineRegistry.GetEngine(alias.EngineId) ?? _engineRegistry.GetDefaultEngine();
         var deviceId = !string.IsNullOrEmpty(alias.OutputDeviceId) ? alias.OutputDeviceId : settings.AudioOutputDeviceId;
-        var aliasName = !string.IsNullOrEmpty(alias.Name) ? alias.Name : item.VoiceAliasName;
-        return new ResolvedVoice(engine, alias.VoiceId, SynthParams.FromJson(alias.EngineParamsJson), deviceId, aliasName, alias.Volume, alias.LowercaseText);
+        var resolvedName = !string.IsNullOrEmpty(alias.Name) ? alias.Name : aliasName;
+        return new ResolvedVoice(engine, alias.VoiceId, SynthParams.FromJson(alias.EngineParamsJson), deviceId, resolvedName, alias.Volume, alias.LowercaseText);
     }
 }

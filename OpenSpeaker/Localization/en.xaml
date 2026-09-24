@@ -54,6 +54,7 @@
     <sys:String x:Key="Tab.IgnoredVoices">Ignored Voices</sys:String>
     <sys:String x:Key="Tab.SpeakingOptions">Speaking Options</sys:String>
     <sys:String x:Key="Tab.Filters">Filters</sys:String>
+	<sys:String x:Key="Tab.VoiceSwitches">Voice Switches</sys:String>
     <sys:String x:Key="Tab.VoiceAliases">Voice Aliases</sys:String>
     <sys:String x:Key="Tab.Servers">Servers</sys:String>
     <sys:String x:Key="Tab.CustomApis">Custom APIs</sys:String>
@@ -127,6 +128,7 @@
     <sys:String x:Key="Col.On">Enabled</sys:String>
     <sys:String x:Key="Col.Pattern">Pattern</sys:String>
     <sys:String x:Key="Col.ReplaceWith">Replace With</sys:String>
+	<sys:String x:Key="Col.Marker">Marker</sys:String>
 
     <!-- Labels -->
     <sys:String x:Key="Lbl.Id">ID</sys:String>
@@ -175,6 +177,11 @@
     <sys:String x:Key="Lbl.Match">Match</sys:String>
     <sys:String x:Key="Lbl.With">With</sys:String>
     <sys:String x:Key="Lbl.Sample">Sample</sys:String>
+	<sys:String x:Key="Lbl.Marker">Marker</sys:String>
+	<sys:String x:Key="Lbl.Global">Global</sys:String>
+	<sys:String x:Key="Lbl.VoiceSwitchEditor">Marker editor</sys:String>
+	<sys:String x:Key="Lbl.Preview">Preview</sys:String>
+	<sys:String x:Key="Lbl.NormalVoice">Normal voice</sys:String>
     <sys:String x:Key="Lbl.InUse">In Use:</sys:String>
     <sys:String x:Key="Lbl.OutputDevice">Output Device</sys:String>
     <sys:String x:Key="Lbl.Voice">Voice</sys:String>
@@ -440,6 +447,14 @@
     <sys:String x:Key="Tip.SaveFilter">Save changes to the selected filter rule.</sys:String>
     <sys:String x:Key="Tip.FilterSampleInput">Enter sample text to preview how all active filters transform it.</sys:String>
     <sys:String x:Key="Tip.FilterSampleOutput">The result after applying all active enabled filters to the sample input.</sys:String>
+	<sys:String x:Key="Tip.VoiceSwitchMarker">The text that triggers the switch, e.g. [eba] or $3. Matching is case-insensitive and the marker itself is never spoken.</sys:String>
+	<sys:String x:Key="Tip.VoiceSwitchAlias">The voice alias used for the text after this marker.</sys:String>
+	<sys:String x:Key="Tip.VoiceSwitchEnabled">Enable or disable this voice switch.</sys:String>
+	<sys:String x:Key="Tip.AddVoiceSwitch">Add this voice switch to the list.</sys:String>
+	<sys:String x:Key="Tip.DeleteVoiceSwitch">Delete the selected voice switch.</sys:String>
+	<sys:String x:Key="Tip.SaveVoiceSwitch">Save changes to the selected voice switch.</sys:String>
+	<sys:String x:Key="Tip.VoiceSwitchSampleInput">Enter a sample message to preview how it will be split between voices.</sys:String>
+	<sys:String x:Key="Tip.VoiceSwitchSampleOutput">Each part of the message and the voice alias that will speak it.</sys:String>
 
     <!-- Voice Aliases -->
     <sys:String x:Key="Tip.AddVoiceAlias">Create a new voice alias with the entered name.</sys:String>
@@ -517,7 +532,7 @@
     <sys:String x:Key="Sync.Cat.Commands">Custom commands</sys:String>
     <sys:String x:Key="Sync.Cat.Rewards">Channel rewards</sys:String>
     <sys:String x:Key="Sync.Cat.SpeechEngines">Speech engines &amp; custom APIs</sys:String>
-    <sys:String x:Key="Sync.Cat.Filters">Filters &amp; bad words</sys:String>
+    <sys:String x:Key="Sync.Cat.Filters">Filters, bad words &amp; voice switches</sys:String>
     <sys:String x:Key="Sync.Cat.IgnoredVoices">Ignored voices</sys:String>
     <sys:String x:Key="Sync.Cat.VoiceGate">Voice gate profiles</sys:String>
     <sys:String x:Key="Sync.Cat.TwitchAccounts">Twitch accounts</sys:String>

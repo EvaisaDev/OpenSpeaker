@@ -1666,6 +1666,165 @@
                         </DockPanel>
                     </TabItem>
 
+					<TabItem Header="{DynamicResource Tab.VoiceSwitches}">
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="220"/>
+								<ColumnDefinition Width="1"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+
+							<DockPanel Grid.Column="0" Background="{DynamicResource Bg2}">
+								<TextBox DockPanel.Dock="Top"
+										 Margin="8,8,8,4"
+										 Text="{Binding VoiceSwitches.ScopeFilter, UpdateSourceTrigger=PropertyChanged}"/>
+								<ListBox ItemsSource="{Binding VoiceSwitches.Scopes}"
+										 SelectedItem="{Binding VoiceSwitches.SelectedScope}"
+										 BorderThickness="0" Background="Transparent" Padding="4">
+									<ListBox.ItemTemplate>
+										<DataTemplate>
+											<DockPanel Margin="4,2">
+												<TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Style="{DynamicResource MutedText}" Margin="8,0,0,0"
+														   Visibility="{Binding HasSwitches, Converter={StaticResource BoolToVisibilityConverter}}"/>
+												<TextBlock>
+													<TextBlock.Style>
+														<Style TargetType="TextBlock">
+															<Setter Property="Text" Value="{Binding Username}"/>
+															<Style.Triggers>
+																<DataTrigger Binding="{Binding IsGlobal}" Value="True">
+																	<Setter Property="Text" Value="{DynamicResource Lbl.Global}"/>
+																	<Setter Property="FontWeight" Value="SemiBold"/>
+																</DataTrigger>
+																<DataTrigger Binding="{Binding IsUnknownUser}" Value="True">
+																	<Setter Property="FontStyle" Value="Italic"/>
+																</DataTrigger>
+															</Style.Triggers>
+														</Style>
+													</TextBlock.Style>
+												</TextBlock>
+											</DockPanel>
+										</DataTemplate>
+									</ListBox.ItemTemplate>
+								</ListBox>
+							</DockPanel>
+
+							<Border Grid.Column="1" Background="{DynamicResource BorderBrush0}"/>
+
+							<Grid Grid.Column="2" Margin="12"
+								  Visibility="{Binding VoiceSwitches.HasSelectedScope, Converter={StaticResource BoolToVisibilityConverter}}">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="*"/>
+									<RowDefinition Height="12"/>
+									<RowDefinition Height="Auto"/>
+								</Grid.RowDefinitions>
+
+								<DataGrid Grid.Row="0" ItemsSource="{Binding VoiceSwitches.Switches}"
+										  SelectedItem="{Binding VoiceSwitches.SelectedSwitch}"
+										  SelectionMode="Single"
+										  CanUserAddRows="False">
+									<DataGrid.Columns>
+										<DataGridTemplateColumn Width="Auto">
+											<DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col.On}"/></DataGridTemplateColumn.Header>
+											<DataGridTemplateColumn.CellTemplate>
+												<DataTemplate>
+													<CheckBox IsChecked="{Binding Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+															  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+												</DataTemplate>
+											</DataGridTemplateColumn.CellTemplate>
+										</DataGridTemplateColumn>
+										<DataGridTextColumn Binding="{Binding Marker}" Width="*" IsReadOnly="True">
+											<DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Marker}"/></DataGridTextColumn.Header>
+										</DataGridTextColumn>
+										<DataGridTextColumn Binding="{Binding AliasName}" Width="*" IsReadOnly="True">
+											<DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.VoiceAlias}"/></DataGridTextColumn.Header>
+										</DataGridTextColumn>
+									</DataGrid.Columns>
+								</DataGrid>
+
+								<Grid Grid.Row="2">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="*"/>
+										<ColumnDefinition Width="12"/>
+										<ColumnDefinition Width="*"/>
+									</Grid.ColumnDefinitions>
+
+									<Border Grid.Column="0" Background="{DynamicResource Bg2}"
+											BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
+											CornerRadius="5" Padding="12">
+										<StackPanel>
+											<TextBlock Text="{DynamicResource Lbl.VoiceSwitchEditor}" FontWeight="SemiBold" Margin="0,0,0,10"/>
+
+											<TextBlock Text="{DynamicResource Lbl.Marker}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
+											<TextBox Text="{Binding VoiceSwitches.EditMarker, UpdateSourceTrigger=PropertyChanged}"
+													 Margin="0,0,0,8" ToolTip="{DynamicResource Tip.VoiceSwitchMarker}"/>
+
+											<TextBlock Text="{DynamicResource Lbl.VoiceAlias}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
+											<ComboBox ItemsSource="{Binding VoiceSwitches.AliasNames}"
+													  SelectedItem="{Binding VoiceSwitches.EditAliasName}"
+													  MaxDropDownHeight="300" Margin="0,0,0,8"
+													  ToolTip="{DynamicResource Tip.VoiceSwitchAlias}"/>
+
+											<DockPanel>
+												<CheckBox DockPanel.Dock="Left" Content="{DynamicResource Chk.Enabled}"
+														  IsChecked="{Binding VoiceSwitches.EditEnabled}" VerticalAlignment="Center"
+														  ToolTip="{DynamicResource Tip.VoiceSwitchEnabled}"/>
+												<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+													<Button Content="{DynamicResource Btn.Add}" Command="{Binding VoiceSwitches.AddSwitchCommand}"
+															Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddVoiceSwitch}"/>
+													<Button Content="{DynamicResource Btn.Delete}" Command="{Binding VoiceSwitches.DeleteSwitchCommand}"
+															Style="{DynamicResource DangerButton}" Margin="0,0,4,0"
+															ToolTip="{DynamicResource Tip.DeleteVoiceSwitch}"/>
+													<Button Content="{DynamicResource Btn.Save}" Command="{Binding VoiceSwitches.SaveSwitchCommand}"
+															Style="{DynamicResource AccentButton}"
+															ToolTip="{DynamicResource Tip.SaveVoiceSwitch}"/>
+												</StackPanel>
+											</DockPanel>
+										</StackPanel>
+									</Border>
+
+									<Border Grid.Column="2" Background="{DynamicResource Bg2}"
+											BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
+											CornerRadius="5" Padding="12">
+										<DockPanel>
+											<TextBlock DockPanel.Dock="Top" Text="{DynamicResource Lbl.Preview}" FontWeight="SemiBold" Margin="0,0,0,10"/>
+											<TextBox DockPanel.Dock="Top" Text="{Binding VoiceSwitches.SampleInput, UpdateSourceTrigger=PropertyChanged}"
+													 TextWrapping="Wrap" AcceptsReturn="False" Margin="0,0,0,8"
+													 ToolTip="{DynamicResource Tip.VoiceSwitchSampleInput}"/>
+											<ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="140"
+														  ToolTip="{DynamicResource Tip.VoiceSwitchSampleOutput}">
+												<ItemsControl ItemsSource="{Binding VoiceSwitches.SampleSegments}">
+													<ItemsControl.ItemTemplate>
+														<DataTemplate>
+															<DockPanel Margin="0,0,0,4">
+																<Border DockPanel.Dock="Left" Background="{DynamicResource Bg3}" CornerRadius="3"
+																		Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Top">
+																	<TextBlock FontWeight="SemiBold">
+																		<TextBlock.Style>
+																			<Style TargetType="TextBlock">
+																				<Setter Property="Text" Value="{Binding AliasName}"/>
+																				<Style.Triggers>
+																					<DataTrigger Binding="{Binding AliasName}" Value="{x:Null}">
+																						<Setter Property="Text" Value="{DynamicResource Lbl.NormalVoice}"/>
+																						<Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+																					</DataTrigger>
+																				</Style.Triggers>
+																			</Style>
+																		</TextBlock.Style>
+																	</TextBlock>
+																</Border>
+																<TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+															</DockPanel>
+														</DataTemplate>
+													</ItemsControl.ItemTemplate>
+												</ItemsControl>
+											</ScrollViewer>
+										</DockPanel>
+									</Border>
+								</Grid>
+							</Grid>
+						</Grid>
+					</TabItem>
+
                     <!-- ─── Voice Aliases ─── -->
                     <TabItem x:Name="VoiceAliasesTabItem" Header="{DynamicResource Tab.VoiceAliases}">
                         <Grid>

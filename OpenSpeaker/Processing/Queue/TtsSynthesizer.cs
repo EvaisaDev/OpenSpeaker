@@ -3,6 +3,7 @@ using OpenSpeaker.Data;
 using OpenSpeaker.Extensions;
 using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Models;
+using OpenSpeaker.Text;
 using OpenSpeaker.TTS;
 using OpenSpeaker.Users;
 namespace OpenSpeaker.Queue;
@@ -16,6 +17,7 @@ public class TtsSynthesizer
     private readonly SettingsRepository _settingsRepo;
     private readonly UserService _userService;
     private readonly ExtensionManager? _extensions;
+	private readonly VoiceSwitchParser? _switchParser;
     private readonly IAppLogger? _logger;
     private (string VoiceId, string EngineId) _lastUsedVoice;
 
@@ -27,7 +29,8 @@ public class TtsSynthesizer
         SettingsRepository settingsRepo,
         UserService userService,
         ExtensionManager? extensions = null,
-        IAppLogger? logger = null)
+        IAppLogger? logger = null,
+		VoiceSwitchParser? switchParser = null)
     {
         _resolver = resolver;
         _wavSaver = wavSaver;
@@ -35,6 +38,7 @@ public class TtsSynthesizer
         _userService = userService;
         _extensions = extensions;
         _logger = logger;
+		_switchParser = switchParser;
     }
 
     public async Task<SynthesisResult?> SynthesizeAsync(TtsQueueItem item, Action onStarted, CancellationToken cancellationToken = default)
@@ -59,22 +63,23 @@ public class TtsSynthesizer
             _userService.AddPastVoiceAsync(item.UserId, voiceId, engine.EngineId).Forget(_logger, "AddPastVoice");
 
         _logger?.Info($"QUEUE :: Processing '{item.Text}' engine={engine.EngineId} voiceId='{voiceId}' device='{deviceId}'");
+		var segments = BuildSegments(item, resolved, settings);
+		if (segments.Count > 1)
+			_logger?.Info($"QUEUE :: Voice switches split message into {segments.Count} segments: {string.Join(" | ", segments.Select(s => $"[{s.Voice.AliasName}] {s.Text}"))}");
         onStarted();
 
         try
         {
-            var text = resolved.LowercaseText ? item.Text.ToLowerInvariant() : item.Text;
-            var audio = await engine.SynthesizeAsync(text, voiceId, synthParams).WaitAsync(cancellationToken);
-            _logger?.Info($"QUEUE :: Synthesis done. IsEmpty={audio.IsEmpty}");
-            if (audio.IsEmpty) return null;
+			var clips = new List<AudioData>();
+			foreach (var segment in segments)
+			{
+				var clip = await SynthesizeSegmentAsync(item, segment.Voice, segment.Text, cancellationToken);
+				if (!clip.IsEmpty) clips.Add(clip);
+			}
+			_logger?.Info($"QUEUE :: Synthesis done. Clips={clips.Count}");
 
-            if (_extensions is { HasTransformAudioHooks: true })
-            {
-                audio = await _extensions.TransformAudioAsync(item.UserId, item.Username, aliasName ?? string.Empty, audio).WaitAsync(cancellationToken);
-                if (audio.IsEmpty) return null;
-            }
-
-            audio = AudioGain.Apply(audio, resolved.Volume);
+			var audio = AudioMerger.Concat(clips);
+			if (audio.IsEmpty) return null;
 
             string? savedPath = null;
             if (settings.SaveTts && !string.IsNullOrEmpty(settings.SaveTtsFolder))
@@ -100,4 +105,29 @@ public class TtsSynthesizer
             return null;
         }
     }
+
+	private List<(ResolvedVoice Voice, string Text)> BuildSegments(TtsQueueItem item, ResolvedVoice initial, AppSettings settings)
+	{
+		if (_switchParser == null)
+			return new List<(ResolvedVoice, string)> { (initial, item.Text) };
+
+		return _switchParser.Split(item.Text, item.Username)
+			.Select(s => (s.AliasName == null ? initial : _resolver.ResolveAlias(s.AliasName, settings), s.Text))
+			.ToList();
+	}
+
+	private async Task<AudioData> SynthesizeSegmentAsync(TtsQueueItem item, ResolvedVoice voice, string text, CancellationToken cancellationToken)
+	{
+		var input = voice.LowercaseText ? text.ToLowerInvariant() : text;
+		var audio = await voice.Engine.SynthesizeAsync(input, voice.VoiceId, voice.Params).WaitAsync(cancellationToken);
+		if (audio.IsEmpty) return audio;
+
+		if (_extensions is { HasTransformAudioHooks: true })
+		{
+			audio = await _extensions.TransformAudioAsync(item.UserId, item.Username, voice.AliasName ?? string.Empty, audio).WaitAsync(cancellationToken);
+			if (audio.IsEmpty) return audio;
+		}
+
+		return AudioGain.Apply(audio, voice.Volume);
+	}
 }

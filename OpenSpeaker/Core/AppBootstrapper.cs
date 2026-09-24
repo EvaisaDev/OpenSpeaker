@@ -29,6 +29,7 @@ public class AppBootstrapper : IDisposable
     public EventConfigRepository EventConfigRepo { get; }
     public CustomCommandRepository CustomCommandRepo { get; }
     public RegexReplacementRepository RegexReplacementRepo { get; }
+	public VoiceSwitchRepository VoiceSwitchRepo { get; }
     public ChannelRewardRepository ChannelRewardRepo { get; }
     public KeybindService Keybinds { get; }
     public ExtensionManager Extensions { get; }
@@ -72,6 +73,7 @@ public class AppBootstrapper : IDisposable
         EventConfigRepo = new EventConfigRepository(Database);
         CustomCommandRepo = new CustomCommandRepository(Database);
         RegexReplacementRepo = new RegexReplacementRepository(Database);
+		VoiceSwitchRepo = new VoiceSwitchRepository(Database);
         ChannelRewardRepo = new ChannelRewardRepository(Database);
         DeviceEnumerator = new AudioDeviceEnumerator(Logger);
 
@@ -87,7 +89,7 @@ public class AppBootstrapper : IDisposable
 
         var voiceResolver = new VoiceResolver(EngineRegistry, AliasRepo);
         var playbackCoordinator = new PlaybackCoordinator(audioPlayer);
-        var synthesizer = new TtsSynthesizer(voiceResolver, wavSaver, SettingsRepo, UserService, Extensions, Logger);
+        var synthesizer = new TtsSynthesizer(voiceResolver, wavSaver, SettingsRepo, UserService, Extensions, Logger, new VoiceSwitchParser(VoiceSwitchRepo));
         _queueService = new TtsQueueService(synthesizer, playbackCoordinator, () => new NAudioPlayer(), SettingsRepo, Extensions, Logger);
         Queue = _queueService;
 

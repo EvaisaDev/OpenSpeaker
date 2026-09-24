@@ -24,6 +24,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
     public IgnoredVoicesViewModel IgnoredVoices { get; }
     public SpeakingOptionsViewModel SpeakingOptions { get; }
     public ReplacementViewModel Replacement { get; }
+	public VoiceSwitchViewModel VoiceSwitches { get; }
     public VoiceAliasListViewModel VoiceAliases { get; }
     public WebSocketServerViewModel WebSocketServer { get; }
     public EventsWebSocketServerViewModel EventsWebSocketServer { get; }
@@ -77,12 +78,14 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
         IgnoredVoices = new IgnoredVoicesViewModel(boot.Database, boot.VoicePool);
         SpeakingOptions = new SpeakingOptionsViewModel(boot.SettingsRepo, boot.EmoteCache, boot.Twitch, boot.AliasRepo);
         Replacement = new ReplacementViewModel(boot.RegexReplacementRepo, boot.SettingsRepo);
+		VoiceSwitches = new VoiceSwitchViewModel(boot.VoiceSwitchRepo, boot.AliasRepo, () => Users.AllUsers);
         VoiceAliases = new VoiceAliasListViewModel(boot.AliasRepo, boot.EngineRegistry, boot.VoicePool, boot.DeviceEnumerator, boot.UserRepo, () => Users.AllUsers, boot.Logger)
         {
             OnAliasesChanged = () =>
             {
                 if (SpeechEngines.SelectedEngine != null)
                     SpeechEngines.RefreshEngineAliases(SpeechEngines.SelectedEngine);
+				VoiceSwitches.RefreshAliases();
             }
         };
         WebSocketServer = new WebSocketServerViewModel(boot.WsServer, boot.SettingsRepo);
@@ -99,6 +102,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
                 boot.SettingsRepo.Invalidate();
                 boot.CustomCommandRepo.Invalidate();
                 boot.RegexReplacementRepo.Invalidate();
+				boot.VoiceSwitchRepo.Invalidate();
                 Users.Refresh();
                 VoiceAliases.Refresh();
                 SpeechEngines.Refresh();
@@ -107,6 +111,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
                 CustomCommands.Refresh();
                 BuiltInCommands.Refresh();
                 Replacement.Refresh();
+				VoiceSwitches.Refresh();
                 IgnoredVoices.Refresh();
                 GeneralSettings.Refresh();
                 SpeakingOptions.Refresh();
@@ -119,6 +124,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
         boot.Twitch.ChatMessage += (_, e) =>
         {
             Users.OnChatMessage(e.UserId);
+			Application.Current?.Dispatcher.Invoke(VoiceSwitches.SyncUsers);
             VoiceAliases.NotifyUserActivity(e.UserId);
         };
 

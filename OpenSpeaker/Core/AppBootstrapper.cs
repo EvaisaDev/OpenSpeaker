@@ -89,7 +89,8 @@ public class AppBootstrapper : IDisposable
 
         var voiceResolver = new VoiceResolver(EngineRegistry, AliasRepo);
         var playbackCoordinator = new PlaybackCoordinator(audioPlayer);
-        var synthesizer = new TtsSynthesizer(voiceResolver, wavSaver, SettingsRepo, UserService, Extensions, Logger, new VoiceSwitchParser(VoiceSwitchRepo));
+		var switchParser = new VoiceSwitchParser(VoiceSwitchRepo);
+        var synthesizer = new TtsSynthesizer(voiceResolver, wavSaver, SettingsRepo, UserService, Extensions, Logger, switchParser);
         _queueService = new TtsQueueService(synthesizer, playbackCoordinator, () => new NAudioPlayer(), SettingsRepo, Extensions, Logger);
         Queue = _queueService;
 
@@ -128,7 +129,7 @@ public class AppBootstrapper : IDisposable
 
         var builtIn = new BuiltInCommandHandler(SettingsRepo, Queue, UserService, UserRepo, EngineRegistry, CustomCommandRepo, Twitch, voicePool);
         var custom = new CustomCommandHandler(CustomCommandRepo, PermissionChecker, Queue);
-        var sayEverything = new SayEverythingHandler(SettingsRepo, UserService, PermissionChecker, sanitizer, Queue, voicePool, Twitch, Extensions, Logger);
+        var sayEverything = new SayEverythingHandler(SettingsRepo, UserService, PermissionChecker, sanitizer, Queue, voicePool, Twitch, Extensions, Logger, switchParser);
 
         var orchestrator = new TtsOrchestrator(Queue, SettingsRepo, sanitizer);
         Orchestrator = orchestrator;

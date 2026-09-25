@@ -36,6 +36,20 @@ public class VoiceSwitchViewModel : BaseViewModel
 	public ObservableCollection<VoiceSwitch> Switches { get; } = new();
 	public ObservableCollection<string> AliasNames { get; } = new();
 
+	private List<string> _filteredAliasNames = new();
+	public List<string> FilteredAliasNames
+	{
+		get => _filteredAliasNames;
+		private set { _filteredAliasNames = value; OnPropertyChanged(); }
+	}
+
+	private string _aliasFilter = string.Empty;
+	public string AliasFilter
+	{
+		get => _aliasFilter;
+		set { SetField(ref _aliasFilter, value); ApplyAliasFilter(); }
+	}
+
 	private string _scopeFilter = string.Empty;
 	public string ScopeFilter
 	{
@@ -111,7 +125,16 @@ public class VoiceSwitchViewModel : BaseViewModel
 		AliasNames.Clear();
 		foreach (var a in _aliasRepo.GetAllSorted())
 			AliasNames.Add(a.Name);
+		ApplyAliasFilter();
 		EditAliasName = current;
+	}
+
+	private void ApplyAliasFilter()
+	{
+		FilteredAliasNames = string.IsNullOrEmpty(_aliasFilter)
+			? AliasNames.ToList()
+			: AliasNames.Where(n => n.Contains(_aliasFilter, StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(n, _editAliasName, StringComparison.Ordinal)).ToList();
 	}
 
 	public void Refresh()

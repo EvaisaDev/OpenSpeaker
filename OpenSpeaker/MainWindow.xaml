@@ -1759,8 +1759,10 @@
 													 Margin="0,0,0,8" ToolTip="{DynamicResource Tip.VoiceSwitchMarker}"/>
 
 											<TextBlock Text="{DynamicResource Lbl.VoiceAlias}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
-											<ComboBox ItemsSource="{Binding VoiceSwitches.AliasNames}"
+											<ComboBox ItemsSource="{Binding VoiceSwitches.FilteredAliasNames}"
 													  SelectedItem="{Binding VoiceSwitches.EditAliasName}"
+													  Tag="{Binding VoiceSwitches.AliasFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+													  ScrollViewer.CanContentScroll="True"
 													  MaxDropDownHeight="300" Margin="0,0,0,8"
 													  ToolTip="{DynamicResource Tip.VoiceSwitchAlias}"/>
 

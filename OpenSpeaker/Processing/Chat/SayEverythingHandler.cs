@@ -21,6 +21,7 @@ public class SayEverythingHandler
     private readonly ITwitchService _twitch;
     private readonly ExtensionManager? _extensions;
     private readonly IAppLogger? _logger;
+	private readonly VoiceSwitchParser? _switchParser;
 
     private string _lastSpeakingUser = string.Empty;
     private readonly ConcurrentDictionary<string, DateTime> _lastSpoke = new();
@@ -35,8 +36,10 @@ public class SayEverythingHandler
         VoicePool voicePool,
         ITwitchService twitch,
         ExtensionManager? extensions = null,
-        IAppLogger? logger = null)
+        IAppLogger? logger = null,
+		VoiceSwitchParser? switchParser = null)
     {
+		_switchParser = switchParser;
         _settingsRepo = settingsRepo;
         _userService = userService;
         _permissionChecker = permissionChecker;
@@ -55,9 +58,11 @@ public class SayEverythingHandler
         if (!settings.Enabled) { _logger?.Info("SAY :: Dropped - bot disabled"); return; }
 
         var prefixCheckMessage = isReply ? MentionStripper.StripLeadingMention(message) : message;
-        if (_sanitizer.IsIgnoredPrefix(prefixCheckMessage)) { _logger?.Info($"SAY :: Dropped - ignored prefix"); return; }
+        if (_sanitizer.IsIgnoredPrefix(prefixCheckMessage) && _switchParser?.StartsWithMarker(prefixCheckMessage, username) != true) { _logger?.Info($"SAY :: Dropped - ignored prefix"); return; }
 
-        var sanitized = _sanitizer.Sanitize(message, true, messageEmotes, messageCheermotes);
+		var protectedMarkers = new List<string>();
+		var toSanitize = _switchParser?.ProtectMarkers(message, username, out protectedMarkers) ?? message;
+		var sanitized = VoiceSwitchParser.RestoreMarkers(_sanitizer.Sanitize(toSanitize, true, messageEmotes, messageCheermotes), protectedMarkers).Trim();
         _logger?.Info($"SAY :: Sanitized='{sanitized}'");
         if (string.IsNullOrWhiteSpace(sanitized)) { _logger?.Info("SAY :: Dropped - sanitized to empty"); return; }
 

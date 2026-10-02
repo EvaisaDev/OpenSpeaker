@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.9] - 2026-10-02
+
+### Other
+- i never published this?? ([`78f9378`](https://github.com/EvaisaDev/OpenSpeaker/commit/78f9378))
+  - Word Dictionary added i guess
+
 ## [0.6.8] - 2026-09-25
 
 ### Other
@@ -293,6 +299,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

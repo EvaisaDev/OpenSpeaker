@@ -25,6 +25,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
     public SpeakingOptionsViewModel SpeakingOptions { get; }
     public ReplacementViewModel Replacement { get; }
 	public VoiceSwitchViewModel VoiceSwitches { get; }
+	public WordDictionaryViewModel WordDictionary { get; }
     public VoiceAliasListViewModel VoiceAliases { get; }
     public WebSocketServerViewModel WebSocketServer { get; }
     public EventsWebSocketServerViewModel EventsWebSocketServer { get; }
@@ -79,6 +80,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
         SpeakingOptions = new SpeakingOptionsViewModel(boot.SettingsRepo, boot.EmoteCache, boot.Twitch, boot.AliasRepo);
         Replacement = new ReplacementViewModel(boot.RegexReplacementRepo, boot.SettingsRepo);
 		VoiceSwitches = new VoiceSwitchViewModel(boot.VoiceSwitchRepo, boot.AliasRepo, () => Users.AllUsers);
+		WordDictionary = new WordDictionaryViewModel(boot.WordDictionaryRepo, boot.AliasRepo, boot.Resolver, boot.SettingsRepo);
         VoiceAliases = new VoiceAliasListViewModel(boot.AliasRepo, boot.EngineRegistry, boot.VoicePool, boot.DeviceEnumerator, boot.UserRepo, () => Users.AllUsers, boot.Logger)
         {
             OnAliasesChanged = () =>
@@ -86,6 +88,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
                 if (SpeechEngines.SelectedEngine != null)
                     SpeechEngines.RefreshEngineAliases(SpeechEngines.SelectedEngine);
 				VoiceSwitches.RefreshAliases();
+				WordDictionary.RefreshAliases();
             }
         };
         WebSocketServer = new WebSocketServerViewModel(boot.WsServer, boot.SettingsRepo);
@@ -103,6 +106,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
                 boot.CustomCommandRepo.Invalidate();
                 boot.RegexReplacementRepo.Invalidate();
 				boot.VoiceSwitchRepo.Invalidate();
+				boot.WordDictionaryRepo.Invalidate();
                 Users.Refresh();
                 VoiceAliases.Refresh();
                 SpeechEngines.Refresh();
@@ -112,6 +116,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
                 BuiltInCommands.Refresh();
                 Replacement.Refresh();
 				VoiceSwitches.Refresh();
+				WordDictionary.Refresh();
                 IgnoredVoices.Refresh();
                 GeneralSettings.Refresh();
                 SpeakingOptions.Refresh();
@@ -144,7 +149,7 @@ public class MainWindowViewModel : BaseViewModel, IDisposable
 
     private async Task GenericSpeakAsync()
     {
-        var vm = new GenericSpeakerViewModel(_boot.EngineRegistry, _boot.VoicePool, _boot.Logger);
+        var vm = new GenericSpeakerViewModel(_boot.EngineRegistry, _boot.VoicePool, _boot.SettingsRepo, _boot.Logger);
         var window = new GenericSpeakerWindow(vm);
         window.Owner = Application.Current.MainWindow;
         window.Show();

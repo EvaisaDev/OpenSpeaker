@@ -12,6 +12,7 @@ public class ChatService
     private readonly ITwitchService _twitch;
     private readonly Chat.BuiltInCommandHandler _builtIn;
     private readonly Chat.CustomCommandHandler _custom;
+    private readonly Chat.WordDictionaryCommandHandler _wordDictionaryCommands;
     private readonly Chat.SayEverythingHandler _sayEverything;
     private readonly UserService _userService;
     private readonly SettingsRepository _settingsRepo;
@@ -23,6 +24,7 @@ public class ChatService
         ITwitchService twitch,
         Chat.BuiltInCommandHandler builtIn,
         Chat.CustomCommandHandler custom,
+        Chat.WordDictionaryCommandHandler wordDictionaryCommands,
         Chat.SayEverythingHandler sayEverything,
         UserService userService,
         SettingsRepository settingsRepo,
@@ -33,6 +35,7 @@ public class ChatService
         _twitch = twitch;
         _builtIn = builtIn;
         _custom = custom;
+        _wordDictionaryCommands = wordDictionaryCommands;
         _sayEverything = sayEverything;
         _userService = userService;
         _settingsRepo = settingsRepo;
@@ -57,6 +60,7 @@ public class ChatService
         if (matchMessage != e.Message) _logger?.Info($"CHAT :: Reply mention stripped for matching → '{matchMessage}'");
 
         if (await _builtIn.HandleAsync(e.UserId, e.Username, e.Roles, matchMessage)) { _logger?.Info("CHAT :: Handled as built-in command"); return; }
+        if (await _wordDictionaryCommands.HandleAsync(e.UserId, e.Username, e.Roles, matchMessage)) { _logger?.Info("CHAT :: Handled as word dictionary command"); return; }
         if (await _custom.HandleAsync(e.UserId, e.Username, e.Roles, matchMessage)) { _logger?.Info("CHAT :: Handled as custom command"); return; }
 
         var settings = _settingsRepo.GetSettings();

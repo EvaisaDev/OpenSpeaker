@@ -30,6 +30,7 @@ public class AppBootstrapper : IDisposable
     public CustomCommandRepository CustomCommandRepo { get; }
     public RegexReplacementRepository RegexReplacementRepo { get; }
 	public VoiceSwitchRepository VoiceSwitchRepo { get; }
+	public WordDictionaryRepository WordDictionaryRepo { get; }
     public ChannelRewardRepository ChannelRewardRepo { get; }
     public KeybindService Keybinds { get; }
     public ExtensionManager Extensions { get; }
@@ -48,6 +49,7 @@ public class AppBootstrapper : IDisposable
     public VoiceGateService VoiceGate { get; }
     public EmoteStripper EmoteStripper { get; }
     public VoicePool VoicePool { get; }
+    public VoiceResolver Resolver { get; }
     public NetworkSyncService NetworkSync { get; }
 
     private readonly TtsQueueService _queueService;
@@ -74,6 +76,7 @@ public class AppBootstrapper : IDisposable
         CustomCommandRepo = new CustomCommandRepository(Database);
         RegexReplacementRepo = new RegexReplacementRepository(Database);
 		VoiceSwitchRepo = new VoiceSwitchRepository(Database);
+		WordDictionaryRepo = new WordDictionaryRepository(Database);
         ChannelRewardRepo = new ChannelRewardRepository(Database);
         DeviceEnumerator = new AudioDeviceEnumerator(Logger);
 
@@ -88,9 +91,11 @@ public class AppBootstrapper : IDisposable
         UserService = new UserService(UserRepo, AliasRepo);
 
         var voiceResolver = new VoiceResolver(EngineRegistry, AliasRepo);
+        Resolver = voiceResolver;
         var playbackCoordinator = new PlaybackCoordinator(audioPlayer);
 		var switchParser = new VoiceSwitchParser(VoiceSwitchRepo);
-        var synthesizer = new TtsSynthesizer(voiceResolver, wavSaver, SettingsRepo, UserService, Extensions, Logger, switchParser);
+		var wordDictionary = new WordDictionaryApplier(WordDictionaryRepo);
+        var synthesizer = new TtsSynthesizer(voiceResolver, wavSaver, SettingsRepo, UserService, Extensions, Logger, switchParser, wordDictionary);
         _queueService = new TtsQueueService(synthesizer, playbackCoordinator, () => new NAudioPlayer(), SettingsRepo, Extensions, Logger);
         Queue = _queueService;
 
@@ -128,6 +133,7 @@ public class AppBootstrapper : IDisposable
         var voicePool = VoicePool;
 
         var builtIn = new BuiltInCommandHandler(SettingsRepo, Queue, UserService, UserRepo, EngineRegistry, CustomCommandRepo, Twitch, voicePool);
+        var wordDictionaryCommands = new WordDictionaryCommandHandler(WordDictionaryRepo, SettingsRepo, Twitch);
         var custom = new CustomCommandHandler(CustomCommandRepo, PermissionChecker, Queue);
         var sayEverything = new SayEverythingHandler(SettingsRepo, UserService, PermissionChecker, sanitizer, Queue, voicePool, Twitch, Extensions, Logger, switchParser);
 
@@ -137,7 +143,7 @@ public class AppBootstrapper : IDisposable
         var voiceGateMonitor = new VoiceGateMonitor();
         VoiceGate = new VoiceGateService(voiceGateMonitor, Queue, Database);
 
-        var chatService = new ChatService(Twitch, builtIn, custom, sayEverything, UserService, SettingsRepo, Queue, Extensions, Logger);
+        var chatService = new ChatService(Twitch, builtIn, custom, wordDictionaryCommands, sayEverything, UserService, SettingsRepo, Queue, Extensions, Logger);
 
         var wsRouter = new WebSocketCommandRouter(Orchestrator, Queue, SettingsRepo, Database, VoiceGate, Extensions);
         WsServer = new WebSocketServer(wsRouter, SettingsRepo, Logger);

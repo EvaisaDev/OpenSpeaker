@@ -19,12 +19,17 @@ public class WavFileSaver
         var fileName   = $"{ts}{id}-{suffix}.wav";
         var path       = Path.Combine(folder, fileName);
 
-        using var ms     = new MemoryStream(audio.Samples);
-        using var reader = new RawSourceWaveStream(ms, audio.Format);
-        WaveFileWriter.CreateWaveFile(path, reader);
+		SaveTo(audio, path);
 
         return path;
     }
+
+	public void SaveTo(AudioData audio, string path)
+	{
+		using var ms     = new MemoryStream(audio.Samples);
+		using var reader = new RawSourceWaveStream(ms, audio.Format);
+		WaveFileWriter.CreateWaveFile(path, reader);
+	}
 
     private static string GenerateId()
     {

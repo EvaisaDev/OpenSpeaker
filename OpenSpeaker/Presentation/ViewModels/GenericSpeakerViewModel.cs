@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using OpenSpeaker.Audio;
+using OpenSpeaker.Data;
 using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Models;
 using OpenSpeaker.Services;
@@ -63,13 +64,23 @@ public class GenericSpeakerViewModel : BaseViewModel
     public AsyncRelayCommand SpeakCommand { get; }
     public RelayCommand ResetVolumeCommand { get; }
 
-    public GenericSpeakerViewModel(TtsEngineRegistry engineRegistry, VoicePool voicePool, IAppLogger? logger = null)
+	public RelayCommand SaveCommand { get; }
+
+	private readonly SettingsRepository _settingsRepo;
+	private readonly WavFileSaver _wavSaver = new();
+	private AudioData? _lastAudio;
+
+	public bool CanSave => _lastAudio is { IsEmpty: false };
+
+    public GenericSpeakerViewModel(TtsEngineRegistry engineRegistry, VoicePool voicePool, SettingsRepository settingsRepo, IAppLogger? logger = null)
     {
         _engineRegistry = engineRegistry;
         _voicePool = voicePool;
+		_settingsRepo = settingsRepo;
         _player = new NAudioPlayer();
         _logger = logger;
 
+		SaveCommand = new RelayCommand(SaveAudio, () => CanSave);
         SpeakCommand = new AsyncRelayCommand(SpeakAsync);
         ResetVolumeCommand = new RelayCommand(() => Volume = 100);
 
@@ -110,6 +121,30 @@ public class GenericSpeakerViewModel : BaseViewModel
         }
     }
 
+	private void SaveAudio()
+	{
+		if (_lastAudio == null || _lastAudio.IsEmpty) return;
+
+		var dialog = new Microsoft.Win32.SaveFileDialog
+		{
+			Filter = "WAV audio (*.wav)|*.wav",
+			DefaultExt = ".wav",
+			FileName = $"speech_{DateTime.Now:yyyyMMdd_HHmmss}.wav"
+		};
+		if (dialog.ShowDialog() != true) return;
+
+		try
+		{
+			_wavSaver.SaveTo(_lastAudio, dialog.FileName);
+			Status = $"Saved to {dialog.FileName}";
+		}
+		catch (Exception ex)
+		{
+			_logger?.Error($"Generic speaker save error: {ex.Message}");
+			Status = $"Error: {ex.Message}";
+		}
+	}
+
     private async Task SpeakAsync()
     {
         if (string.IsNullOrWhiteSpace(Text) || SelectedVoice == null) return;
@@ -123,6 +158,17 @@ public class GenericSpeakerViewModel : BaseViewModel
 
             if (!audio.IsEmpty)
             {
+				_lastAudio = audio;
+
+				var settings = _settingsRepo.GetSettings();
+				if (settings.SaveTts && !string.IsNullOrEmpty(settings.SaveTtsFolder))
+				{
+					var paramValues = engine.GetParameters()
+						.Select(p => paramDict.TryGetValue(p.Key, out var v) ? v : p.Default)
+						.ToList();
+					_wavSaver.Save(audio, settings.SaveTtsFolder, paramValues, null, null);
+				}
+
                 await _player.PlayAsync(audio, string.Empty, Volume);
                 Application.Current?.Dispatcher.Invoke(() =>
                 {

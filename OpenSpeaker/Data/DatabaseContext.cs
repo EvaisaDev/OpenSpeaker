@@ -42,6 +42,7 @@ public class DatabaseContext : IDisposable
     public ILiteCollection<BadWordEntry> BadWords => Synchronized(_db.GetCollection<BadWordEntry>("badwords"));
     public ILiteCollection<RegexReplacement> RegexReplacements => Synchronized(_db.GetCollection<RegexReplacement>("regexreplacements"));
 	public ILiteCollection<VoiceSwitch> VoiceSwitches => Synchronized(_db.GetCollection<VoiceSwitch>("voiceswitches"));
+	public ILiteCollection<WordDictionaryEntry> WordDictionary => Synchronized(_db.GetCollection<WordDictionaryEntry>("worddictionary"));
     public ILiteCollection<EngineConfig> EngineConfigs => Synchronized(_db.GetCollection<EngineConfig>("engineconfigs"));
     public ILiteCollection<TwitchAccountInfo> TwitchAccounts => Synchronized(_db.GetCollection<TwitchAccountInfo>("twitchaccounts"));
     public ILiteCollection<ChannelReward> ChannelRewards => Synchronized(_db.GetCollection<ChannelReward>("channelrewards"));

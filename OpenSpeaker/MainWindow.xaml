@@ -1827,6 +1827,140 @@
 						</Grid>
 					</TabItem>
 
+					<TabItem Header="{DynamicResource Tab.WordDictionary}">
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="220"/>
+								<ColumnDefinition Width="1"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+
+							<DockPanel Grid.Column="0" Background="{DynamicResource Bg2}">
+								<TextBox DockPanel.Dock="Top"
+										 Margin="8,8,8,4"
+										 Text="{Binding WordDictionary.ScopeFilter, UpdateSourceTrigger=PropertyChanged}"/>
+								<ListBox ItemsSource="{Binding WordDictionary.Scopes}"
+										 SelectedItem="{Binding WordDictionary.SelectedScope}"
+										 BorderThickness="0" Background="Transparent" Padding="4">
+									<ListBox.ItemTemplate>
+										<DataTemplate>
+											<DockPanel Margin="4,2">
+												<TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Style="{DynamicResource MutedText}" Margin="8,0,0,0"
+														   Visibility="{Binding HasEntries, Converter={StaticResource BoolToVisibilityConverter}}"/>
+												<TextBlock>
+													<TextBlock.Style>
+														<Style TargetType="TextBlock">
+															<Setter Property="Text" Value="{Binding AliasName}"/>
+															<Style.Triggers>
+																<DataTrigger Binding="{Binding IsGlobal}" Value="True">
+																	<Setter Property="Text" Value="{DynamicResource Lbl.Global}"/>
+																	<Setter Property="FontWeight" Value="SemiBold"/>
+																</DataTrigger>
+															</Style.Triggers>
+														</Style>
+													</TextBlock.Style>
+												</TextBlock>
+											</DockPanel>
+										</DataTemplate>
+									</ListBox.ItemTemplate>
+								</ListBox>
+							</DockPanel>
+
+							<Border Grid.Column="1" Background="{DynamicResource BorderBrush0}"/>
+
+							<Grid Grid.Column="2" Margin="12"
+								  Visibility="{Binding WordDictionary.HasSelectedScope, Converter={StaticResource BoolToVisibilityConverter}}">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="*"/>
+									<RowDefinition Height="12"/>
+									<RowDefinition Height="Auto"/>
+								</Grid.RowDefinitions>
+
+								<DataGrid Grid.Row="0" ItemsSource="{Binding WordDictionary.Entries}"
+										  SelectedItem="{Binding WordDictionary.SelectedEntry}"
+										  SelectionMode="Single"
+										  CanUserAddRows="False">
+									<DataGrid.Columns>
+										<DataGridTemplateColumn Width="Auto">
+											<DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col.On}"/></DataGridTemplateColumn.Header>
+											<DataGridTemplateColumn.CellTemplate>
+												<DataTemplate>
+													<CheckBox IsChecked="{Binding Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+															  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+												</DataTemplate>
+											</DataGridTemplateColumn.CellTemplate>
+										</DataGridTemplateColumn>
+										<DataGridTextColumn Binding="{Binding Word}" Width="*" IsReadOnly="True">
+											<DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.Word}"/></DataGridTextColumn.Header>
+										</DataGridTextColumn>
+										<DataGridTextColumn Binding="{Binding Replacement}" Width="*" IsReadOnly="True">
+											<DataGridTextColumn.Header><TextBlock Text="{DynamicResource Col.SaysAs}"/></DataGridTextColumn.Header>
+										</DataGridTextColumn>
+									</DataGrid.Columns>
+								</DataGrid>
+
+								<Grid Grid.Row="2">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="*"/>
+										<ColumnDefinition Width="12"/>
+										<ColumnDefinition Width="*"/>
+									</Grid.ColumnDefinitions>
+
+									<Border Grid.Column="0" Background="{DynamicResource Bg2}"
+											BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
+											CornerRadius="5" Padding="12">
+										<StackPanel>
+											<TextBlock Text="{DynamicResource Lbl.WordDictionaryEditor}" FontWeight="SemiBold" Margin="0,0,0,10"/>
+
+											<TextBlock Text="{DynamicResource Lbl.Word}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
+											<TextBox Text="{Binding WordDictionary.EditWord, UpdateSourceTrigger=PropertyChanged}"
+													 Margin="0,0,0,8" ToolTip="{DynamicResource Tip.WordDictionaryWord}"/>
+
+											<TextBlock Text="{DynamicResource Lbl.SaysAs}" Style="{DynamicResource MutedText}" Margin="0,0,0,3"/>
+											<TextBox Text="{Binding WordDictionary.EditReplacement, UpdateSourceTrigger=PropertyChanged}"
+													 Margin="0,0,0,8" ToolTip="{DynamicResource Tip.WordDictionarySaysAs}"/>
+
+											<DockPanel>
+												<CheckBox DockPanel.Dock="Left" Content="{DynamicResource Chk.Enabled}"
+														  IsChecked="{Binding WordDictionary.EditEnabled}" VerticalAlignment="Center"
+														  ToolTip="{DynamicResource Tip.WordDictionaryEnabled}"/>
+												<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+													<Button Content="{DynamicResource Btn.Add}" Command="{Binding WordDictionary.AddEntryCommand}"
+															Margin="0,0,4,0" ToolTip="{DynamicResource Tip.AddWordDictionaryEntry}"/>
+													<Button Content="{DynamicResource Btn.Delete}" Command="{Binding WordDictionary.DeleteEntryCommand}"
+															Style="{DynamicResource DangerButton}" Margin="0,0,4,0"
+															ToolTip="{DynamicResource Tip.DeleteWordDictionaryEntry}"/>
+													<Button Content="{DynamicResource Btn.Save}" Command="{Binding WordDictionary.SaveEntryCommand}"
+															Style="{DynamicResource AccentButton}"
+															ToolTip="{DynamicResource Tip.SaveWordDictionaryEntry}"/>
+												</StackPanel>
+											</DockPanel>
+										</StackPanel>
+									</Border>
+
+									<Border Grid.Column="2" Background="{DynamicResource Bg2}"
+											BorderBrush="{DynamicResource BorderBrush0}" BorderThickness="1"
+											CornerRadius="5" Padding="12">
+										<DockPanel>
+											<TextBlock DockPanel.Dock="Top" Text="{DynamicResource Lbl.Preview}" FontWeight="SemiBold" Margin="0,0,0,10"/>
+											<TextBox DockPanel.Dock="Top" Text="{Binding WordDictionary.SampleInput, UpdateSourceTrigger=PropertyChanged}"
+													 TextWrapping="Wrap" AcceptsReturn="False" Margin="0,0,0,8"
+													 ToolTip="{DynamicResource Tip.WordDictionarySampleInput}"/>
+											<Button DockPanel.Dock="Bottom" Content="{DynamicResource Btn.PlaySample}"
+													Margin="0,8,0,0" HorizontalAlignment="Right"
+													Command="{Binding WordDictionary.PlaySampleCommand}"
+													ToolTip="{DynamicResource Tip.WordDictionaryPlaySample}"/>
+											<TextBox Text="{Binding WordDictionary.SampleOutput, Mode=OneWay}" IsReadOnly="True"
+													 TextWrapping="Wrap"
+													 Background="{DynamicResource Bg3}" Foreground="{DynamicResource TextMuted}"
+													 ToolTip="{DynamicResource Tip.WordDictionarySampleOutput}"/>
+										</DockPanel>
+									</Border>
+								</Grid>
+							</Grid>
+						</Grid>
+					</TabItem>
+
                     <!-- ─── Voice Aliases ─── -->
                     <TabItem x:Name="VoiceAliasesTabItem" Header="{DynamicResource Tab.VoiceAliases}">
                         <Grid>

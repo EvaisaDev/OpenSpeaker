@@ -18,6 +18,7 @@ public class TtsSynthesizer
     private readonly UserService _userService;
     private readonly ExtensionManager? _extensions;
 	private readonly VoiceSwitchParser? _switchParser;
+	private readonly WordDictionaryApplier? _wordDictionary;
     private readonly IAppLogger? _logger;
     private (string VoiceId, string EngineId) _lastUsedVoice;
 
@@ -30,7 +31,8 @@ public class TtsSynthesizer
         UserService userService,
         ExtensionManager? extensions = null,
         IAppLogger? logger = null,
-		VoiceSwitchParser? switchParser = null)
+		VoiceSwitchParser? switchParser = null,
+		WordDictionaryApplier? wordDictionary = null)
     {
         _resolver = resolver;
         _wavSaver = wavSaver;
@@ -39,6 +41,7 @@ public class TtsSynthesizer
         _extensions = extensions;
         _logger = logger;
 		_switchParser = switchParser;
+		_wordDictionary = wordDictionary;
     }
 
     public async Task<SynthesisResult?> SynthesizeAsync(TtsQueueItem item, Action onStarted, CancellationToken cancellationToken = default)
@@ -118,7 +121,8 @@ public class TtsSynthesizer
 
 	private async Task<AudioData> SynthesizeSegmentAsync(TtsQueueItem item, ResolvedVoice voice, string text, CancellationToken cancellationToken)
 	{
-		var input = voice.LowercaseText ? text.ToLowerInvariant() : text;
+		var withDictionary = _wordDictionary?.Apply(text, voice.AliasName) ?? text;
+		var input = voice.LowercaseText ? withDictionary.ToLowerInvariant() : withDictionary;
 		var audio = await voice.Engine.SynthesizeAsync(input, voice.VoiceId, voice.Params).WaitAsync(cancellationToken);
 		if (audio.IsEmpty) return audio;
 

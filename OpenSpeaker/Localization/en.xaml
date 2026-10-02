@@ -55,6 +55,7 @@
     <sys:String x:Key="Tab.SpeakingOptions">Speaking Options</sys:String>
     <sys:String x:Key="Tab.Filters">Filters</sys:String>
 	<sys:String x:Key="Tab.VoiceSwitches">Voice Switches</sys:String>
+	<sys:String x:Key="Tab.WordDictionary">Word Dictionary</sys:String>
     <sys:String x:Key="Tab.VoiceAliases">Voice Aliases</sys:String>
     <sys:String x:Key="Tab.Servers">Servers</sys:String>
     <sys:String x:Key="Tab.CustomApis">Custom APIs</sys:String>
@@ -129,6 +130,8 @@
     <sys:String x:Key="Col.Pattern">Pattern</sys:String>
     <sys:String x:Key="Col.ReplaceWith">Replace With</sys:String>
 	<sys:String x:Key="Col.Marker">Marker</sys:String>
+	<sys:String x:Key="Col.Word">Word / Phrase</sys:String>
+	<sys:String x:Key="Col.SaysAs">Says As</sys:String>
 
     <!-- Labels -->
     <sys:String x:Key="Lbl.Id">ID</sys:String>
@@ -180,6 +183,9 @@
 	<sys:String x:Key="Lbl.Marker">Marker</sys:String>
 	<sys:String x:Key="Lbl.Global">Global</sys:String>
 	<sys:String x:Key="Lbl.VoiceSwitchEditor">Marker editor</sys:String>
+	<sys:String x:Key="Lbl.WordDictionaryEditor">Dictionary entry editor</sys:String>
+	<sys:String x:Key="Lbl.Word">Word / Phrase</sys:String>
+	<sys:String x:Key="Lbl.SaysAs">Says As</sys:String>
 	<sys:String x:Key="Lbl.Preview">Preview</sys:String>
 	<sys:String x:Key="Lbl.NormalVoice">Normal voice</sys:String>
     <sys:String x:Key="Lbl.InUse">In Use:</sys:String>
@@ -261,6 +267,7 @@
     <sys:String x:Key="Btn.UnignoreLocale">‹ Remove</sys:String>
     <sys:String x:Key="Btn.SetDefault">Set Default</sys:String>
     <sys:String x:Key="Btn.TestSpeak">Test Speak</sys:String>
+    <sys:String x:Key="Btn.PlaySample">Play Sample</sys:String>
     <sys:String x:Key="Btn.RemoveAll">Remove All</sys:String>
     <sys:String x:Key="Btn.StartServer">Start Server</sys:String>
     <sys:String x:Key="Btn.StopServer">Stop Server</sys:String>
@@ -455,6 +462,15 @@
 	<sys:String x:Key="Tip.SaveVoiceSwitch">Save changes to the selected voice switch.</sys:String>
 	<sys:String x:Key="Tip.VoiceSwitchSampleInput">Enter a sample message to preview how it will be split between voices.</sys:String>
 	<sys:String x:Key="Tip.VoiceSwitchSampleOutput">Each part of the message and the voice alias that will speak it.</sys:String>
+	<sys:String x:Key="Tip.WordDictionaryWord">The word or phrase to replace, e.g. "text 1". Matching is case-insensitive and only matches whole words.</sys:String>
+	<sys:String x:Key="Tip.WordDictionarySaysAs">What the TTS engine should say instead, e.g. "text one".</sys:String>
+	<sys:String x:Key="Tip.WordDictionaryEnabled">Enable or disable this dictionary entry.</sys:String>
+	<sys:String x:Key="Tip.AddWordDictionaryEntry">Add this entry to the dictionary.</sys:String>
+	<sys:String x:Key="Tip.DeleteWordDictionaryEntry">Delete the selected dictionary entry.</sys:String>
+	<sys:String x:Key="Tip.SaveWordDictionaryEntry">Save changes to the selected dictionary entry.</sys:String>
+	<sys:String x:Key="Tip.WordDictionarySampleInput">Enter a sample message to preview how it will be pronounced.</sys:String>
+	<sys:String x:Key="Tip.WordDictionarySampleOutput">The text that will actually be sent to the TTS engine.</sys:String>
+	<sys:String x:Key="Tip.WordDictionaryPlaySample">Speak the sample preview using the selected voice alias (or the default alias for global entries).</sys:String>
 
     <!-- Voice Aliases -->
     <sys:String x:Key="Tip.AddVoiceAlias">Create a new voice alias with the entered name.</sys:String>

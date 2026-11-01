@@ -89,6 +89,7 @@ public class ChannelRewardsViewModel : BaseViewModel
         try
         {
             Refreshing = true;
+			await _twitchAuth.EnsureFreshAsync();
             var account = _twitchAuth.GetAccount();
             if (account == null) return;
 

@@ -105,7 +105,7 @@ public class AppBootstrapper : IDisposable
         var substitutor = new VariableSubstitutor();
         var sanitizer = new MessageSanitizer(EmoteStripper, prefixChecker, regexReplacer, SettingsRepo, RegexReplacementRepo, Logger);
 
-        TwitchAuth = new TwitchAuthService(Database);
+        TwitchAuth = new TwitchAuthService(Database, Logger);
         var emoteCache = new EmoteCacheService(TwitchAuth, EmoteStripper, Logger);
         EmoteCache = emoteCache;
         var twitchService = new TwitchEventSubService(TwitchAuth, emoteCache, Logger);
@@ -233,6 +233,7 @@ public class AppBootstrapper : IDisposable
 
         NetworkSync.Start();
 
+		TwitchAuth.StartMaintenance();
         if (TwitchAuth.HasValidAccount())
         {
             try { await Twitch.ConnectAsync(); }
@@ -242,6 +243,7 @@ public class AppBootstrapper : IDisposable
 
     public async Task StopAsync()
     {
+		TwitchAuth.StopMaintenance();
         await Twitch.DisconnectAsync();
         WsServer.Stop();
         EventsWsServer.Stop();

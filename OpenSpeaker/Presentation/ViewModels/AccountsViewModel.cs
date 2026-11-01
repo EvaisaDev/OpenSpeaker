@@ -41,6 +41,12 @@ public class AccountsViewModel : BaseViewModel
         EventSubToggleCommand = new AsyncRelayCommand(ToggleEventSubAsync);
         BotConnectCommand = new AsyncRelayCommand(ConnectBotAsync, () => IsTwitchConnected);
         BotLogoutCommand = new RelayCommand(LogoutBot, () => IsBotConnected);
+		_twitchAuth.AccountsChanged += (_, _) => System.Windows.Application.Current?.Dispatcher.InvokeAsync(() =>
+		{
+			NotifyTwitchChanged();
+			NotifyBotChanged();
+			System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+		});
     }
 
     public void SetTwitchService(ITwitchService service)

@@ -826,6 +826,13 @@
                                                 <ComboBox ItemsSource="{Binding GeneralSettings.QueueModes}"
                                                           SelectedItem="{Binding GeneralSettings.QueueMode}"
                                                           ToolTip="{DynamicResource Tip.QueueMode}"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                    <TextBlock Text="{DynamicResource Lbl.SynthesisTimeout}" Style="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <controls:NumericSlider Minimum="0" Maximum="120" DefaultValue="30"
+                                                            Value="{Binding GeneralSettings.SynthesisTimeoutSeconds}"
+                                                            SliderWidth="160" Suffix="s"
+                                                            ToolTip="{DynamicResource Tip.SynthesisTimeout}"/>
+                                                </StackPanel>
                                             </StackPanel>
                                         </GroupBox>
 

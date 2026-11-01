@@ -6,6 +6,7 @@ public class TwitchAccountInfo
     public int Id { get; set; } = 1;
     public string AccessToken { get; set; } = string.Empty;
     public string RefreshToken { get; set; } = string.Empty;
+	public DateTime ExpiresAt { get; set; }
     public string UserId { get; set; } = string.Empty;
     public string Login { get; set; } = string.Empty;
     public string ClientId { get; set; } = string.Empty;

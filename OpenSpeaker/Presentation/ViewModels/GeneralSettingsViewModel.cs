@@ -71,6 +71,12 @@ public class GeneralSettingsViewModel : SettingsViewModelBase
         set => Set(s => s.QueueMode = value);
     }
 
+    public int SynthesisTimeoutSeconds
+    {
+        get => Settings.SynthesisTimeoutSeconds;
+        set => Set(s => s.SynthesisTimeoutSeconds = value);
+    }
+
     public IEnumerable<string> QueueModes => Models.QueueModes.All;
 
     public RelayCommand BrowseFolderCommand { get; }

@@ -71,12 +71,16 @@ public class TtsSynthesizer
 			_logger?.Info($"QUEUE :: Voice switches split message into {segments.Count} segments: {string.Join(" | ", segments.Select(s => $"[{s.Voice.AliasName}] {s.Text}"))}");
         onStarted();
 
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        if (settings.SynthesisTimeoutSeconds > 0)
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(settings.SynthesisTimeoutSeconds));
+
         try
         {
 			var clips = new List<AudioData>();
 			foreach (var segment in segments)
 			{
-				var clip = await SynthesizeSegmentAsync(item, segment.Voice, segment.Text, cancellationToken);
+				var clip = await SynthesizeSegmentAsync(item, segment.Voice, segment.Text, timeoutCts.Token);
 				if (!clip.IsEmpty) clips.Add(clip);
 			}
 			_logger?.Info($"QUEUE :: Synthesis done. Clips={clips.Count}");
@@ -96,6 +100,11 @@ public class TtsSynthesizer
             }
 
             return new SynthesisResult(item, audio, deviceId, savedPath);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger?.Error($"QUEUE :: Synthesis timed out after {settings.SynthesisTimeoutSeconds}s for engine {engine.EngineId} voiceId='{voiceId}', dropping '{item.Text}'");
+            return null;
         }
         catch (OperationCanceledException)
         {

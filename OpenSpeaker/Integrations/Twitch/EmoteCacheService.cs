@@ -42,6 +42,7 @@ public class EmoteCacheService
     {
         try
         {
+			await _auth.EnsureFreshAsync();
             var token = _auth.GetAccessToken();
             var clientId = _auth.GetClientId();
             if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(clientId)) return;

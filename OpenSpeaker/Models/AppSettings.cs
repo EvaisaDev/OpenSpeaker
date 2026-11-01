@@ -80,6 +80,7 @@ public class AppSettings
     public bool DisableAudioOutput { get; set; } = false;
     public bool SimultaneousMode { get; set; } = false;
     public string QueueMode { get; set; } = QueueModes.Sequential;
+    public int SynthesisTimeoutSeconds { get; set; } = 30;
 
     public List<string> AllowedEmotes { get; set; } = new();
 

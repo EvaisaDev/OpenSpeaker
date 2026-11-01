@@ -50,6 +50,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
 
     public async Task ConnectAsync()
     {
+		await _auth.EnsureFreshAsync();
         _logger?.Info($"TWITCH :: ConnectAsync called. HasValidAccount={_auth.HasValidAccount()} BroadcasterId={BroadcasterId}");
         if (!_auth.HasValidAccount()) return;
 
@@ -86,6 +87,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
     public async Task SendChatMessageAsync(string message)
     {
         var broadcasterId = BroadcasterId;
+		await _auth.EnsureFreshAsync();
 
         var sender = _auth.HasBotAccount() ? _auth.GetBotAccount() : _auth.GetAccount();
         var accessToken = sender?.AccessToken;
@@ -134,6 +136,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
     public async Task<bool> TimeoutUserAsync(string userId, int seconds, string reason)
     {
         var broadcasterId = BroadcasterId;
+		await _auth.EnsureFreshAsync();
         var account = _auth.GetAccount();
         var accessToken = account?.AccessToken;
         var clientId = account?.ClientId;
@@ -176,6 +179,7 @@ public class TwitchEventSubService : ITwitchService, IDisposable
 
         if (!e.IsRequestedReconnect)
         {
+			await _auth.EnsureFreshAsync();
             _api = new TwitchAPI();
             _api.Settings.ClientId = _auth.GetClientId() ?? string.Empty;
             _api.Settings.AccessToken = _auth.GetAccessToken() ?? string.Empty;

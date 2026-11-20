@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.0] - 2026-11-20
+
+### Other
+- Lua C API ([`3a30384`](https://github.com/EvaisaDev/OpenSpeaker/commit/3a30384))
+  add lua C api support
+
 ## [0.7.0] - 2026-11-01
 
 ### Other
@@ -306,6 +312,7 @@ _No notable changes._
 - improvements ([`77f4b1f`](https://github.com/EvaisaDev/OpenSpeaker/commit/77f4b1f))
 - WIP ([`7c22dbc`](https://github.com/EvaisaDev/OpenSpeaker/commit/7c22dbc))
 - Initial commit ([`52f0c5d`](https://github.com/EvaisaDev/OpenSpeaker/commit/52f0c5d))
+
 
 
 

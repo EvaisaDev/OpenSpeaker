@@ -4,6 +4,7 @@ using Lua;
 using Lua.Standard;
 using NAudio.Wave;
 using Newtonsoft.Json.Linq;
+using OpenSpeaker.Extensions.Native;
 using OpenSpeaker.Import;
 using OpenSpeaker.Infrastructure.Logging;
 using OpenSpeaker.Input;
@@ -59,6 +60,7 @@ public class LuaExtension : IDisposable
     private KeybindService? _keybinds;
     private IAppLogger? _logger;
     private string _extensionDir = string.Empty;
+    private NativeLuaHost? _native;
 
     public string ExtensionId { get; private set; } = string.Empty;
     public string DisplayName { get; private set; } = string.Empty;
@@ -109,6 +111,7 @@ public class LuaExtension : IDisposable
         ext._extensionDir = Path.GetDirectoryName(Path.GetFullPath(luaFilePath)) ?? string.Empty;
         ext.RegisterApisOn(ext._state);
         await ext.ConfigurePackagePathAsync();
+        ext._native = NativeLuaHost.Install(ext._state, ext._extensionDir, logger);
         await ext._state.DoFileAsync(luaFilePath);
 
         var extFnVal = ext._state.Environment["Extension"];
@@ -1285,6 +1288,7 @@ public class LuaExtension : IDisposable
         foreach (var client in _wsClients.Values) client.Dispose();
         _wsClients.Clear();
         _http.Dispose();
+        try { _native?.Dispose(); } catch { }
         _stateLock.Dispose();
         _disposeCts.Dispose();
     }

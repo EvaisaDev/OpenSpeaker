@@ -91,6 +91,45 @@
     <Copy SourceFiles="@(MoveAfterFiles)" DestinationFiles="@(MoveAfterFiles->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
+  <PropertyGroup>
+    <LuaShimSourceDir>$(MSBuildProjectDirectory)\Native\LuaShim\</LuaShimSourceDir>
+    <LuaShimIncludeDir>$(MSBuildProjectDirectory)\Content\docs\native\include\</LuaShimIncludeDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <LuaShimInputs Include="$(LuaShimSourceDir)*.c;$(LuaShimSourceDir)*.h;$(LuaShimIncludeDir)*.h" />
+  </ItemGroup>
+
+  <Target Name="FindMsvcForLuaShim" BeforeTargets="BuildLuaShim">
+    <PropertyGroup>
+      <VsWherePath>$(MSBuildProgramFiles32)\Microsoft Visual Studio\Installer\vswhere.exe</VsWherePath>
+      <LuaShimOutDir>$([MSBuild]::EnsureTrailingSlash('$([System.IO.Path]::GetFullPath('$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'luashim'))'))'))</LuaShimOutDir>
+    </PropertyGroup>
+    <Exec Condition="Exists('$(VsWherePath)')" Command="&quot;$(VsWherePath)&quot; -latest -prerelease -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="LuaShimVsPath" />
+    </Exec>
+    <PropertyGroup>
+      <LuaShimVcVars>$(LuaShimVsPath)\VC\Auxiliary\Build\vcvars64.bat</LuaShimVcVars>
+      <LuaShimCanBuild Condition="'$(LuaShimVsPath)' != '' And Exists('$(LuaShimVcVars)')">true</LuaShimCanBuild>
+    </PropertyGroup>
+    <Warning Condition="'$(LuaShimCanBuild)' != 'true'" Text="MSVC (Desktop development with C++) was not found, so lua54.dll was not built. Lua extensions will not be able to load native modules." />
+  </Target>
+
+  <Target Name="BuildLuaShim" AfterTargets="Build" DependsOnTargets="FindMsvcForLuaShim" Inputs="@(LuaShimInputs)" Outputs="$(LuaShimOutDir)lua54.dll" Condition="'$(OS)' == 'Windows_NT'">
+    <MakeDir Directories="$(LuaShimOutDir)" />
+    <Exec Condition="'$(LuaShimCanBuild)' == 'true'" WorkingDirectory="$(LuaShimOutDir)" Command="call &quot;$(LuaShimVcVars)&quot; &gt;nul &amp;&amp; cl /nologo /LD /O2 /W4 /wd4324 /D_CRT_SECURE_NO_WARNINGS /std:c11 /DLUA_BUILD_AS_DLL /DLUA_CORE /I&quot;$(LuaShimIncludeDir.TrimEnd('\'))&quot; &quot;$(LuaShimSourceDir)osn_core.c&quot; &quot;$(LuaShimSourceDir)osn_aux.c&quot; /Fe:lua54.dll /link /IMPLIB:lua54.lib" />
+  </Target>
+
+  <Target Name="CopyLuaShim" AfterTargets="BuildLuaShim" DependsOnTargets="FindMsvcForLuaShim">
+    <Copy Condition="Exists('$(LuaShimOutDir)lua54.dll')" SourceFiles="$(LuaShimOutDir)lua54.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy Condition="Exists('$(LuaShimOutDir)lua54.lib')" SourceFiles="$(LuaShimOutDir)lua54.lib" DestinationFolder="$(OutDir)docs\native\lib" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyLuaShimOnPublish" AfterTargets="Publish" DependsOnTargets="FindMsvcForLuaShim">
+    <Copy Condition="Exists('$(LuaShimOutDir)lua54.dll')" SourceFiles="$(LuaShimOutDir)lua54.dll" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+    <Copy Condition="Exists('$(LuaShimOutDir)lua54.lib')" SourceFiles="$(LuaShimOutDir)lua54.lib" DestinationFolder="$(PublishDir)docs\native\lib" SkipUnchangedFiles="true" />
+  </Target>
+
   <Target Name="CopyNativeDllsOnPublish" AfterTargets="Publish">
     <ItemGroup>
       <AzureNativeDlls Include="$(NuGetPackageRoot)microsoft.cognitiveservices.speech\1.40.0\runtimes\win-x64\native\*.dll" />
